@@ -1,0 +1,126 @@
+---
+title: Auth Guidelines for Next.js 16
+description: Guidelines for implementing protected app content in Next.js 16 applications.
+---
+
+Protected pages and authentication-gated content are notoriously hard to get right in a Next.js app.
+That is amplified by the fact that best practices have changed across Next.js versions and the documentation and community best practices are not always up-to-date.
+Here, we aim to provide a clear, up-to-date mental model for implementing auth in Next.js 16.
+
+---
+
+## The mental model
+There are four places where auth logic can live, but they serve different purposes. 
+The current Next.js position is explicit about this: don't put all your auth in one place, and especially don't make `proxy.ts` formerly `middleware.ts`) the security boundary.
+The layers, from outermost to innermost:
+
+1. **`proxy.ts`** (Next.js 16+, renamed from `middleware.ts`) — optimistic cookie presence checks and fast redirects only
+2. **Server Components / Pages** — UI-level gating
+3. **Data Access Layer (DAL)** — the actual security boundary
+4. **Server Actions and Route Handlers** — treat each as an independent entry point
+
+**Layouts are deliberately missing** from that list. 
+Due to Partial Rendering, you should be cautious when doing checks in Layouts as these don't re-render on navigation, meaning the user session won't be checked on every route change. 
+That's why the old "stick it in a protected layout" pattern is no longer recommended.
+
+
+## What changed in Next.js 16
+The rename to `proxy.ts` is a philosophical shift, not just a cosmetic one. 
+Next.js is moving forward to provide better APIs with better ergonomics so that developers can achieve their goals without Middleware. 
+They recommend users avoid relying on Middleware unless no other options exist. 
+The driver was a March 2025 CVE where an `X-Middleware-Subrequest` header could bypas middleware-based auth entirely. 
+
+The framework's official stance now is: **Auth at the network edge is not a security boundary, it's a UX optimization.**
+
+## Where each piece belongs
+
+### `proxy.ts`
+
+Use it for optimistic checks and redirects only: 
+*"Does a session cookie exist? If not, redirect to /login before we even render anything."* 
+That's it. 
+No DB lookups, no JWT verification, no role checks.
+
+```ts
+// proxy.ts
+import { NextRequest, NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
+
+const protectedRoutes = ['/dashboard', '/settings']
+
+export async function proxy(req: NextRequest) {
+  const path = req.nextUrl.pathname
+  const isProtected = protectedRoutes.some(p => path.startsWith(p))
+  
+  const session = (await cookies()).get('session')?.value
+  
+  if (isProtected && !session) {
+    return NextResponse.redirect(new URL('/login', req.nextUrl))
+  }
+  
+  return NextResponse.next()
+}
+  ```
+
+The official docs are explicit: 
+Proxy is not intended for slow data fetching. 
+While Proxy can be helpful for optimistic checks such as permission-based redirects, it should not be used as a full session management or authorization solution.
+
+### Data Access Layer (DAL)
+This is where the actual `verifySession()` lives — decrypt the cookie, validate against the DB, return the user or throw. Every data-fetching function calls this. Never trust that the proxy ran.
+
+```ts
+// app/lib/dal.ts
+import 'server-only'
+import { cookies } from 'next/headers'
+import { cache } from 'react'
+import { decrypt } from '@/app/lib/session'
+
+export const verifySession = cache(async () => {
+  const cookie = (await cookies()).get('session')?.value
+  const session = await decrypt(cookie)
+  
+  if (!session?.userId) {
+    redirect('/login')
+  }
+  
+  return { isAuth: true, userId: session.userId }
+})
+
+export const getUser = cache(async () => {
+  const session = await verifySession()
+  // DB query here
+})
+```
+
+React's `cache()` deduplicates the call so calling `verifySession()` from page, layout, and three data fetches in the same render only runs once.
+
+### Server Components / Pages
+For role-based gating or rendering decisions, call `verifySession()` directly in the page. Don't put it in a layout.
+```ts
+// app/dashboard/page.tsx
+import { verifySession } from '@/app/lib/dal'
+
+export default async function Dashboard() {
+  const session = await verifySession()
+  // proceed
+}
+```
+
+### Server Actions and Route Handlers
+Each one re-verifies.
+Server actions are like API routes. 
+They could be called by an external user by calling the server action URL directly.
+**A Server Action with no auth check is an unauthenticated endpoint, full stop** — the fact that it's only invoked from a "protected" page in your UI is irrelevant.
+
+## The "once and for all" answer
+| Concern                                      | Where it goes                          |
+|----------------------------------------------|----------------------------------------|
+| Fast redirect for unauthenticated users (UX) | proxy.ts — optimistic cookie check     |
+| "Is the user actually who they claim to be?" | DAL (verifySession)                    |
+| Role/permission gating of UI                 | Inside a server component, calling DAL |
+| Protecting a Server Action                   | Inside the action, calling DAL         |
+| Protecting a Route Handler                   | Inside the handler, calling DAL        |
+| Protecting layouts                           | **Don't** — gate the page instead      |
+
+The core insight: stop thinking of auth as a single gate. Think of it as an assertion that every sensitive operation makes for itself, with the proxy doing nothing more than saving a render when the session cookie is obviously missing.

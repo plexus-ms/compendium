@@ -1,0 +1,4 @@
+- SENOM: Simple, Easy, NO Magic
+- DRY: Don't Repeat Yourself
+- YAGNI: You Aren't Gonna Need It
+- R/G TDD

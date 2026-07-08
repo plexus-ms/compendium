@@ -1,0 +1,66 @@
+---
+title: Favicon Guidelines for Next.js 16
+description: Guidelines for implementing favicons in Next.js 16 applications.
+---
+
+<Callout title="TL;DR">
+Check three files into `app/`: `favicon.ico` (32×32), `icon.svg`, and `apple-icon.png` (180×180). Don't ship more unless you're building a PWA. Don't ship fewer unless you're fine with broken icons in link previews and older clients.
+</Callout>
+
+## Why three files, not one
+
+SVG favicon support is finally universal in 2026 — Chrome 80+, Firefox 41+, Edge 80+, and Safari 26.1+ (incl. iOS). In theory, a single `icon.svg` is enough for modern browsers.
+
+In practice, three gaps remain:
+
+- **`/favicon.ico` requests bypass your HTML.** RSS readers, link-preview crawlers, monitoring tools, and old corporate proxies request `/favicon.ico` from the site root directly. No `<link>` tag, no fallback negotiation. A missing file = 404s in your logs and missing icons in those clients.
+- **Safari < 26.1 still in the field.** Safari 26.1 shipped late 2025. The long tail of macOS users without the update sees nothing if SVG is your only option.
+- **iOS home screen wants PNG.** The Web App Manifest spec doesn't accept SVG for installable icons. `apple-touch-icon` must be PNG.
+
+The `.ico` file is ~1–2 KB and downloaded in the background. Removing it saves nothing meaningful and breaks edge cases.
+
+## File layout
+
+```
+app/
+├── favicon.ico         # 32×32 ICO
+├── icon.svg            # source of truth, any square viewBox
+├── apple-icon.png      # 180×180 PNG
+└── layout.tsx
+```
+
+Next.js auto-generates the correct `<link>` tags. **Do not also set `metadata.icons` in `layout.tsx`** — it conflicts with the file convention and can cause duplicate tags.
+
+The rendered `<head>` will contain:
+
+```html
+<link rel="icon" href="/favicon.ico" sizes="32x32" />
+<link rel="icon" href="/icon?<hash>" type="image/svg+xml" sizes="any" />
+<link rel="apple-touch-icon" href="/apple-icon?<hash>" type="image/png" sizes="180x180" />
+```
+
+## Required dimensions
+
+| File | Size | Purpose |
+|---|---|---|
+| `favicon.ico` | 32×32 | Legacy browsers, RSS readers, root `/favicon.ico` requests |
+| `icon.svg` | any square viewBox | Modern browser tabs |
+| `apple-icon.png` | 180×180 | iOS home screen / Safari pinned tabs |
+
+For PWAs, add to `public/` and reference from a `manifest.webmanifest`:
+
+| File | Size | Notes |
+|---|---|---|
+| `icon-192.png` | 192×192 | Android home screen |
+| `icon-512.png` | 512×512 | PWA splash screen |
+| `icon-mask.png` | 512×512 | Maskable; logo inside 409×409 safe zone |
+
+
+## Gotchas
+
+- **`favicon.ico` must live at the top level of `app/`.** Subdirectory placement is silently ignored. `icon.*` and `apple-icon.*` can be nested per route segment if you genuinely need per-section icons (rare).
+- **You cannot generate `favicon.ico` dynamically.** Next.js's `icon.tsx` / `ImageResponse` route works for `icon` and `apple-icon` only.
+- **Favicons are aggressively cached.** When testing changes locally: hard refresh (Ctrl/Cmd+Shift+R), or delete `.next/` and rebuild. Don't trust the tab icon until you've verified `/favicon.ico` directly in the network tab.
+
+## Resources
+- https://realfavicongenerator.net/

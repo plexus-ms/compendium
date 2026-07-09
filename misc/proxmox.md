@@ -3,8 +3,6 @@ title: Proxmox
 description: Miscellaneous Proxmox tips and tricks.
 ---
 
-# Proxmox
-
 ## Disable Subscription Notice
 
 Run this command on the Proxmox host:

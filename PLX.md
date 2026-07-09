@@ -1,12 +1,12 @@
 ---
-title: PLX -- The Plexus Standard
+title: PLX — The Plexus Standard
 short_title: PLX
 description: A comprehensive, opinionated, federated IT initiative. Standardized, boring, yours.
 ---
 
 *A comprehensive, opinionated, federated IT initiative. Standardized, boring, yours.*
 
-**Revision:** v0 -- Request for Comments.
+**Revision:** v0 — Request for Comments.
 
 This document is intended for Plexus contributors, and anyone operating any Plexus-governed tenant.
 
@@ -30,11 +30,11 @@ They should be made up of reusable, ideally stateless primitives that have clear
 
 1. **Fog is a structure problem, not a discipline problem.**
   Fog is not fixed by promising to document more; documentation written *next to* a system drifts and rots.
-  The fix is making the artifacts *be* the documentation, and **make everything as well-structured as possible -- simple, easy, no magic.**
+  The fix is making the artifacts *be* the documentation, and **make everything as well-structured as possible — simple, easy, no magic.**
   If every project answers *"how do I run you?"* the same executable way, nothing needs to be remembered.
 
 2. **Autopilot has a precise mechanism:** 
-  Decide once, encode the decision in a versioned primitive, and **compose primitives instead of reinventing the wheel -- don't repeat yourself.**
+  Decide once, encode the decision in a versioned primitive, and **compose primitives instead of reinventing the wheel — don't repeat yourself.**
   Most efforts get the first two steps and skip the third, or don't properly consider propagation. 
 
 
@@ -49,7 +49,8 @@ Ideally, assumptions and constraints should be documented or clearly apparent to
 - **Have state in Git, runnable, greppable.** 
   Control planes and other heavyweight ITOps applications routinely create opaque and stateful abstraction layers that are hard to see through and debug.
   They achieve developer experience gains with abstractions that might be referred to as "magic" or "black boxes".
-  Also, they often rely on a database for state management, which results in the Git repository no longer being the single source of truth.
+  Also, they often rely on a database for state management, which displaces the Git repository as the source of truth.
+  In Plexus, git owns *intent and definition*; the runtime owns *current state* — what is live right now is read from the host itself, never from a bookkeeping database (see § 5).
   Such tools, frameworks and managed services (e.g. Coolify, Dokploy, Vercel) are deliberately not part of Plexus for exactly these reasons.
 - **Primitives should rarely remember anything.** 
   Primitives are best reused when authored as "verbs" / stateless procedures (deploy, backup, CI steps) and conventions (labels, file structures, endpoints), and then mounted on event and state sources that already exist. 
@@ -103,9 +104,9 @@ What spans the tenants is **separate trust domains sharing a *methodology*, not 
 
 - **`plexus-ms/library`** — the *Plexus Library* monorepo (neutral namespace) — publishes the shared `@plexus-ms/*` packages. Read by all tenants.
 - **`plexus-ms/preset`** — the **copier template** every tenant monorepo is generated from and re-synced against (`copier update`). The neutral monorepo starter.
-- **`plexus-ms/itops`** — the ops side's shared building blocks, referenced by version tag from every tenant repo, in **three artifact classes** (see §5): the **verbs** (`scripts/` — portable bash, all the logic), the **workflow wrappers** (`.github/workflows/` — thin `workflow_call` mounts), and the **Ansible collection** (`ansible/` — the shared `plexus.itops` roles every tenant playbook binds to its own inventory). One tag versions all three atomically; the repo has no CI of its own.
+- **`plexus-ms/itops`** — the ops side's shared building blocks, referenced by version tag from every tenant repo, in **three artifact classes** (see § 5): the **verbs** (`scripts/` — portable bash, all the logic), the **workflow wrappers** (`.github/workflows/` — thin `workflow_call` mounts), and the **Ansible collection** (`ansible/` — the shared `plexus.itops` roles every tenant playbook binds to its own inventory). One tag versions all three atomically; the repo has no CI of its own.
 - **One GitHub org (or account) per tenant** — org membership governs code access; a person in tenant A's org is simply not in tenant B's. The public dogfooding tenant (`plexus`) lives under `plexus-ms`.
-- **One monorepo per tenant** — `<org>/<tenant>` (e.g. `plexus-ms/plexus`) holds **both** `apps/` (the tenant's applications — pnpm workspace + mise monorepo) **and** `infra/` (Ansible inventory, host/VM definitions, that tenant's deployment configs — the kitchen's layout). Apps and the platform that runs them version together; safe because a monorepo is one access boundary (§6). Generated from `plexus-ms/preset`.
+- **One monorepo per tenant** — `<org>/<tenant>` (e.g. `plexus-ms/plexus`) holds **both** `apps/` (the tenant's applications — pnpm workspace + mise monorepo) **and** `infra/` (Ansible inventory, host/VM definitions, that tenant's deployment configs — the kitchen's layout). Apps and the platform that runs them version together; safe because a monorepo is one access boundary (§ 6). Generated from `plexus-ms/preset`.
 
 ### § 3.4 The JS/TS toolchain convention (decided v0.1)
 
@@ -119,7 +120,7 @@ The concrete stack every Plexus JS/TS repo uses, each choice made to pass the se
 
 ### § 3.5 Publishing the `@plexus-ms/*` packages
 
-Cross-tenant sharing means **published, versioned packages** (§6), published to **public npmjs** under the `@plexus-ms` scope, versioned by **changesets** (merge a "version packages" PR → CI publishes), with **npm provenance** — a signed attestation, generated in CI via OIDC, linking each published version to the exact source commit and workflow that built it. Going public (rather than a private registry) is consistent with `@plexus-ms/*` being tenant-neutral *methodology, not substance* — which makes one guardrail load-bearing: **never put tenant substance (business logic, secrets, anything tenant-specific) in a public `@plexus-ms/*` package.**
+Cross-tenant sharing means **published, versioned packages** (§ 6), published to **public npmjs** under the `@plexus-ms` scope, versioned by **changesets** (merge a "version packages" PR → CI publishes), with **npm provenance** — a signed attestation, generated in CI via OIDC, linking each published version to the exact source commit and workflow that built it. Going public (rather than a private registry) is consistent with `@plexus-ms/*` being tenant-neutral *methodology, not substance* — which makes one guardrail load-bearing: **never put tenant substance (business logic, secrets, anything tenant-specific) in a public `@plexus-ms/*` package.**
 
 How the release runs:
 
@@ -135,7 +136,7 @@ The library and the apps version and release by completely different physics, so
 |---|---|---|
 | Output | published `@plexus-ms/*` packages | a deployed running service |
 | "Version" | semver in the registry | the git SHA / image tag that's live |
-| Release tool | **changesets** | **none** — the deploy verb (§5) |
+| Release tool | **changesets** | **none** — the deploy verb (§ 5) |
 | Branch model | **single `main`** (trunk-based) | **environment branches**: `main`→prod, `develop`→staging |
 | Release trigger | merge the "version packages" PR → publish | merge to the env branch → build image → deploy |
 
@@ -143,16 +144,16 @@ The library and the apps version and release by completely different physics, so
 
 **Why apps use environment branches.** An app has no version number to reconcile — a release *is* a deploy keyed by git SHA — so the back-merge problem vanishes. Branches map to deploy targets (`develop`→staging, `main`→prod); "promote staging to prod" is merging `develop → main`. Apps therefore do **not** use changesets at all.
 
-This is the §6 dependency-mechanics rule applied to release flow: changesets lives only where something is *published across a tenant boundary* (the library). Within a tenant, packages are `workspace:*` deps and apps are deployed — neither needs it.
+This is the § 6 dependency-mechanics rule applied to release flow: changesets lives only where something is *published across a tenant boundary* (the library). Within a tenant, packages are `workspace:*` deps and apps are deployed — neither needs it.
 
 
 ## § 4 The app contract
 
-Small, verb-shaped, and identical for every stack. The contract is the § 3.1 seam made explicit — the set of *questions the platform (ops) asks of an app (dev)*; any stack that answers them is conformant. Both **PayloadCMS + MongoDB** and **Prisma + Postgres** satisfy it identically.
+Small, verb-shaped, and identical for every stack. The contract is the § 3.1 seam made explicit — the set of *questions the platform (ops) asks of an app (dev)*; any stack that answers them is conformant. **PayloadCMS + MongoDB**, **Prisma + Postgres**, and a non-JS **Django + Postgres** app all satisfy it identically.
 
 Every Plexus app repo MUST provide:
 
-- **`mise.toml` with the standard verbs** — at minimum `mise :dev`, `mise :migrate` (idempotent), `mise :seed`, `mise :test`. "What was the migration command again?" stops being a memory question; the answer is always `mise :migrate`, and the mise task encodes the real incantation. Toolchain pinned in `mise.toml` (the single authority — never in `package.json`) so setup is `git clone && mise :dev` everywhere. See §3.4.
+- **`mise.toml` with the standard verbs** — at minimum `mise :dev`, `mise :migrate` (idempotent), `mise :seed`, `mise :test`. "What was the migration command again?" stops being a memory question; the answer is always `mise :migrate`, and the mise task encodes the real incantation. Toolchain pinned in `mise.toml` (the single authority — never in `package.json`) so setup is `git clone && mise :dev` everywhere. See § 3.4.
 - **`compose.yml`** declaring the app and its **app-owned** infrastructure (e.g. its own Postgres/Mongo container). Default to one DB container per app — full isolation, dies with the app. Data services carry labels: `plexus.tenant=<id>`, `plexus.backup=<postgres|mongo|...>`.
 - **An env schema file** — declares what env the app needs; secrets injected at deploy time from the tenant's secrets vault, never committed.
 - **A healthcheck** — `GET /healthz` returns 200 when ready.
@@ -253,7 +254,7 @@ A monorepo has **one** access boundary, so it **cannot span tenants** without di
 > **Does the shared thing cross a tenant boundary? Yes → publish a versioned package. No → workspace dependency.**
 
 - **Within a tenant:** monorepo + pnpm workspaces. Instant edits, atomic cross-package commits, no publish overhead — and safe because it's one access boundary.
-- **Across tenants (`@plexus-ms/*`):** published + versioned to **public npmjs** (`@plexus-ms` scope; see §3.5). This is the *only* mechanism that crosses org boundaries, and it buys decoupled upgrade timing (app A pins `^2`, upgrades when *it* chooses) and Renovate propagation (Renovate needs a version to detect). The publish "overhead" is the thing buying the stability — and it collapses to near-nothing when automated: changesets opens a release PR on merge, CI publishes with provenance, Renovate auto-opens consumer PRs, CI-green patch/minor auto-merge. The human steps become "write the change, review the auto-PRs."
+- **Across tenants (`@plexus-ms/*`):** published + versioned to **public npmjs** (`@plexus-ms` scope; see § 3.5). This is the *only* mechanism that crosses org boundaries, and it buys decoupled upgrade timing (app A pins `^2`, upgrades when *it* chooses) and Renovate propagation (Renovate needs a version to detect). The publish "overhead" is the thing buying the stability — and it collapses to near-nothing when automated: changesets opens a release PR on merge, CI publishes with provenance, Renovate auto-opens consumer PRs, CI-green patch/minor auto-merge. The human steps become "write the change, review the auto-PRs."
 - *Bootstrap shortcut only:* static config (tsconfig/biome) may be pulled by git-dep/`degit` into the copier template on day one, replaced by proper publishing once stable. Never for the std.
 
 
@@ -262,7 +263,7 @@ A monorepo has **one** access boundary, so it **cannot span tenants** without di
 Written down so these are *decisions*, not drift:
 
 - **Komodo (thin git-native deploy UI)** — trial after the foundation is stable, if a dashboard is wanted. Not before.
-- **An orchestrator (e.g. vanilla Kestra)** — only on the §5 triggers (multi-host dependent workflows, approvals, unmanageable schedule count, replay needs).
+- **An orchestrator (e.g. vanilla Kestra)** — only on the § 5 triggers (multi-host dependent workflows, approvals, unmanageable schedule count, replay needs).
 - **Kubernetes** — only on genuine multi-node scheduling / contractual HA-SLA / team-coordination needs. Not anticipated for years.
 - **Moving a commercial tenant off the shared box** — the day a tenant has a customer with real data-processing expectations (anything in a regulated domain), revisit migrating that tenant's VMs to metal it controls itself. Not because the hypervisor stops isolating, but because "dedicated, tenant-only" can be a *commercial/trust* requirement independent of the technical reality. The one-VM-per-tenant rule already keeps this migration path clean.
 - **Preview environments per PR** — deferred deliberately. A single `staging` per app covers ~90% of the value; revisit when a product has real customers.

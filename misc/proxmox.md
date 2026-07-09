@@ -1,7 +1,11 @@
 ---
-title: Disable Proxmox Subscription Notice
-description: One-liner to disable the Proxmox "No valid subscription" dialog.
+title: Proxmox
+description: Miscellaneous Proxmox tips and tricks.
 ---
+
+# Proxmox
+
+## Disable Subscription Notice
 
 Run this command on the Proxmox host:
 

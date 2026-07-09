@@ -1,0 +1,24 @@
+name: Notify website
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  revalidate:
+    runs-on: ubuntu-latest
+    env:
+      TOKEN: ${{ secrets.WEBSITE_REVALIDATE_TOKEN }}
+    steps:
+      - name: Trigger on-demand revalidation
+        if: env.TOKEN != ''
+        run: |
+          curl -fsS -X POST --retry 3 \
+            -H "Authorization: Bearer $TOKEN" \
+            https://plexus-ms.org/compendium/revalidate
+      - name: Skip (no token configured)
+        if: env.TOKEN == ''
+        run: echo "WEBSITE_REVALIDATE_TOKEN secret is not set; skipping revalidation."

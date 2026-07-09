@@ -29,7 +29,7 @@ That's why the old "stick it in a protected layout" pattern is no longer recomme
 The rename to `proxy.ts` is a philosophical shift, not just a cosmetic one. 
 Next.js is moving forward to provide better APIs with better ergonomics so that developers can achieve their goals without Middleware. 
 They recommend users avoid relying on Middleware unless no other options exist. 
-The driver was a March 2025 CVE where an `X-Middleware-Subrequest` header could bypas middleware-based auth entirely. 
+The driver was a March 2025 CVE where an `X-Middleware-Subrequest` header could bypass middleware-based auth entirely. 
 
 The framework's official stance now is: **Auth at the network edge is not a security boundary, it's a UX optimization.**
 

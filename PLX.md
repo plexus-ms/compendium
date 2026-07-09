@@ -95,6 +95,7 @@ Ideally, assumptions and constraints should be documented or clearly apparent to
 - **Methodology crosses tenant lines; authority never does.** 
   Improvements in shared primitives federate to all tenants.
   Root, secrets, and data access stay siloed per tenant.
+  The one honest exception — the shared supply chain — is named and mitigated in § 4.2.
 
 ### Litmus tests to stay honest over time
 
@@ -127,6 +128,8 @@ What spans the tenants is **separate trust domains sharing a *methodology*, not 
 - **Shared across all tenants (the methodology):** the contract, the `@plexus-ms/*` config/lib packages, the reusable CI workflow, the deploy verb, the copier template, the Ansible *roles*, the doctrine. Knowledge, and code-shaped-as-knowledge. No tenant owns it.
 - **Never shared (the substance):** hosts and root access, git org/repo access, secrets vaults, databases, backups, domains. These MUST remain partitioned by tenant.
 
+**One channel does cross tenant lines: the supply chain.** Whoever controls `plexus-ms` ships code that runs with root on every tenant's hosts (the Ansible roles), inside every tenant's CI (secrets in scope), and inside every tenant's apps (the packages) — with patch/minor updates auto-merged when CI is green (§ 8). "Authority never crosses tenant lines" therefore has one honest exception: the standard itself is a trust channel, and adopting it means trusting its maintainers. The mitigations are structural, not promises: everything arrives *versioned and pinned*, so a tenant upgrades when it chooses (auto-merge narrows that to patch/minor — set per tenant risk appetite); npm packages carry provenance attestations binding each version to its source commit and build; the shared repos are public and every change is reviewable. One sharp edge is accepted knowingly: the `itops` `@vN` references are git tags, which are movable — unlike npm versions, a retargeted tag silently changes what every tenant executes, with no attestation. A tenant needing stronger guarantees MAY pin `itops` references by commit SHA instead; v0 accepts the tag-vs-SHA trade-off (readability and Renovate flow over immutability) as a deliberate decision.
+
 **Tenants may share bare metal — with eyes open.** At small scale, pooling workloads on one physical host is the correct economics, and virtualization draws the boundary: tenants sharing a host MUST be separated one VM per tenant (never co-mingling tenants inside a VM), with everything else — Docker, ingress, secrets vault, backups, domains — kept per-VM as well. Be clear about what virtualization does and does not buy: it solves performance and fault isolation, but it *centralizes* access rather than partitioning it — the hypervisor has God-mode over every VM, so the host is tier-0 (no workloads on it, access locked down, its own VM-image backups; its compromise is everyone's) — and it does nothing for legal controllership: distinct legal persons sharing one box under one admin MUST document the arrangement in writing (a one-page boundary document plus a data-processing agreement, e.g. an AVV/DPA where the GDPR applies).
 
 **Tenant identifier** — every tenant MUST have a short slug (e.g. `acme`, `initech`, and `plexus` itself, the project dogfooding its own standard) that threads through: forge org names, VM hostnames, Ansible inventory groups, vault names, and a `plexus.tenant=` label, which every deployed service MUST carry. That label makes the boundary visible exactly where fog otherwise creeps back in — staring at a host wondering whose service this is — and gives the monitoring view free grouping by tenant.
@@ -141,6 +144,8 @@ What spans the tenants is **separate trust domains sharing a *methodology*, not 
 ## § 5 The dev side
 
 How Plexus software is *built*: the pinned toolchain, the shared packages, and the release models. These are the dev side of § 4.1; their ops counterparts are the primitives of § 7, and the contract between the two sides is § 6.
+
+Scope, honestly: v0 standardizes the toolchain, the publishing mechanics, and the release models. The reusable application plumbing the § 3 boundary principle aims at — framework glue, common auth concerns, repeatable non-domain features — is future work, deferred with its trigger in § 9; until it exists, that plumbing lives in the app that needs it.
 
 ### § 5.1 The JS/TS toolchain convention
 
@@ -161,6 +166,8 @@ How the release runs:
 - **Two phases.** Changesets accumulate on `main`; `changesets/action` opens a "version packages" PR that bumps versions + writes changelogs; merging it publishes. The only manual step is recording a changeset (`changeset` interactively) — versioning and publishing run in CI, never locally. PRs run `lint/typecheck/test/build` plus a `changeset status` guard that fails when a publishable change ships without a changeset.
 - **Token-less via OIDC.** Publishing authenticates through GitHub OIDC *trusted publishing* (`id-token: write`), not a stored npm token — which also makes provenance automatic. *Bootstrap caveat:* a package can't be registered as a trusted publisher until it exists, so each package's **first** publish is a one-time manual `npm publish`; CI takes over after.
 - **Tags + GitHub Releases are automatic** (`changeset publish` tags each `@plexus-ms/<pkg>@x.y.z`, the action pushes them and cuts a Release from the changelog). The release branch is protected by a ruleset requiring the CI checks.
+
+**Package-design rules.** A `@plexus-ms/*` package MUST be tenant-neutral methodology (the guardrail above). Code utilities SHOULD start in `std` — the standard library is the default home for any small shared concern — and a concern graduates to its own package once it has its own audience or its own release cadence (a consumer shouldn't take updates because an unrelated helper changed). Tool configs (`biome-config`, `tsconfig`) are separate packages by construction: they exist to be one-line `extends` targets. **API stability:** packages follow semver, enforced by changesets — a breaking change MUST be a major bump, and its changeset SHOULD carry a migration note so the changelog doubles as the upgrade guide.
 
 ### § 5.3 Branching & release model — different per repo type
 
@@ -301,6 +308,7 @@ Written down so these are *decisions*, not drift:
 - **An orchestrator (e.g. vanilla Kestra)** — only on the § 7 triggers (multi-host dependent workflows, approvals, unmanageable schedule count, replay needs).
 - **Kubernetes** — only on genuine multi-node scheduling / contractual HA-SLA / team-coordination needs. Not anticipated for years.
 - **Moving a commercial tenant off the shared box** — the day a tenant has a customer with real data-processing expectations (anything in a regulated domain), revisit migrating that tenant's VMs to metal it controls itself. Not because the hypervisor stops isolating, but because "dedicated, tenant-only" can be a *commercial/trust* requirement independent of the technical reality. The one-VM-per-tenant rule already keeps this migration path clean.
+- **Application-plumbing packages** — the § 3 "standardize boundaries" edges (framework glue, common auth concerns, repeatable non-domain features) as published `@plexus-ms/*` packages. Extract when a second app needs the same plumbing — never speculatively from the first; until then it lives in the app that needs it.
 - **Preview environments per PR** — deferred deliberately. A single `staging` per app covers ~90% of the value; revisit when a product has real customers.
 - **Per-tenant second admins** — provision lazily, only when a real second operator exists.
 

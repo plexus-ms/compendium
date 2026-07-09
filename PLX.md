@@ -1,5 +1,5 @@
 ---
-title: PLX — The Plexus Standard
+title: PLX — The Plexus.ms Standard
 short_title: PLX
 description: A comprehensive, opinionated, federated IT initiative. Standardized, boring, yours.
 version: v0
@@ -8,32 +8,51 @@ timestamp: 2026-07-09
 
 *A comprehensive, opinionated, federated IT initiative. Standardized, boring, yours.*
 
-**Revision:** v0 — Request for Comments.
+**Revision:** v0 — Draft, comments welcome.
 
 ## Abstract
 
-Plexus is a federation, not a platform: one tenant-neutral standard spanning dev to ops — published `@plexus-ms/*` packages and a pinned toolchain on the dev side (`library`), stateless verbs, CI wrappers, and Ansible roles on the ops side (`itops`), a copier template as the seam composing both into tenant monorepos (`preset`), and a tiny interface-shaped app contract where the two sides meet. Each tenant instantiates the standard into its own platform: one VM per tenant on shared tier-0 metal, with Caddy ingress, per-tenant secrets, and label-driven backups. Every primitive is stateless and passes the second-reader and degradation tests; state lives in git, the registry, the hosts, and the backup repo — never in a dashboard and never in your head. Improvements federate across all tenants automatically (Renovate, `copier update`); root, secrets, and data never do. The result is customer-1001 economics for your own infrastructure: each new project lands on the standard with near-zero overhead, and the fog lifts because nothing important is remembered — it's all runnable, greppable, and versioned.
+Plexus.ms is a comprehensive, opinionated, federated IT initiative:
+one tenant-neutral collection of guidelines, tools, and approaches, spanning dev to ops — published `@plexus-ms/*` packages and a pinned toolchain on the dev side (`library`), stateless verbs, CI wrappers, and Ansible roles on the ops side (`itops`), a template as the seam composing both into tenant monorepos (`preset`), and a tiny interface-shaped app contract where the two sides meet.
+Each tenant instantiates the standard into its own platform: 
+Virtual instance(s), optionally on shared metal, with ingress, secrets, backups, and observability. 
+Every primitive is as stateless as possible and passes the second-reader and degradation tests; 
+state lives in git, the registry, the hosts, and the backup repo — never in a dashboard and never in someone's head.
+Improvements federate across all tenants via the supply chain; root, secrets, and data never do.
+The result is customer-1001 economics:
+each new tenant and project lands on the standard with near-zero overhead, and the fog lifts.
 
-This document is intended for Plexus contributors, and anyone operating any Plexus-governed tenant.
+This document, referred to as "PLX – The Plexus.ms Standard", "PLX", "Plexus Standard", or simply "the standard", is the initiative's foundation.
+It intended for Plexus contributors, and anyone operating any Plexus-governed tenant.
 
-## Conformance language
 
-The key words **MUST**, **MUST NOT**, **SHOULD**, **SHOULD NOT**, and **MAY** are to be interpreted as described in [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119), and — per [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174) — only when they appear in ALL CAPITALS. Everything else is informative: rationale, description, or documentation of the reference stack.
+## Preamble
 
-**The reference stack.** Where a concrete tool is named without a conformance keyword — GitHub and GHCR, Caddy, restic and a Hetzner Storage Box, 1Password and `op`, Renovate — the document is describing the *reference stack*: the implementation the `plexus-ms` repos are built for and the paved road (§ 4.1) assumes. Requirements are written tool-agnostically where possible; a tenant MAY substitute an equivalent for a reference-stack tool, but owns the divergence — the shared wrappers, roles, and presets target the reference stack only.
+*The key words **MUST**, **MUST NOT**, **SHOULD**, **SHOULD NOT**, and **MAY** are to be interpreted as described in [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119) when they appear in ALL CAPITALS. 
+Everything else is informative rationale, description, or documentation.*
 
-**Versioning of this standard.** The frontmatter `version` identifies the revision of PLX itself — `v0` while the standard is a draft RFC, then `vMAJOR.MINOR` (e.g. `v1.0`) once live — and `timestamp` records its date. Each released version is cut as a git tag of the `compendium` repository (optionally a GitHub Release). Minor revisions are additive or clarifying: a repo conformant to `v1.0` remains conformant under every `v1.x`; only a major revision may change or remove requirements. The contract version a repo records in its `PLEXUS.md` (§ 6) is the PLX version it targets.
+*This standard is versioned. 
+The frontmatter `version` identifies the revision of PLX itself:
+`v0` while the standard is a draft, then `vMAJOR.MINOR` (e.g. `v1.0`) once live. The frontmatter `timestamp` records the version's date.
+Minor revisions are additive or clarifying:
+a repo conformant to `v1.0` remains conformant under every `v1.x`; only a major revision may change or remove requirements. 
+A repo records in its `PLEXUS.md` (§ 6) which PLX version it targets.*
+
+*Where concrete tools and services are named without a conformance keyword, that describes the **reference stack**:
+the stack that we, the maintainers, use in our own projects; the stack which `plexus-ms` repos were built for.
+Plexus is designed tool-agnostically where possible; 
+a tenant MAY substitute an equivalent for any reference-stack tool, but owns the divergence.*
 
 
 ## § 1 Why Plexus exists
 
-When one operator, or a small team, runs several projects for several organizations, the surface area grows organically, not by design. 
+When one IT operator, or a small team, runs several projects for several organizations, the surface area grows organically, not by design. 
 As it grows, the dominant felt experience becomes **mental fog**:
 losing track of what is deployed where, how configuration interacts, how to set up a given environment, and where one was mentally when last touching a project. 
 Every system is slightly bespoke, every deployment is a unique snowflake, the operator's head quietly becomes the database.
 Projects stay half-baked, never brought live properly, never documented enough for handoff.
 
-**Plexus is the response.** 
+**Plexus.ms is the response.** 
 It is neither a single product nor an opaque control plane. 
 It is a collection of opinionated guidelines, tools, and approaches, with philosophies derived from this document.
 They are intended to make doing the right thing the easy thing, so that each new project adds near-zero overhead.
@@ -44,34 +63,39 @@ They should be made up of reusable, ideally stateless primitives that have clear
 
 1. **Fog is a structure problem, not a discipline problem.**
   Fog is not fixed by promising to document more; documentation written *next to* a system drifts and rots.
-  The fix is making the artifacts *be* the documentation, and **make everything as well-structured as possible — simple, easy, no magic.**
+  The fix is making the artifacts *be* the documentation, and make everything as well-structured as possible — **simple, easy, no magic.**
   If every project answers *"how do I run you?"* the same executable way, nothing needs to be remembered.
 
 2. **Autopilot has a precise mechanism:** 
-  **decide once, encode the decision in a versioned primitive, and propagate it to every project automatically (§ 8).**
+  **decide once, encode the decision in a primitive, and propagate it to every project automatically (§ 8).**
   Most efforts get the first two steps and skip the third — and the propagation step is the whole game; without it every encoded decision is just another artifact that rots in place.
-  Composition follows from it: primitives with clear interfaces get composed instead of reinvented — don't repeat yourself.
+  Composition follows from it: primitives with clear interfaces get composed instead of reinvented — **don't repeat yourself**.
 
 
 ## § 2 Terminology
 
-The document's private vocabulary, defined once:
+The standard's private vocabulary, defined once:
 
-- **Tenant** — one trust domain in the federation: its own forge org, monorepo, VM(s), secrets vault, backups. Nominally a distinct legal person or organization, but the boundary that matters is *access*, not legal personality — `plexus` itself is a tenant (the standard dogfooding its own methodology) without being one. The mostly-1:1:1:1 chain of legal person : forge org : monorepo : VM is the § 4.2/§ 4.3 rule, not part of the definition.
-- **Primitive** — any named, versioned building block the standard ships or prescribes: a verb, a mount, an Ansible role, a published package, the copier template, or a convention (a label scheme, a file layout, an endpoint path). Decided once, versioned, reused — that is what makes something a primitive.
-- **Verb** — a stateless, hand-runnable procedure that does one operational thing (deploy, backup, migrate), authored as a portable script or mise task. The executable answer to *"how do I run you?"*.
-- **Mount** — the thin, disposable glue binding a verb or role to an event or state source it doesn't own: a workflow wrapper on forge events, a tenant playbook on an inventory, a systemd timer on the clock. Mounts carry no logic (§ 7).
-- **Methodology / substance** — the federation's sharing axis (§ 4.2): *methodology* is knowledge and code-shaped-as-knowledge, shared across all tenants; *substance* is data, secrets, access, hosts — never shared.
+- **Tenant** — one trust domain in the federation: its own forge org, monorepo, VM(s), secrets vault, backups.
+Nominally a distinct legal person or organization, but the boundary that matters is *access*, not legal personality — `plexus` itself is a tenant (the initiative dogfooding its own methodology) without being one.
+The mostly-1:1:1 chain of *legal entity : monorepo : operations platform* will be the usual rule, but is not part of the definition.
+- **Primitive** — any named guideline, tool, or approach the initiative ships or prescribes: a verb, a mount, an Ansible role, a published package, the copier template, a label scheme, a file layout, an endpoint path.
+Decided once, reused, versioned and published, or otherwise propagated.
+- **Verb** — a stateless, hand-runnable procedure that does one operational thing (deploy, backup, migrate, ...), authored in a portable manner.
+- **Mount** — the thin, disposable glue binding a verb or role to an event or state source it doesn't own: 
+a workflow wrapper on forge events, a tenant playbook on an inventory, a systemd timer on the clock.
+Mounts carry no logic.
+- **Methodology** and **substance** — the federation's sharing axis (§ 4.2): *methodology* is knowledge and code-shaped-as-knowledge, shared across all tenants; *substance* is data, secrets, access, hosts, and is never shared.
 - **Seam** — where the dev side and the ops side meet, made explicit as the app contract (§ 6).
-- **The paved road** — the composed default path (toolchain, CI, deploy, backup) a new project lands on with near-zero overhead (§ 4.1).
-- **Reference stack** — the concrete tool choices the paved road assumes; see *Conformance language* above.
+- **The paved road** — the composed default path (toolchain, CI, deploy, backup) a new project lands on with near-zero overhead.
+In pursuit of convenience and standardization, ties to the reference stack cannot be avoided on this road.
+- **Reference stack** — the concrete tool choices the paved road assumes; see preamble above.
 - **Fog** — the operational memory loss described in § 1; the failure mode Plexus exists to eliminate.
-- **`PLEXUS.md`** — the per-repo contract marker recording which PLX version the repo targets (§ 6). Deliberately distinct from `PLX.md`, this standard.
 
 
 ## § 3 Core principles
 
-These principles are the load-bearing philosophy of Plexus.
+These principles are PLX's load-bearing philosophy.
 
 However, they are not to be seen as non-negotiable, as in reality they will often be at odds with each other and require compromise, or will not be possible to implement at all.
 When architecting new primitives or reworking existing ones, trade-offs must be considered and a balance must be struck.
@@ -92,7 +116,7 @@ Ideally, assumptions and constraints should be documented or clearly apparent to
 - **Prefer "versioned dependency" over "copied scaffold".** 
   Publishing and versioning mechanisms should be preferred over copying and templating presets, where possible.
   Spending extra time extracting a shared package buys back many future hours of manual template sync.
-- **Methodology crosses tenant lines; authority never does.** 
+- **Have methodology cross tenant lines; never substance.** 
   Improvements in shared primitives federate to all tenants.
   Root, secrets, and data access stay siloed per tenant.
   The one honest exception — the shared supply chain — is named and mitigated in § 4.2.
@@ -105,41 +129,63 @@ Ideally, assumptions and constraints should be documented or clearly apparent to
 
 ## § 4 Architecture
 
-### § 4.1 The shape of the standard: two sides, one seam
+### § 4.1 Two sides, one seam
 
-Plexus is end-to-end: it standardizes both how software is *built* (dev) and how it is *run* (ops), because fog does not respect that border either. There is no hierarchy between these concerns — they are two ends of one spectrum, and the tenant-neutral repositories map onto it directly:
+Plexus is end-to-end: it standardizes both how software is *built* (development, dev) and how it is *run* (operations, ops).
+There is no hierarchy between these concerns — they are two ends of one spectrum, and the tenant-neutral repositories map onto it directly:
 
-| Repo | Side | Offering |
-|---|---|---|
-| **`library`** | **dev** | The published `@plexus-ms/*` packages for the web / Node / TypeScript world: shared tool configs (biome, tsconfig), the `std` utilities, and — over time — the reusable application plumbing (framework glue, common auth concerns, repeatable non-domain features) that keeps each app's domain core small (§ 3). Detail: § 5, § 8. |
-| **`itops`** | **ops** | The operations primitives: portable bash verbs, thin workflow wrappers that mount them on the forge, and the `plexus.itops` Ansible collection that provisions tenant hosts. Detail: § 7. |
-| **`preset`** | **the seam** | The monorepo starter: a copier template that composes both sides into a ready tenant monorepo — `apps/` consuming the library, `infra/` binding the Ansible collection — and keeps generated repos re-syncable via `copier update`. Detail: § 8. |
+| Repo | Offering |
+|---|---|
+| **`library`** – dev side, focused on web technologies | The published `@plexus-ms/*` packages for the web / Node / TypeScript world: shared tool configs (biome, tsconfig), the `std` utilities, and — over time — the reusable application plumbing (framework glue, common auth concerns, repeatable non-domain features) that keeps each app's domain core small (§ 3). For more, see § 5, § 8. |
+| **`itops`** – ops side, focused on GitOps and IaC | The operations primitives: portable bash verbs, thin workflow wrappers that mount them on the forge, and the `plexus.itops` Ansible collection that provisions tenant hosts. For more, see § 7. |
+| **`preset`** - uniting dev and ops sides with a web-focused starter | A copier template that composes both sides into a ready tenant monorepo — `apps/` consuming the library, `infra/` binding the Ansible collection — and keeps generated repos re-syncable via `copier update`. For more, see § 8. |
 
-The doctrine — this document, in the `compendium` repo — underpins all three and records the *why* behind every choice.
+The border between the sides is blurry, and that is fine.
+CI is dev-side checks on an ops-side mount; `mise :test` is authored dev-side and invoked by the deploy pipeline; the app contract (§ 6) is the seam made explicit — what ops asks of dev.
+What matters is never which side a primitive lives on, but that it is tenant-neutral and composable (§ 3).
 
-The border between the sides is blurry by design, and that is fine. CI is dev-side checks on an ops-side mount; `mise :test` is authored dev-side and invoked by the deploy pipeline; the app contract (§ 6) is the seam made explicit — the set of questions ops asks of dev. What matters is never which side a primitive lives on, but that it is tenant-neutral, versioned, and composable (§ 3).
-
-Together the three repos form the **paved road**: a new project lands on the whole standard — toolchain, CI, deploy, backup — with near-zero overhead, and keeps receiving improvements afterwards (§ 8). What none of them contain is any tenant's *substance*: each tenant instantiates the standard into its own monorepo and its own platform (hosts, ingress, secrets, backups) — § 4.2 covers that second axis.
+Together the three repos form the **paved road**: a new project lands on the whole **methodology** — toolchain, CI, deploy, backup — with near-zero overhead, and keeps receiving improvements afterwards (§ 8).
+What none of them contain is any tenant's **substance**: each tenant instantiates the standard into its own monorepo and its own platform (hosts, ingress, secrets, backups) — § 4.2 covers that axis.
 
 ### § 4.2 Federation, not multi-tenancy
 
-What spans the tenants is **separate trust domains sharing a *methodology*, not a *runtime*.** This is federation under a common standard — *one cookbook, many kitchens*. Identical methods and shared recipe updates; separate ingredients, separate staff, separate health inspections.
+What spans the tenants is **separate trust domains sharing a *methodology*, not a *runtime*.** 
+This is federation under a common standard — *one cookbook, many kitchens*. 
 
 - **Shared across all tenants (the methodology):** the contract, the `@plexus-ms/*` config/lib packages, the reusable CI workflow, the deploy verb, the copier template, the Ansible *roles*, the doctrine. Knowledge, and code-shaped-as-knowledge. No tenant owns it.
 - **Never shared (the substance):** hosts and root access, git org/repo access, secrets vaults, databases, backups, domains. These MUST remain partitioned by tenant.
 
-**One channel does cross tenant lines: the supply chain.** Whoever controls `plexus-ms` ships code that runs with root on every tenant's hosts (the Ansible roles), inside every tenant's CI (secrets in scope), and inside every tenant's apps (the packages) — with patch/minor updates auto-merged when CI is green (§ 8). "Authority never crosses tenant lines" therefore has one honest exception: the standard itself is a trust channel, and adopting it means trusting its maintainers. The mitigations are structural, not promises: everything arrives *versioned and pinned*, so a tenant upgrades when it chooses (auto-merge narrows that to patch/minor — set per tenant risk appetite); npm packages carry provenance attestations binding each version to its source commit and build; the shared repos are public and every change is reviewable. One sharp edge is accepted knowingly: the `itops` `@vN` references are git tags, which are movable — unlike npm versions, a retargeted tag silently changes what every tenant executes, with no attestation. A tenant needing stronger guarantees MAY pin `itops` references by commit SHA instead; v0 accepts the tag-vs-SHA trade-off (readability and Renovate flow over immutability) as a deliberate decision.
+**One channel does cross tenant lines: the supply chain.** 
+Whoever controls `plexus-ms` ships code that runs with root on every tenant's hosts (the Ansible roles), inside every tenant's CI (workflows and verbs), and inside every tenant's apps (the packages) — with patch/minor updates auto-merged when CI is green (§ 8). 
+"Authority never crosses tenant lines" therefore has one honest exception: 
+*the standard itself is a trust channel, and adopting it means trusting its maintainers.*
+The mitigations are structural, not promises: 
+The shared repos are public and every change is reviewable; auto-upgrading must be handled per tenant by risk appetite; npm packages carry provenance attestations. 
+One sharp edge: Some approaches rely on Git tags, which are movable — unlike npm versions, a retargeted tag silently changes what every tenant executes, with no attestation. 
+Referencing by commit SHA instead is an alternative; for now the trade-off of readability and Renovate flow over immutability is accepted as a deliberate decision.
 
-**Tenants may share bare metal — with eyes open.** At small scale, pooling workloads on one physical host is the correct economics, and virtualization draws the boundary: tenants sharing a host MUST be separated one VM per tenant (never co-mingling tenants inside a VM), with everything else — Docker, ingress, secrets vault, backups, domains — kept per-VM as well. Be clear about what virtualization does and does not buy: it solves performance and fault isolation, but it *centralizes* access rather than partitioning it — the hypervisor has God-mode over every VM, so the host is tier-0 (no workloads on it, access locked down, its own VM-image backups; its compromise is everyone's) — and it does nothing for legal controllership: distinct legal persons sharing one box under one admin MUST document the arrangement in writing (a one-page boundary document plus a data-processing agreement, e.g. an AVV/DPA where the GDPR applies).
+**Tenants may share bare metal — with eyes open.** 
+At small scale, pooling workloads on one physical host is the correct economics, and virtualization draws the boundary: 
+tenants sharing a host MUST be separated by virtualization technologies (never co-mingling tenants inside one single VM). 
+Everything else — Docker, ingress, secrets vault, backups, domains — SHOULD be kept per-VM as well.
+Feeling the need to deviate from this and sharing ingress, networking, secrets, might be acceptable under certain conditions but must also be interpreted as a sign of a deeper structural problem, of the standard falling short of its own economics goals.
+Also, be clear about what virtualization does and does not buy:
+it solves performance and fault isolation, but it *centralizes* access rather than partitioning it — a hypervisor has God-mode over every VM, so the host is a critical attack vector — and it does nothing for legal controllership: 
+distinct legal persons sharing one box under one admin MUST document the arrangement in writing in order to stay compliant in most jurisdictions (e.g. a one-page document defining the relationship, plus a data-processing agreement, e.g. an AVV/DPA where the GDPR applies).
 
-**Tenant identifier** — every tenant MUST have a short slug (e.g. `acme`, `initech`, and `plexus` itself, the project dogfooding its own standard) that threads through: forge org names, VM hostnames, Ansible inventory groups, vault names, and a `plexus.tenant=` label, which every deployed service MUST carry. That label makes the boundary visible exactly where fog otherwise creeps back in — staring at a host wondering whose service this is — and gives the monitoring view free grouping by tenant.
+**Tenant identifier** — every tenant MUST have a short slug (e.g. `acme`, `initech`, and `plexus` itself, the project dogfooding its own standard) that threads through as consistently as possible: forge org names, VM hostnames, Ansible inventory groups, vault names, and a `plexus.tenant=` label, which every deployed service MUST carry. 
+That label makes the boundary visible exactly where fog otherwise creeps back in (staring at a host wondering whose service this is).
 
 ### § 4.3 Repo & namespace layout
 
-- **The neutral namespace hosts the methodology.** `plexus-ms` is the tenant-neutral home of `library`, `preset`, and `itops` (what each offers: § 4.1), and of the `@plexus-ms` npm scope the library publishes under. It doubles as the org of the public dogfooding tenant (`plexus`).
-- **Tag discipline for `itops`:** one version tag covers its three artifact classes (verbs, workflow wrappers, Ansible collection — § 7) atomically; tenants MUST reference `itops` artifacts by tag, never by branch. The repo has no CI of its own.
+- **The neutral namespace hosts the methodology.** `plexus-ms` is the tenant-neutral home of `library`, `preset`, and `itops` (see § 4.1 for details), and of the `@plexus-ms` npm scope the library publishes under.
+It doubles as the org of the public dogfooding tenant (`plexus`).
+- **Tag discipline for `itops`:** one version tag covers its three artifact classes (verbs, workflow wrappers, Ansible collection — § 7) atomically;
+tenants MUST reference `itops` artifacts by tag, never by branch.
 - **One forge org (or account) per tenant (MUST)** — org membership governs code access; a person in tenant A's org is simply not in tenant B's.
-- **One monorepo per tenant (MUST)** — `<org>/<tenant>` (e.g. `plexus-ms/plexus`) holds **both** `apps/` (the tenant's applications — pnpm workspace + mise monorepo) **and** `infra/` (Ansible inventory, host/VM definitions, that tenant's deployment configs — the kitchen's layout). Apps and the platform that runs them version together; safe because a monorepo is one access boundary (§ 8). Generated from `plexus-ms/preset`.
+- **One monorepo per tenant (SHOULD)** — Because this standard is somewhat web-focused, the monorepo pattern has several benefits: `<org>/<tenant>` (e.g. `plexus-ms/plexus`) can hold **both** dev side (most likely a mise monorepo with pnpm workspace, maybe with advanced monorepo tooling like Turborepo in the future) and ops side (Ansible inventory, host/VM definitions, that tenant's deployment configs). Apps and the platform that runs them version together; 
+safe because a monorepo is one access boundary (§ 8).
+Tenant monorepos SHOULD be generated from `plexus-ms/preset`.
 
 ## § 5 The dev side
 
@@ -327,4 +373,3 @@ Written down so these are *decisions*, not drift:
 - **Application-plumbing packages** — the § 3 "standardize boundaries" edges (framework glue, common auth concerns, repeatable non-domain features) as published `@plexus-ms/*` packages. Extract when a second app needs the same plumbing — never speculatively from the first; until then it lives in the app that needs it.
 - **Preview environments per PR** — deferred deliberately. A single `staging` per app covers ~90% of the value; revisit when a product has real customers.
 - **Per-tenant second admins** — provision lazily, only when a real second operator exists.
-

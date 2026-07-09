@@ -147,6 +147,8 @@ How Plexus software is *built*: the pinned toolchain, the shared packages, and t
 
 Scope, honestly: v0 standardizes the toolchain, the publishing mechanics, and the release models. The reusable application plumbing the § 3 boundary principle aims at — framework glue, common auth concerns, repeatable non-domain features — is future work, deferred with its trigger in § 9; until it exists, that plumbing lives in the app that needs it.
 
+Nor is Plexus secretly JS-only: mise is language-neutral, so the standard verbs (§ 6) are the stack-neutral layer every app answers, and § 5.1's pnpm/tsc specifics bind only JS/TS repos. A Python or Go app takes the same contract with different incantations behind the same verbs — JS/TS is simply the first toolchain the standard has decided.
+
 ### § 5.1 The JS/TS toolchain convention
 
 Every Plexus JS/TS repo MUST use this toolchain, each choice made to pass the second-reader and degradation tests:
@@ -194,10 +196,12 @@ Small, verb-shaped, and identical for every stack. The contract is the § 4.1 se
 
 Every Plexus app repo MUST provide:
 
-- **`mise.toml` with the standard verbs** — at minimum `mise :dev`, `mise :migrate` (MUST be idempotent), `mise :seed`, `mise :test`. "What was the migration command again?" stops being a memory question; the answer is always `mise :migrate`, and the mise task encodes the real incantation. Toolchain pinned in `mise.toml` (the single authority — never in `package.json`) so setup is `git clone && mise :dev` everywhere. See § 5.1.
+- **`mise.toml` with the standard verbs** — at minimum `mise :dev`, `mise :migrate` (MUST be idempotent), `mise :seed`, `mise :test`. `seed` loads development sample data only: it MAY assume a fresh database (right after `migrate`) and MUST NOT be invoked by the deploy verb — production data arrives by restore or by real use, never by seed. "What was the migration command again?" stops being a memory question; the answer is always `mise :migrate`, and the mise task encodes the real incantation. Toolchain pinned in `mise.toml` (the single authority — never in `package.json`) so setup is `git clone && mise :dev` everywhere. See § 5.1.
 - **`compose.yml`** declaring the app and its **app-owned** infrastructure (e.g. its own Postgres/Mongo container). Apps SHOULD default to one DB container each — full isolation, dies with the app. Data services MUST carry the labels `plexus.tenant=<id>` and `plexus.backup=<postgres|mongo|...>`.
-- **An env schema file** — declares what env the app needs; secrets are injected at deploy time from the tenant's secrets vault and MUST NOT be committed.
+- **An env schema file (`env.schema`)** — a dotenv-format file at the app root listing every variable the app reads, one key per line, annotated in comments (`# required`, `# secret`, `# default: <value>`). Stack-neutral, greppable, and checkable — the platform can diff the schema against the env it provides. Secrets are injected at deploy time from the tenant's secrets vault and MUST NOT be committed.
+- **A single HTTP port** — the app serves plain HTTP on one port, published to loopback only (`127.0.0.1:<port>:<port>`). TLS, hostnames, and the domain→port binding are the platform's job (§ 7 Ingress); a domain is deployment substance, so the app stays deployable under any hostname.
 - **A healthcheck** — `GET /healthz` returns 200 when ready.
+- **Logs on stdout/stderr** — the app MUST write logs to stdout/stderr and MUST NOT manage its own log files; shipping and retention are the platform's job.
 - **A CI reference** — the app's CI MUST run the shared pipeline (§ 7: lint → typecheck → test → build → push image); on the reference stack this is a ~5-line reference to the shared reusable workflow.
 - **A `PLEXUS.md`** — records the PLX version the repo targets (see *Versioning of this standard*). (The per-repo contract marker — deliberately distinct from this document, `PLX.md`, the standard itself.)
 
@@ -224,6 +228,8 @@ What the contract deliberately does **not** mention: databases, ORMs, frameworks
 ## § 7 The ops side (all stateless, all second-reader-test-passable)
 
 A CI/CD system needs **state** (what should exist), **events** (something changed), and **procedures** (make it so). Plexus puts state in git and in tools it doesn't author, takes events from systems someone else operates, and authors only stateless procedures. These are the ops side of § 4.1; their dev-side counterparts are the toolchain and packages of § 5.
+
+A new or reworked primitive MUST pass both litmus tests (§ 3) before it is declared done — second-reader and degradation are the definition of done here, not aspirations.
 
 Procedures are layered as shared logic cores with thin mounts (all in `plexus-ms/itops`, versioned by one tag), and the boundary is load-bearing:
 
@@ -256,21 +262,28 @@ One reusable workflow in `plexus-ms/itops`: lint → typecheck → test → buil
 ### Push to main → deploy
 Pure composition of the above: `push → CI (test, build, push image) → deploy verb (pull, migrate, up, healthcheck, rollback-on-fail)`. Continuous *behaviour* from a continuous *event source*, with nothing of yours running continuously.
 
+### Ingress
+Platform concern. A reverse proxy per VM (reference stack: Caddy) terminates TLS and maps domains to app ports; the domain→port map lives as code in the tenant's `infra/`, next to the inventory — a domain is deployment substance, never the app's concern. The contract's side of the seam stays deliberately small: one loopback-published HTTP port (§ 6).
+
+### Secrets
+Platform concern, and strictly tenant substance. The tenant's vault (reference stack: 1Password) is the only place secret *values* live; git holds only *references*. Two flows, both resolved at provisioning time, never at deploy time:
+
+- **Platform secrets** (deploy SSH key, registry credentials): the tenant's `infra/op.env` is a committed dotenv file of `op://` pointers — it holds no values, so it is safe in git — and the playbook runs as `op run --env-file=op.env -- ansible-playbook site.yml`, which resolves the pointers into env vars the playbook reads.
+- **App runtime secrets:** each key marked `# secret` in an app's `env.schema` (§ 6) is declared in the tenant's inventory (`apps[].secrets`), resolved from the vault when the playbook runs, and written to `<app_dir>/secrets.env` on the host; the app's compose file loads it via `env_file`.
+
+The deploy verb never touches secrets: provisioning owns `secrets.env`, the deploy verb owns `.env` (the image ref), and neither writes the other's file. Rotation is changing the vault item and re-running the playbook. Keeping the deploy verb secret-unaware is part of what keeps it a verb, not a system.
+
 ### Backups
-Platform concern, scheduled-event-driven. Ansible installs a nightly unit per VM: `pg_dump`/`mongodump` per labelled data service + restic to an off-site repository (e.g. a Hetzner Storage Box). Schedule + retention MUST live as code in the tenant monorepo's `infra/`. The backup job MUST discover what to dump by **reading the `plexus.backup` labels** — new app deployed → automatically backed up, zero bookkeeping. Failure alerts route through the monitoring stack.
+Platform concern, scheduled-event-driven. Ansible installs a nightly unit per VM: `pg_dump`/`mongodump` per labelled data service + restic to an off-site repository (e.g. a Hetzner Storage Box). Schedule + retention MUST live as code in the tenant monorepo's `infra/`. The backup job MUST discover what to dump by **reading the `plexus.backup` labels** — new app deployed → automatically backed up, zero bookkeeping. Failure surfaces via the dead-man's-switch (see Scheduling below): a failed nightly unit never pings, and the missed ping alerts. **Untested backups are not backups:** a backup path MUST be verified by an end-to-end restore before it is relied upon, and SHOULD be re-verified periodically and after any material change to the path.
 
 ### Scheduling & the orchestrator question
 **No orchestrator in v1.** A workflow orchestrator (Kestra, Airflow, etc.) MUST NOT be stood up as platform infrastructure. The jobs an orchestrator would do are already covered:
 - Deploys → the forge's CI.
 - Backups → systemd timers (`Restart=on-failure`, journald logging).
-- "Did a cron silently stop?" → a **dead-man's-switch**: every scheduled job MUST ping a check on success (reference stack: Healthchecks.io or self-hosted Uptime Kuma push monitors — wanted anyway). Missed ping → alert. The valuable 20% of an orchestrator at ~zero operating cost.
+- "Did a cron silently stop?" → a **dead-man's-switch**: every scheduled job MUST ping a check on success — some sort of dead-man's-switch / smoke-test monitor, self-hosted or managed (a concrete reference-stack choice is deferred, § 9). Missed ping → alert. The valuable 20% of an orchestrator at ~zero operating cost.
 - App-internal pipelines (e.g. a fetch→dedupe→process flow) → a job queue **inside the app** (BullMQ / pg-boss), deployed as a worker container in the same compose file. Product logic stays out of platform-level infrastructure.
 
 *Revisit an orchestrator only when:* workflows span multiple hosts with inter-step dependencies · human-in-the-loop approvals appear · scheduled-job interrelations become hard to track · backfill/replay ("re-run last Tuesday") matters. If reached, prefer a single vanilla shared instance (solve secrets via `op run` or equivalent, not a fork). Any pre-existing, semi-dormant orchestrator instance in a tenant is fog — schedule it for migration-or-retirement.
-
-### Observability
-The answer to "when is it time to scale?" is **data, not vibes** — and the usual gap is measurement, not orchestration. A small stack (Grafana + Prometheus/node-exporter + Loki, or lighter: Beszel + Uptime Kuma) plus phone alerting. This *also* provides the "what's running where" view (grouped by `plexus.tenant`), so no PaaS dashboard is needed for it. **You do not need Kubernetes** — single beefy hosts with Compose scale far past small-tenant needs; the bottleneck will be Postgres and operator time long before Compose, and self-hosted K8s would *worsen* the bus factor.
-
 
 ## § 8 Propagation with customizability — the rot-proofing
 
@@ -280,7 +293,7 @@ Separate the two things that propagate by completely different physics:
 - `@plexus-ms/biome-config`, `@plexus-ms/tsconfig` — extended in one line.
 - The reusable CI workflow and the deploy verb — referenced by `@vN` tag.
 - The `plexus.itops` Ansible collection — installed via each tenant's `requirements.yml` from the same `vN` tag.
-- The shared **Renovate preset** (`plexus-ms/renovate-config`) — extended in one line from every repo's `renovate.json`, so the update policy itself propagates the same way.
+- The shared **Renovate preset** (`plexus-ms/renovate-config`) — extended in one line from every repo's `renovate.json`, so the update policy itself propagates the same way. (Not yet created — § 9.)
 - `@plexus-ms/std` and, over time, the rest of the dev-side plumbing (framework glue, common auth concerns, repeatable non-domain features — the § 3 edges) as shared TS packages.
 
 These propagate automatically: fix once → bump version → **Renovate** opens a PR in every consumer repo. Consumers customize by **overriding at the edges** (their `biome.json` extends yours and adds local rules) — inheritance with a local override slot, so base updates never clobber local changes because they live in different files.
@@ -306,7 +319,10 @@ Written down so these are *decisions*, not drift:
 
 - **Komodo (thin git-native deploy UI)** — trial after the foundation is stable, if a dashboard is wanted. Not before.
 - **An orchestrator (e.g. vanilla Kestra)** — only on the § 7 triggers (multi-host dependent workflows, approvals, unmanageable schedule count, replay needs).
-- **Kubernetes** — only on genuine multi-node scheduling / contractual HA-SLA / team-coordination needs. Not anticipated for years.
+- **The shared Renovate preset** — § 8 names `plexus-ms/renovate-config` as its home, but the repo does not exist yet. Stand it up when Renovate is rolled out across the `plexus-ms` repos; until then, per-repo `renovate.json` files carry their own policy.
+- **Observability (metrics, logs, dashboards, phone alerting)** — becomes part of the paved road later. The answer to "when is it time to scale?" is *data, not vibes* — the usual gap is measurement, not orchestration — and the same stack provides the "what's running where" view grouped by `plexus.tenant`. Candidates: Grafana + Prometheus/node-exporter + Loki (the itops `alloy` role points this way) or lighter (Beszel + Uptime Kuma). Until then, the only monitoring the standard requires is the § 7 dead-man's-switch.
+- **A concrete dead-man's-switch service for the reference stack** — the § 7 requirement (every scheduled job MUST ping on success) stands now; which service — self-hosted (e.g. Uptime Kuma) or managed (e.g. Healthchecks.io) — joins the reference stack is decided together with observability.
+- **Kubernetes** — only on genuine multi-node scheduling / contractual HA-SLA / team-coordination needs. Not anticipated for years: single beefy hosts with Compose scale far past small-tenant needs, the bottleneck will be Postgres and operator time long before Compose, and self-hosted K8s would *worsen* the bus factor.
 - **Moving a commercial tenant off the shared box** — the day a tenant has a customer with real data-processing expectations (anything in a regulated domain), revisit migrating that tenant's VMs to metal it controls itself. Not because the hypervisor stops isolating, but because "dedicated, tenant-only" can be a *commercial/trust* requirement independent of the technical reality. The one-VM-per-tenant rule already keeps this migration path clean.
 - **Application-plumbing packages** — the § 3 "standardize boundaries" edges (framework glue, common auth concerns, repeatable non-domain features) as published `@plexus-ms/*` packages. Extract when a second app needs the same plumbing — never speculatively from the first; until then it lives in the app that needs it.
 - **Preview environments per PR** — deferred deliberately. A single `staging` per app covers ~90% of the value; revisit when a product has real customers.

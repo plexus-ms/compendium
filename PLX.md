@@ -160,7 +160,7 @@ This is federation under a common standard — *one cookbook, many kitchens*.
 - **Never shared (the substance):** hosts and root access, git org/repo access, secrets vaults, databases, backups, domains. These MUST remain partitioned by tenant.
 
 **One channel does cross tenant lines: the supply chain.** 
-Whoever controls `plexus-ms` ships code that runs with root on every tenant's hosts (the Ansible roles), inside every tenant's CI (workflows and verbs), and inside every tenant's apps (the packages) — with patch/minor updates auto-merged when CI is green (§ 8). 
+Whoever controls `plexus-ms` ships code that runs with root on every tenant's hosts (the Ansible roles), inside every tenant's CI (workflows and verbs), and inside every tenant's apps (the packages) — and § 8's Renovate flow keeps all three channels current, with how much of it runs unattended stratified by blast radius (auto-merge is a defensible default for packages, and deliberately not for code that re-runs with root — § 8). 
 "Authority never crosses tenant lines" therefore has one honest exception: 
 *the standard itself is a trust channel, and adopting it means trusting its maintainers.*
 The mitigations are structural, not promises: 
@@ -186,6 +186,7 @@ That label makes the boundary visible exactly where fog otherwise creeps back in
 It doubles as the org of the public dogfooding tenant (`plexus`).
 - **Tag discipline for `itops`:** one version tag covers its three artifact classes (verbs, workflow wrappers, Ansible collection — § 7) atomically;
 tenants MUST reference `itops` artifacts by tag, never by branch.
+(Tags are git's *movable* pointer — this mandate deliberately accepts the supply-chain sharp edge named in § 4.2, where the tag-over-SHA trade-off is owned.)
 - **One forge org (or account) per tenant (MUST)** — org membership governs code access; a person in tenant A's org is simply not in tenant B's.
 - **One monorepo per tenant (SHOULD)** — Because this standard is somewhat web-focused, the monorepo pattern has several benefits: `<org>/<tenant>` (e.g. `plexus-ms/plexus`) can hold **both** dev side (most likely a mise monorepo with pnpm workspace, maybe with advanced monorepo tooling like Turborepo in the future) and ops side (Ansible inventory, host/VM definitions, that tenant's deployment configs). Apps and the platform that runs them version together; 
 safe because a monorepo is one access boundary (§ 8).
@@ -364,7 +365,17 @@ Separate the two things that propagate by completely different physics:
 - The shared **Renovate preset** (`plexus-ms/renovate-config`) — extended in one line from every repo's `renovate.json`, so the update policy itself propagates the same way. (Not yet created — § 9.)
 - `@plexus-ms/std` and, over time, the rest of the dev-side plumbing (framework glue, common auth concerns, repeatable non-domain features — the § 3 edges) as shared TS packages.
 
-These propagate automatically: fix once → bump version → **Renovate** opens a PR in every consumer repo. Consumers customize by **overriding at the edges** (their `biome.json` extends yours and adds local rules) — inheritance with a local override slot, so base updates never clobber local changes because they live in different files.
+These propagate automatically: fix once → bump version → **Renovate** opens a PR in every consumer repo.
+
+**How unattended the merge is, is stratified by blast radius — one policy does not fit three risk classes:**
+
+- **`@plexus-ms/*` packages** — run inside an app, versions immutable and provenance-attested: CI-green patch/minor auto-merge MAY be enabled and is the paved-road default.
+- **CI workflow and verb tag bumps** — run in tenant CI, next to its secrets, and reference a movable tag (§ 4.2): auto-merge MAY be enabled, but a tenant whose CI holds sensitive credentials SHOULD review these PRs instead.
+- **The `plexus.itops` Ansible collection** — runs with root on tenant hosts: Renovate opens the PR, but it SHOULD NOT be auto-merged; a human reads the diff before anything new runs as root.
+
+The paved-road default is therefore deliberately *not* trust-maximal: unattended propagation is granted per risk class, each tenant's Renovate config records the stratification it chose, and per § 4.2 the risk appetite behind that choice is the tenant's own.
+
+Consumers customize by **overriding at the edges** (their `biome.json` extends yours and adds local rules) — inheritance with a local override slot, so base updates never clobber local changes because they live in different files.
 
 **Scaffolding (copied once, then owned)** — the irreducible repo shape. Three tiers, chosen per artifact:
 1. **Convert to a dependency if at all possible.** Most "boilerplate" is secretly extractable — a `mise.toml` can `include` a shared, **version-pinned** task file (`git::…?ref=vN`), keeping only project-specific tasks local. This is the highest-value work; every bit extracted moves from the rotting pile to the auto-propagating pile (and unlike `just import`, the version pin lets Renovate carry the updates).

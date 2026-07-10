@@ -242,7 +242,7 @@ Small, verb-shaped, and identical for every stack. The contract is the § 4.1 se
 
 Every Plexus app repo MUST provide:
 
-- **`mise.toml` with the standard verbs** — at minimum `mise :dev`, `mise :migrate` (MUST be idempotent), `mise :seed`, `mise :test`. `seed` loads development sample data only: it MAY assume a fresh database (right after `migrate`) and MUST NOT be invoked by the deploy verb — production data arrives by restore or by real use, never by seed. "What was the migration command again?" stops being a memory question; the answer is always `mise :migrate`, and the mise task encodes the real incantation. Toolchain pinned in `mise.toml` (the single authority — never in `package.json`) so setup is `git clone && mise :dev` everywhere. See § 5.1.
+- **`mise.toml` with the standard verbs** — at minimum `mise :dev`, `mise :migrate` (idempotent and roll-forward-only — see *Migration discipline* below), `mise :seed`, `mise :test`. `seed` loads development sample data only: it MAY assume a fresh database (right after `migrate`) and MUST NOT be invoked by the deploy verb — production data arrives by restore or by real use, never by seed. "What was the migration command again?" stops being a memory question; the answer is always `mise :migrate`, and the mise task encodes the real incantation. Toolchain pinned in `mise.toml` (the single authority — never in `package.json`) so setup is `git clone && mise :dev` everywhere. See § 5.1.
 - **`compose.yml`** declaring the app and its **app-owned** infrastructure (e.g. its own Postgres/Mongo container). Apps SHOULD default to one DB container each — full isolation, dies with the app. Data services MUST carry the labels `plexus.tenant=<id>` and `plexus.backup=<postgres|mongo|...>`.
 - **An env schema file (`env.schema`)** — a dotenv-format file at the app root listing every variable the app reads, one key per line, annotated in comments (`# required`, `# secret`, `# default: <value>`). Stack-neutral, greppable, and checkable — the platform can diff the schema against the env it provides. Secrets are injected at deploy time from the tenant's secrets vault and MUST NOT be committed.
 - **A single HTTP port** — the app serves plain HTTP on one port, published to loopback only (`127.0.0.1:<port>:<port>`). TLS, hostnames, and the domain→port binding are the platform's job (§ 7 Ingress); a domain is deployment substance, so the app stays deployable under any hostname.
@@ -250,6 +250,14 @@ Every Plexus app repo MUST provide:
 - **Logs on stdout/stderr** — the app MUST write logs to stdout/stderr and MUST NOT manage its own log files; shipping and retention are the platform's job.
 - **A CI reference** — the app's CI MUST run the shared pipeline (§ 7: lint → typecheck → test → build → push image); on the reference stack this is a ~5-line reference to the shared reusable workflow.
 - **A `PLEXUS.md`** — records the PLX version the repo targets (see *Versioning of this standard*). (The per-repo contract marker — deliberately distinct from this document, `PLX.md`, the standard itself.)
+
+### Migration discipline
+
+`migrate` is the one contract verb the deploy pipeline invokes against production data, so its semantics are pinned precisely rather than left to the word "idempotent":
+
+- **Idempotent, spelled out:** `migrate` MUST be safe to invoke at any time — already-applied steps are skipped, and running it against a fully-migrated schema is a no-op. A failure partway through MUST leave the schema in a state from which re-running `migrate` can complete (each step applied atomically where the database supports it). Concurrent invocations MUST NOT corrupt the schema; `migrate` SHOULD serialize itself via a lock — mainstream migration tools do this out of the box, so the requirement is usually just *don't disable it*.
+- **Roll forward, never back.** The deploy flow has no down-migration step, and its rollback path (§ 7) re-launches the *previous* image against the *already-migrated* schema. Every migration MUST therefore be backward-compatible with the release currently in production — expand/contract discipline: additive changes (new tables, nullable columns, backfills) ship first, and destructive ones (drops, renames, constraint tightening) ship only in a later release, once no deployed code depends on the old shape.
+- **The escape hatch is deliberate, not silent.** A genuinely breaking migration — one that cannot honor expand/contract — forfeits automatic rollback. It MUST be deployed as a deliberate act: fresh backup taken first, and the operator aware that reverting means *restoring*, not re-upping the previous tag.
 
 ### The stateless-app profile
 
@@ -292,13 +300,15 @@ A stateless procedure (`plexus-ms/itops` `scripts/deploy.sh`), ~150 lines, refer
 ```
 deploy(host, app, image_tag):
   ssh → docker compose pull
-      → mise migrate            # idempotent migration hook
+      → mise migrate            # idempotent, roll-forward-only (§ 6)
       → docker compose up -d
       → poll /healthz
       → on failure: re-up previous tag, alert
 ```
 
 It reads everything from git (compose, env schema) and from the host (`docker ps` = runtime truth) and stores **nothing**. "Which version is live" is the running container's image tag, queryable from reality. Rollback needs no memory — the previous tag is in the registry and the git log.
+
+**Rollback's honest limit:** it re-ups the previous image; it never reverses a migration — by the time the healthcheck fails, `migrate` has already run, and the old code comes back up against the new schema. That is sound only because the contract makes it sound: § 6's migration discipline requires every migration to be backward-compatible with the release currently in production. For the rare deploy that deliberately breaks that discipline, reverting is a *restore from backup*, not a re-up — the verb cannot and does not pretend otherwise.
 
 **The fence (MUST NOT be crossed without a deliberate, documented decision):** no persistent state · no daemon · no UI · no reconciliation loop · no provisioning of platform resources at deploy time. Inside the fence, invest freely (logging, clean rollback, good error messages). Outside it, it's either an existing tool's job or an architecture change — not feature creep.
 

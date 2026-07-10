@@ -203,6 +203,7 @@ tenants MUST reference `itops` artifacts by tag, never by branch.
 - **One monorepo per tenant (SHOULD)** — Because this standard is somewhat web-focused, the monorepo pattern has several benefits: `<org>/<tenant>` (e.g. `plexus-ms/plexus`) can hold **both** dev side (most likely a mise monorepo with pnpm workspace, maybe with advanced monorepo tooling like Turborepo in the future) and ops side (Ansible inventory, host/VM definitions, that tenant's deployment configs). Apps and the platform that runs them version together; 
 safe because a monorepo is one access boundary (§ 8).
 Tenant monorepos SHOULD be generated from `plexus-ms/preset`.
+With several apps in one repo, deploys are per-app and promotion is repo-wide (the release train — § 5.3); a product that persistently needs its own release cadence is the one reason to give it its own repo within the tenant's org.
 
 ## § 5 The dev side
 
@@ -244,13 +245,23 @@ The library and the apps version and release by completely different physics, so
 | "Version" | semver in the registry | the git SHA / image tag that's live |
 | Release tool | **changesets** | **none** — the deploy verb (§ 7) |
 | Branch model | **single `main`** (trunk-based) | **environment branches**: `main`→prod, `develop`→staging |
-| Release trigger | merge the "version packages" PR → publish | merge to the env branch → build image → deploy |
+| Release trigger | merge the "version packages" PR → publish | merge to the env branch → build image → deploy (per changed app — see *Deploy granularity* below) |
 
 **Why the library is trunk-based.** changesets accumulates changeset files on one branch, bumps them in one PR on that branch, and publishes from it. A second long-lived branch (GitFlow `develop`) forces reconciling version numbers between branches on every release — a perpetual back-merge tax. changesets is a trunk-based tool; pairing it with GitFlow fights it. Concurrency is *not* a reason to avoid this: changeset files have random names and the bump is deferred to one central step, so simultaneous feature branches never conflict and never double-publish — exactly what changesets is built for.
 
 **Why apps use environment branches.** An app has no version number to reconcile — a release *is* a deploy keyed by git SHA — so the back-merge problem vanishes. Branches map to deploy targets (`develop`→staging, `main`→prod); "promote staging to prod" is merging `develop → main`. Apps therefore MUST NOT use changesets at all.
 
 This is the § 8 dependency-mechanics rule applied to release flow: changesets lives only where something is *published across a tenant boundary* (the library). Within a tenant, packages are `workspace:*` deps and apps are deployed — neither needs it.
+
+### Deploy granularity in a multi-app monorepo
+
+A tenant monorepo holds N apps plus `infra/`, so "merge to `main` deploys" needs a precise subject. The model is a **release train**: promotion is repo-wide, deployment is per-app.
+
+- **The unit of deployment is the app; the unit of promotion is the repo.** A merge to an environment branch releases into that environment *exactly the apps whose sources changed in the merge*. CI MUST be path-scoped per app — an app's own directory plus every workspace package it depends on — so a docs-only merge deploys nothing, a `packages/ui` change redeploys its dependents, and unchanged apps are neither rebuilt nor redeployed. The deploy verb needs no change for this: it was per-app all along (`deploy(host, app, image_tag)`); CI simply fans it out over the changed set, and the changed set is derived from the merge diff — stateless, no bookkeeping.
+- **Promotion is the whole train.** "Promote staging to prod" remains one merge, `develop → main`, and that merge asserts *everything on `develop` is prod-ready*. The discipline this buys its simplicity with: **`develop` MUST stay promotable** — unfinished or still-soaking work lives on feature branches, never parked on `develop`. Selective promotion (cherry-picks, path-restricted merges) MUST NOT be used: it would put on prod a repo state that never existed on staging, destroying the one guarantee environment branches exist to give.
+- **Hotfixes skip the train without derailing it:** branch from `main`, merge to `main` (path-scoping deploys only the fixed app), then back-merge `main → develop` immediately (MUST) so the branches keep converging.
+- **`infra/` rides no train.** It is not an app and the deploy verb never touches it; applying it is a playbook run (§ 7), its own mount, on its own occasions.
+- **The escape valve is a repo split, not a process patch.** If two products in one tenant *persistently* need independent release cadences — one must ship while the other soaks, again and again — that is the § 4.3 monorepo SHOULD yielding, not the train rule: move the product into its own repo (still inside the tenant's org and access boundary, still on the same contract). Granularity problems are solved by moving a product off the train, never by making promotion partial.
 
 
 ## § 6 The app contract
@@ -330,7 +341,7 @@ It reads everything from git (compose, env schema) and from the host (`docker ps
 **The fence (MUST NOT be crossed without a deliberate, documented decision):** no persistent state · no daemon · no UI · no reconciliation loop · no provisioning of platform resources at deploy time. Inside the fence, invest freely (logging, clean rollback, good error messages). Outside it, it's either an existing tool's job or an architecture change — not feature creep.
 
 ### CI
-One reusable workflow in `plexus-ms/itops`: lint → typecheck → test → build → push image (tagged with git SHA). Each app references it in ~5 lines. Push → tests run. GitHub Actions is a control plane, but one *someone else operates* with git as input — that's allowed; a tenant MUST NOT operate its own.
+One reusable workflow in `plexus-ms/itops`: lint → typecheck → test → build → push image (tagged with git SHA). Each app references it in ~5 lines; in a multi-app monorepo each app's mount is path-scoped to that app and its workspace dependencies, so a push builds and deploys only what changed (§ 5.3, *Deploy granularity*). Push → tests run. GitHub Actions is a control plane, but one *someone else operates* with git as input — that's allowed; a tenant MUST NOT operate its own.
 
 ### Push to main → deploy
 Pure composition of the above: `push → CI (test, build, push image) → deploy verb (pull, migrate, up, healthcheck, rollback-on-fail)`. Continuous *behaviour* from a continuous *event source*, with nothing of yours running continuously.

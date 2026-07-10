@@ -168,6 +168,18 @@ The shared repos are public and every change is reviewable; auto-upgrading must 
 One sharp edge: Some approaches rely on Git tags, which are movable — unlike npm versions, a retargeted tag silently changes what every tenant executes, with no attestation. 
 Referencing by commit SHA instead is an alternative; for now the trade-off of readability and Renovate flow over immutability is accepted as a deliberate decision.
 
+**The standard itself has a bus factor — the degradation test, applied to the initiative.** 
+Plexus removes the operator's head as the database of the *systems*, and in exchange concentrates a new single point: today, one maintainer controls the doctrine, the packages, the template, and the supply chain above. 
+The honest question is not "will the maintainer stay responsive" but "what happens to a tenant the day `plexus-ms` goes unmaintained" — so that answer is written down here, not discovered under pressure:
+
+- **Nothing breaks on day one.** Every consumption path is pinned and pull-based: published npm versions are immutable, `itops` tags keep resolving, and each generated repo records its template version. No Plexus service runs anywhere; there is nothing to go down.
+- **Everything is forkable — legally, not just technically.** The shared repos are public, and every `plexus-ms` repo MUST carry a permissive OSI-approved license (reference: MIT). A tenant that must move forward alone forks, retags, and re-points its pins — same verbs, same mounts, new upstream.
+- **The real cost is slow drift, not sudden failure:** upstream tools keep moving, security patches stop arriving, and the § 8 staleness visibility starts flagging repos behind a standard that no longer advances. Fog returning on a timescale of months, not an outage — an acceptable degradation mode, and the reason unmaintained-upstream is a *migration trigger*, not an emergency.
+
+Two adoption prerequisites follow from taking that question seriously. 
+**Governance:** the initiative is single-maintainer today, and this document says so plainly rather than performing a committee; growing past that is a named deferred decision (§ 9). 
+**Disclosure:** every `plexus-ms` repo MUST provide a private vulnerability-reporting channel (reference: GitHub private vulnerability reporting, declared in a `SECURITY.md`), and fixes ship as ordinary versions so the § 8 flow propagates them like any other change.
+
 **Tenants may share bare metal — with eyes open.** 
 At small scale, pooling workloads on one physical host is the correct economics, and virtualization draws the boundary: 
 tenants sharing a host MUST be separated by virtualization technologies (never co-mingling tenants inside one single VM). 
@@ -406,3 +418,4 @@ Written down so these are *decisions*, not drift:
 - **Application-plumbing packages** — the § 3 "standardize boundaries" edges (framework glue, common auth concerns, repeatable non-domain features) as published `@plexus-ms/*` packages. Extract when a second app needs the same plumbing — never speculatively from the first; until then it lives in the app that needs it.
 - **Preview environments per PR** — deferred deliberately. A single `staging` per app covers ~90% of the value; revisit when a product has real customers.
 - **Per-tenant second admins** — provision lazily, only when a real second operator exists.
+- **A second maintainer for `plexus-ms` itself** — the initiative's own bus-factor mitigation (§ 4.2). Same lazy rule as second admins — when a real second contributor exists — but with one proactive trigger: the day a third-party tenant runs the standard in production, single-maintainer governance stops being merely honest and starts being a liability to someone else.

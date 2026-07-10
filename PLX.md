@@ -19,7 +19,7 @@ on the ops side, stateless operational procedures ("verbs", § 2), thin CI wrapp
 A template composes both sides into tenant monorepos (`preset`), and a small, interface-shaped app contract (§ 6) defines where the two sides meet.
 Each tenant instantiates the standard into its own platform: 
 virtual instance(s), optionally on shared metal, with ingress, secrets, backups, and observability. 
-Every primitive is as stateless as possible and passes the two litmus tests of § 3 — a second reader understands it whole; losing it leaves the job doable by hand. 
+Primitives are stateless by default and pass the two litmus tests of § 3 — a second reader understands each one whole; losing one leaves the job doable by hand. 
 State lives in git, the registry, the hosts, and the backup repo — never in a dashboard and never in someone's head.
 Improvements federate across all tenants via the supply chain; root, secrets, and data never do.
 The result is customer-1001 economics (§ 2):
@@ -35,7 +35,7 @@ It intended for Plexus contributors, and anyone operating any Plexus-governed te
 Everything else is informative rationale, description, or documentation.*
 
 *This standard is versioned, and conformance to it is recorded per repo. 
-§ 10 defines the versioning scheme, what conformance means, and the format of the per-repo `PLEXUS.md` marker.*
+§ 10 defines the versioning scheme, the conformance classes (what conformance means, and for whom), and the format of the per-repo `PLEXUS.md` marker.*
 
 *Concrete tools and services are named in two different strengths, and the conformance keyword decides which.
 A tool named **inside a MUST or SHOULD is normative** — part of the standard itself, and the reference-stack convention below never softens it: 
@@ -106,11 +106,9 @@ When principles conflict, the resolution is a **documented trade-off**: decide, 
 A principle set aside with a written reason is the standard working as designed; a principle eroded silently is drift.
 
 - **Have state in Git, runnable, greppable.** 
-  Control planes and other heavyweight ITOps applications routinely create opaque and stateful abstraction layers that are hard to see through and debug.
-  They achieve developer experience gains with abstractions that might be referred to as "magic" or "black boxes".
-  Also, they often rely on a database for state management, which displaces the Git repository as the source of truth.
-  In Plexus, git owns *intent and definition*; the runtime owns *current state* — what is live right now is read from the host itself, never from a bookkeeping database (see § 7).
-  Such tools, frameworks and managed services (e.g. Coolify, Dokploy, Vercel) are deliberately not part of Plexus for exactly these reasons.
+  Git owns *intent and definition*; the runtime owns *current state* — what is live right now is read from the host itself, never from a bookkeeping database (see § 7).
+  *Why:* control planes and other heavyweight ITOps applications routinely create opaque, stateful abstraction layers that are hard to see through and debug — developer-experience gains bought with "magic" — and they typically keep that state in a database of their own, displacing the git repository as the source of truth.
+  That is why such tools and managed services (e.g. Coolify, Dokploy, Vercel) are deliberately not part of Plexus.
 - **Primitives should rarely remember anything.** 
   Primitives are best reused when authored as "verbs" / stateless procedures (deploy, backup, CI steps) and conventions (labels, file structures, endpoints), and then mounted on event and state sources that already exist. 
 - **Standardize boundaries, free the core.** 
@@ -187,14 +185,15 @@ Two adoption prerequisites follow from taking that question seriously.
 At small scale, pooling workloads on one physical host is the correct economics, and virtualization draws the boundary: 
 tenants sharing a host MUST be separated by virtualization technologies (never co-mingling tenants inside one single VM). 
 Everything else — Docker, ingress, secrets vault, backups, domains — SHOULD be kept per-VM as well.
-Feeling the need to deviate from this and sharing ingress, networking, secrets, might be acceptable under certain conditions but must also be interpreted as a sign of a deeper structural problem, of the standard falling short of its own economics goals.
+Sharing ingress, networking, or secrets across tenants is a red flag: if the economics seem to force it, the standard has fallen short of its own customer-1001 goal (§ 2) — file an issue against the standard rather than normalizing the exception.
 Also, be clear about what virtualization does and does not buy:
 it solves performance and fault isolation, but it *centralizes* access rather than partitioning it — a hypervisor has God-mode over every VM, so the host is a critical attack vector — and it does nothing for legal controllership: 
 distinct legal persons sharing one box under one admin MUST document the arrangement in writing — e.g. a one-page document defining the relationship, plus a data-processing agreement where applicable. 
 *Why (informative, and not legal advice):* data-protection regimes commonly require such arrangements to exist in writing — under the GDPR, typically an AVV/DPA. The standard can require the artifact; whether the artifact satisfies a given jurisdiction is a legal question each tenant answers for itself — PLX conformance is not legal compliance.
 
-**Tenant identifier** — every tenant MUST have a short slug (e.g. `acme`, `initech`, and `plexus` itself, the project dogfooding its own standard) that threads through as consistently as possible: forge org names, VM hostnames, Ansible inventory groups, vault names, and a `plexus.tenant=` label, which every deployed service MUST carry. 
-That label makes the boundary visible exactly where fog otherwise creeps back in (staring at a host wondering whose service this is).
+**Tenant identifier** — every tenant MUST have a short slug (e.g. `acme`, `initech`, and `plexus` itself, the project dogfooding its own standard), and every deployed service MUST carry the label `plexus.tenant=<slug>`. 
+The slug SHOULD additionally appear in the tenant's forge org name, VM hostnames, Ansible inventory groups, and vault name, so one greppable name threads through every layer. 
+The label makes the boundary visible exactly where fog otherwise creeps back in (staring at a host wondering whose service this is).
 
 ### § 4.3 Repo & namespace layout
 
@@ -204,8 +203,7 @@ It doubles as the org of the public dogfooding tenant (`plexus`).
 tenants MUST reference `itops` artifacts by tag, never by branch.
 (Tags are git's *movable* pointer — this mandate deliberately accepts the supply-chain sharp edge named in § 4.2, where the tag-over-SHA trade-off is owned.)
 - **One forge org (or account) per tenant (MUST)** — org membership governs code access; a person in tenant A's org is simply not in tenant B's.
-- **One monorepo per tenant (SHOULD)** — Because this standard is somewhat web-focused, the monorepo pattern has several benefits: `<org>/<tenant>` (e.g. `plexus-ms/plexus`) can hold **both** dev side (most likely a mise monorepo with pnpm workspace, maybe with advanced monorepo tooling like Turborepo in the future) and ops side (Ansible inventory, host/VM definitions, that tenant's deployment configs). Apps and the platform that runs them version together; 
-safe because a monorepo is one access boundary (§ 8).
+- **One monorepo per tenant (SHOULD)** — `<org>/<tenant>` (e.g. `plexus-ms/plexus`) holds **both** dev side (most likely a mise monorepo with pnpm workspace, maybe with advanced monorepo tooling like Turborepo in the future) and ops side (Ansible inventory, host/VM definitions, that tenant's deployment configs). The benefits are direct: apps and the platform that runs them version together, cross-cutting changes land as one atomic commit, and it is safe because a monorepo is one access boundary (§ 8).
 Tenant monorepos SHOULD be generated from `plexus-ms/preset`.
 With several apps in one repo, deploys are per-app and promotion is repo-wide (the release train — § 5.4); a product that persistently needs its own release cadence is the one reason to give it its own repo within the tenant's org.
 
@@ -221,7 +219,8 @@ Nor is Plexus secretly JS-only: mise and hk are language-neutral, so they bind e
 
 Every Plexus JS/TS repo MUST use this toolchain, each choice made to pass the second-reader and degradation tests:
 
-- **mise is the single toolchain authority *and* the verb runner.** Tool versions (node, pnpm, biome, even `npm:@changesets/cli`) MUST be pinned in `mise.toml` and *nowhere else* — a `package.json` MUST NOT carry `packageManager` or `engines`, because two pins for one fact is drift. Verbs are mise tasks, so "how do I run you?" is always `mise :<verb>` (monorepo path syntax: `:verb` for the current root, `//apps/<app>:verb` from anywhere, `//...:verb` to fan out; bare `mise <verb>` against a standalone `mise.toml`, as on a deploy host — never `mise run`). This is why Plexus uses mise, **not justfiles**: mise unifies tools + env + verbs in one artifact, and its task `include`s are version-pinned (`git::…?ref=vN`) — which `just import` cannot do — so shared verbs propagate via Renovate like any other dependency.
+- **mise is the single toolchain authority.** Tool versions (node, pnpm, biome, even `npm:@changesets/cli`) MUST be pinned in `mise.toml` and *nowhere else*; a `package.json` MUST NOT carry `packageManager` or `engines`. *Why:* two pins for one fact is drift.
+- **mise is also the verb runner.** Verbs are mise tasks, so "how do I run you?" is always `mise :<verb>`, never `mise run`. The path syntax: `:verb` addresses the current root, `//apps/<app>:verb` a specific project from anywhere, `//...:verb` fans out over all of them; bare `mise <verb>` applies only against a standalone `mise.toml`, as on a deploy host. *Why mise and not justfiles:* mise unifies tools + env + verbs in one artifact, and its task `include`s are version-pinned (`git::…?ref=vN`) — which `just import` cannot do — so shared verbs propagate via Renovate like any other dependency (§ 8).
 - **Monorepo = pnpm workspace + mise monorepo.** `pnpm-workspace.yaml` (`packages:` globs + a `catalog:` pinning shared dev-tool versions) owns install/linking; `monorepo_root = true` + `[monorepo] config_roots` in the root `mise.toml` gives two-altitude verbs — `mise //...:test` at the root fans out, `mise :test` inside a package runs only that one.
 - **No root `package.json` unless a tool forces it.** A monorepo root MUST NOT carry a `package.json` except where a tool leaves no alternative; pnpm defines the workspace without one. The single current exception is changesets (its `@manypkg/find-root` needs a root manifest to anchor the monorepo), so the root carries a dependency-free, pin-free stub (`{ name, private }`).
 - **Build with `tsc`, test with Node's built-in runner.** A published package compiles to `dist/` via `tsc` (transparent, no bundler) and tests via `node --test` on Node's native TS type-stripping (zero test dependencies). Both stay trivially hand-runnable.
@@ -229,19 +228,21 @@ Every Plexus JS/TS repo MUST use this toolchain, each choice made to pass the se
 
 ### § 5.2 Publishing the `@plexus-ms/*` packages
 
-Cross-tenant sharing MUST use **published, versioned packages** (§ 8); the `@plexus-ms/*` packages go to **public npmjs** under the `@plexus-ms` scope, versioned by **changesets** (merge a "version packages" PR → CI publishes), with **npm provenance** — a signed attestation, generated in CI via OIDC, linking each published version to the exact source commit and workflow that built it. Going public (rather than a private registry) is consistent with `@plexus-ms/*` being tenant-neutral *methodology, not substance* — which makes one guardrail load-bearing: **tenant substance (business logic, secrets, anything tenant-specific) MUST NOT appear in a public `@plexus-ms/*` package.**
+Cross-tenant sharing MUST use **published, versioned packages** (§ 8). The `@plexus-ms/*` packages are published to **public npmjs** under the `@plexus-ms` scope, versioned by **changesets** (merge a "version packages" PR → CI publishes), with **npm provenance**. Provenance is a signed attestation, generated in CI via OIDC, that links each published version to the exact source commit and workflow that built it. Going public (rather than a private registry) is consistent with `@plexus-ms/*` being tenant-neutral *methodology, not substance* — which makes one guardrail load-bearing: **tenant substance (business logic, secrets, anything tenant-specific) MUST NOT appear in a public `@plexus-ms/*` package.**
+
+Apart from that guardrail, this subsection binds the standard's own repos (§ 10.2): tenants consume these packages; only `plexus-ms/library` publishes them.
 
 How the release runs:
 
 - **Two phases.** Changesets accumulate on `main`; `changesets/action` opens a "version packages" PR that bumps versions + writes changelogs; merging it publishes. The only manual step is recording a changeset (`changeset` interactively) — versioning and publishing run in CI, never locally. PRs run `lint/typecheck/test/build` plus a `changeset status` guard that fails when a publishable change ships without a changeset.
 - **Token-less via OIDC.** Publishing authenticates through GitHub OIDC *trusted publishing* (`id-token: write`), not a stored npm token — which also makes provenance automatic. *Bootstrap caveat:* a package can't be registered as a trusted publisher until it exists, so each package's **first** publish is a one-time manual `npm publish`; CI takes over after.
-- **Tags + GitHub Releases are automatic** (`changeset publish` tags each `@plexus-ms/<pkg>@x.y.z`, the action pushes them and cuts a Release from the changelog). The release branch is protected by a ruleset requiring the CI checks.
+- **Tags + GitHub Releases are automatic** (`changeset publish` tags each `@plexus-ms/<pkg>@x.y.z`, the action pushes them and cuts a Release from the changelog). The release branch MUST be protected by a ruleset requiring those CI checks — a requirement, not a description of current setup.
 
 **Package-design rules.** A `@plexus-ms/*` package MUST be tenant-neutral methodology (the guardrail above). Code utilities SHOULD start in `std` — the standard library is the default home for any small shared concern — and a concern graduates to its own package once it has its own audience or its own release cadence (a consumer shouldn't take updates because an unrelated helper changed). Tool configs (`biome-config`, `tsconfig`) are separate packages by construction: they exist to be one-line `extends` targets. **API stability:** packages follow semver, enforced by changesets — a breaking change MUST be a major bump, and its changeset SHOULD carry a migration note so the changelog doubles as the upgrade guide.
 
 ### § 5.3 Branching & release model — different per repo type
 
-The library and the apps version and release by completely different physics, so they use different branch models — each repo type MUST follow its column below. Conflating the two generates dead-end "extra work" in the design.
+The library and the apps version and release by completely different physics, so they use different branch models — each repo type MUST follow its column below; the two *why* paragraphs after the table carry the argument.
 
 | | **Library** (`plexus-ms/library`) | **Tenant monorepo** (e.g. `plexus-ms/plexus`) |
 |---|---|---|
@@ -317,7 +318,7 @@ from git + the image registry, with no data to restore.
 What the contract deliberately does **not** mention: databases, ORMs, frameworks, or anything interior. The deploy verb only needs *"is there a migration step and how do I invoke it"* → `mise migrate` (bare form: on the deploy host, the verb runs against the app's standalone `mise.toml`, where path syntax does not apply — § 5.1). The backup job only needs *"which services hold state and of what type"* → the labels. Adding Mongo support means writing one `mongodump` handler once in the platform, after which every Mongo app is covered.
 
 
-## § 7 The ops side (all stateless, all second-reader-test-passable)
+## § 7 The ops side
 
 A CI/CD system needs **state** (what should exist), **events** (something changed), and **procedures** (make it so). Plexus puts state in git and in tools it doesn't author, takes events from systems someone else operates, and authors only stateless procedures. These are the ops side of § 4.1; their dev-side counterparts are the toolchain and packages of § 5.
 
@@ -385,14 +386,14 @@ Platform concern, scheduled-event-driven. Ansible installs a nightly unit per VM
 **No orchestrator in v1.** A workflow orchestrator (Kestra, Airflow, etc.) MUST NOT be stood up as platform infrastructure. The jobs an orchestrator would do are already covered:
 - Deploys → the forge's CI.
 - Backups → systemd timers (`Restart=on-failure`, journald logging).
-- "Did a cron silently stop?" → a **dead-man's-switch**: every scheduled job MUST ping a check on success — some sort of dead-man's-switch / smoke-test monitor, self-hosted or managed (a concrete reference-stack choice is deferred, § 9). Missed ping → alert. The valuable 20% of an orchestrator at ~zero operating cost.
+- "Did a cron silently stop?" → a **dead-man's-switch**: every scheduled job MUST ping a per-job check on success, and a missed ping MUST raise an alert. Which monitor provides the checks — self-hosted or managed — is a reference-stack choice, deferred (§ 9); the requirement stands regardless of the tool. The valuable 20% of an orchestrator at ~zero operating cost.
 - App-internal pipelines (e.g. a fetch→dedupe→process flow) → a job queue **inside the app** (BullMQ / pg-boss), deployed as a worker container in the same compose file. Product logic stays out of platform-level infrastructure.
 
 *Revisit an orchestrator only when:* workflows span multiple hosts with inter-step dependencies · human-in-the-loop approvals appear · scheduled-job interrelations become hard to track · backfill/replay ("re-run last Tuesday") matters. If reached, prefer a single vanilla shared instance (solve secrets via `op run` or equivalent, not a fork). An orchestrator that exists but barely runs anything is fog by this document's own definition; a tenant that finds itself with one SHOULD migrate its jobs onto the mechanisms above or retire it.
 
-## § 8 Propagation with customizability — the rot-proofing
+## § 8 Propagation with customizability
 
-Separate the two things that propagate by completely different physics:
+Propagation is what keeps an encoded decision from rotting in place (§ 1, insight 2). Separate the two things that propagate by completely different physics:
 
 **Dependencies (versioned, pulled, auto-updated)** — anything that can live behind a stable interface:
 - `@plexus-ms/biome-config`, `@plexus-ms/tsconfig` — extended in one line.
@@ -416,7 +417,7 @@ Consumers customize by **overriding at the edges** (their `biome.json` extends y
 **Scaffolding (copied once, then owned)** — the irreducible repo shape. Three tiers, chosen per artifact:
 1. **Convert to a dependency if at all possible.** Most "boilerplate" is secretly extractable — a `mise.toml` can `include` a shared, **version-pinned** task file (`git::…?ref=vN`), keeping only project-specific tasks local. This is the highest-value work; every bit extracted moves from the rotting pile to the auto-propagating pile (and unlike `just import`, the version pin lets Renovate carry the updates).
 2. **Use a re-appliable scaffolder, not `cp`.** **copier**: a project records the template version it was generated from; `copier update` re-applies template changes as a diff, merging against local edits like a rebase, surfacing conflicts explicitly. Template-as-living-dependency.
-3. **For the genuine remainder, make staleness visible:** the `PLEXUS.md` conformance marker (its § 10.3 frontmatter is what makes this mechanically checkable) + a Renovate-scheduled check flagging repos that have drifted behind the current standard. You won't auto-fix these, but you'll never again *not know* which repos are stale — which kills most of the fog by itself.
+3. **For the genuine remainder, make staleness visible:** the `PLEXUS.md` conformance marker (its § 10.3 frontmatter is what makes this mechanically checkable) + a Renovate-scheduled check flagging repos that have drifted behind the current standard. These are not auto-fixed, but they are never invisibly stale — and invisible staleness, not staleness itself, is the § 1 failure mode.
 
 ### The dependency-mechanics rule (monorepo vs publish)
 A monorepo has **one** access boundary, so it **cannot span tenants** without dissolving the federation. Therefore:
@@ -454,6 +455,18 @@ Minor revisions are additive or clarifying — a repo conformant to `v1.0` remai
 ### § 10.2 What conformance means
 
 A repo **conforms** to a PLX version when it satisfies every MUST and MUST NOT applicable to it under that version.
+Which requirements are applicable is decided by the **conformance class** — the keywords in this document bind different parties, and each requirement binds the class that owns the artifact it constrains:
+
+| Class | Bound by (chiefly) | Where conformance is recorded |
+|---|---|---|
+| **App** | the contract (§ 6, per profile); the JS/TS toolchain where applicable (§ 5.1) | `PLEXUS.md` at the app root — `profile: app` or `stateless-app` |
+| **Tenant monorepo** | repo & namespace layout (§ 4.3), toolchain (§ 5.1), branching and the release train (§ 5.3–§ 5.4) | `PLEXUS.md` at the repo root — `profile: tenant-monorepo` |
+| **Tenant platform** | partitioning, virtualization, and the tenant label (§ 4.2); the ops-side requirements (§ 7) | the tenant monorepo's `PLEXUS.md` — the platform is defined by that repo's `infra/`, so the monorepo marker speaks for it |
+| **The standard's own repos** | publishing mechanics (§ 5.2), licensing and disclosure (§ 4.2), the verb safety baseline and artifact layering (§ 7) | `PLEXUS.md` in each `plexus-ms` repo — `profile: standard-repo` |
+
+The last class is **self-directed**: its requirements bind the maintainers, and no tenant can — or need — conform to them. § 5.2's release mechanics, for example, are obligations of `plexus-ms/library`, not of any tenant.
+Where prose leaves a requirement's class ambiguous, ownership of the constrained artifact decides.
+
 SHOULD and SHOULD NOT mark the paved road: deviating is permitted, but the deviation MUST be *owned* — recorded in the repo's `PLEXUS.md` (§ 10.3) with a sentence of rationale, so it reads as a decision, never as drift.
 Reference-stack substitutions (see preamble) follow the same rule: substituting is conformant, and `PLEXUS.md` is where the tenant owns the divergence.
 
@@ -466,7 +479,7 @@ Because § 8's staleness detection must parse it mechanically, its format is spe
 ```markdown
 ---
 plx: v1.0        # PLX version this repo targets — REQUIRED
-profile: app     # app | stateless-app | tenant-monorepo — REQUIRED
+profile: app     # app | stateless-app | tenant-monorepo | standard-repo — REQUIRED
 ---
 
 Free-form prose. Owned SHOULD-deviations and reference-stack
@@ -474,5 +487,11 @@ substitutions live here — one bullet each, with rationale.
 ```
 
 Machine checks read **only the YAML frontmatter**; the body is for humans.
-`plx` is compared against the current standard version to flag drift (§ 8, tier 3); `profile` selects which contract requirements apply (`app` and `stateless-app` per § 6/§ 6.2, `tenant-monorepo` per § 4.3).
+`plx` is compared against the current standard version to flag drift (§ 8, tier 3); `profile` names the conformance class (§ 10.2) and thereby selects which requirements apply (`app` and `stateless-app` per § 6/§ 6.2, `tenant-monorepo` per § 4.3, `standard-repo` self-directed per § 10.2).
 A repo whose `PLEXUS.md` is missing or unparsable is *non-conformant by definition* — the marker is the one artifact the standard cannot degrade gracefully without, because it is how staleness stays visible (§ 8).
+
+### § 10.4 The requirements index
+
+Normative content is mechanically extractable from this document by construction: every binding requirement carries an ALL-CAPS keyword (preamble), so the full MUST/SHOULD inventory is one grep away, each hit carrying its section anchor.
+The implementer's checklist — every requirement, grouped by conformance class (§ 10.2) — is therefore a **generated artifact**: the compendium ships the generator alongside the standard (a script like any other verb, hand-runnable), and the index is regenerated whenever the standard changes.
+The index MUST NOT be hand-maintained: a hand-edited requirements list beside its source is exactly the shadow documentation that drifts and rots (§ 1) — the source stays the single authority, and a generated index can never disagree with it.

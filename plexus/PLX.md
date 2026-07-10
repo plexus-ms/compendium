@@ -160,6 +160,42 @@ A federation of practice, not of instances.
 - **Shared across all tenants (the methodology):** the contract, the `@plexus-ms/*` config/lib packages, the reusable CI workflow, the deploy verb, the copier template, the Ansible *roles*, the doctrine. Knowledge, and code-shaped-as-knowledge. No tenant owns it.
 - **Never shared (the substance):** hosts and root access, git org/repo access, secrets vaults, databases, backups, domains. These MUST remain partitioned by tenant.
 
+```text
+┌────────────────────────────────────────────────────────────────────────────┐
+│                  plexus-ms — the tenant-neutral upstream                   │
+│                                                                            │
+│   ┌────────────────────┐  ┌────────────────────┐  ┌────────────────────┐   │
+│   │      library       │  │       preset       │  │       itops        │   │
+│   │   dev side (§ 5)   │  │  copier template   │  │   ops side (§ 7)   │   │
+│   │ @plexus-ms/* pkgs  │  │ composes dev + ops │  │ verbs · workflow   │   │
+│   │ on npm, semver +   │  │ into a ready       │  │ wrappers · Ansible │   │
+│   │ provenance (§ 5.2) │  │ tenant monorepo    │  │ roles — one tag    │   │
+│   └────────────────────┘  └────────────────────┘  └────────────────────┘   │
+└─────────────┬───────────────────────┬───────────────────────┬──────────────┘
+              │ npm versions          │ copier update         │ git tags
+              └───────────────────────┼───────────────────────┘
+                                      │  what crosses: methodology — versioned,
+                                      │  pull-based, every pin watched (§ 8)
+══════════════════════════════════════╪═══════════════════════════════════════
+                                      │  what never crosses: substance — root,
+                                      │  secrets, data, hosts, backups (§ 4.2)
+              ┌───────────────────────┼───────────────────────┐
+              ▼                       ▼                       ▼
+    ┌────────────────────┐  ┌────────────────────┐  ┌────────────────────┐
+    │   tenant `acme`    │  │  tenant `initech`  │  │  tenant `plexus`   │
+    │ forge org          │  │                    │  │ the initiative     │
+    │ monorepo: apps/ +  │  │         …          │  │ dogfooding its own │
+    │ infra/ · VM(s) ·   │  │                    │  │ standard (§ 2)     │
+    │ vault · backups    │  │                    │  │                    │
+    └────────────────────┘  └────────────────────┘  └────────────────────┘
+
+  Each tenant monorepo holds both sides — apps/ (dev) meets infra/ (ops) at the
+  app contract, the seam (§ 6). No tenant ↔ tenant edges: nothing federates at
+  runtime — hub-and-spoke; one cookbook, many kitchens.
+```
+
+*Figure 1 (informative) — the federation at a glance: one tenant-neutral upstream, versioned methodology flowing hub-and-spoke to every tenant, substance staying inside each tenant's own trust domain.*
+
 **One channel does cross tenant lines: the supply chain.** 
 Whoever controls `plexus-ms` ships code that runs with root on every tenant's hosts (the Ansible roles), inside every tenant's CI (workflows and verbs), and inside every tenant's apps (the packages) — and § 8's Renovate flow keeps all three channels current, with how much of it runs unattended stratified by blast radius (auto-merge is a defensible default for packages, and deliberately not for code that re-runs with root — § 8). 
 "Authority never crosses tenant lines" therefore has exactly one exception: 
@@ -392,6 +428,36 @@ Platform concern, scheduled-event-driven. Ansible installs a nightly unit per VM
 - **The restore test is a scheduled job like any other:** Ansible installs a periodic unit (SHOULD run at least monthly) that restores the latest snapshot of each labelled data service into a scratch container and runs a sanity check — the dump loads, a trivial query answers — then pings **its own dead-man's-switch check**, separate from the backup job's. A restore test that silently stops running alerts exactly like a backup that silently stops running.
 - **First-use gate:** a new backup path MUST pass one end-to-end restore before it is relied upon — that first run of the restore test *is* the verification — and MUST be re-verified after any material change to the path; the scheduled test carries re-verification from then on.
 
+```text
+     provisioning mount (§ 7.5–7.6)                    deploy mount (§ 7.2–7.4)
+     op run --env-file=op.env -- ansible-playbook      push → CI: verbs + image build →
+     site.yml · reads inventory (apps[]) + vault       deploy verb over ssh
+                     │                                      │
+                     │ writes at provisioning time          │ pull · migrate · up ·
+                     ▼                                      ▼ poll /healthz · rollback
+┌─ tenant VM (one tenant per VM — § 4.2) ──────────────────────────────────────────────┐
+│                                                                                      │
+│   ┌─ Caddy (§ 7.5) ──────────┐        app directory (§ 6, § 7.6)                     │
+│   │ TLS · domain → host port │        ├─ compose.yml  ← git                          │
+│   │ (both from inventory)    │        ├─ .env         ← deploy verb: image tag       │
+│   │ refuses public /healthz  │        ├─ platform.env ← provisioning: host port      │
+│   └────────────┬─────────────┘        └─ secrets.env  ← provisioning: vault, 0600    │
+│                │                      three files, three writers — no file           │
+│                │                      has two writers (§ 7.6)                        │
+│                ▼ 127.0.0.1:${PLEXUS_APP_PORT}                                        │
+│   ┌─ app container ──────────┐        ┌─ data container ─────────┐                   │
+│   │ plexus.tenant=<slug>     │───────►│ plexus.tenant=<slug>     │                   │
+│   │ GET /healthz (readiness) │        │ plexus.backup=postgres   │                   │
+│   │ logs → stdout/stderr     │        └────────────┬─────────────┘                   │
+│   └──────────────────────────┘                     │ discovered by label             │
+│                                                    ▼                                 │
+│   nightly unit (§ 7.7): dump per plexus.backup label → restic → off-site repo        │
+│   every scheduled job pings its dead-man's-switch check (§ 7.8)                      │
+└──────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+*Figure 2 (informative) — one tenant VM, assembled: provisioning and the deploy verb write disjoint files, ingress reads the same inventory record that assigns the host port, and backups discover their targets from labels — §§ 7.5–7.8 in one picture.*
+
 ### § 7.8 Scheduling & the orchestrator question
 **No orchestrator in v1.** A workflow orchestrator (Kestra, Airflow, etc.) MUST NOT be stood up as platform infrastructure. The jobs an orchestrator would do are already covered:
 - Deploys → the forge's CI.
@@ -508,10 +574,11 @@ Machine checks read **only the YAML frontmatter**; the body is for humans.
 `plx` is compared against the current standard version to flag drift (§ 8, tier 3); `profile` names the conformance class (§ 10.2) and thereby selects which requirements apply (`app` and `stateless-app` per § 6/§ 6.2, `tenant-monorepo` per § 4.3, `standard-repo` self-directed per § 10.2).
 A repo whose `PLEXUS.md` is missing or unparsable is *non-conformant by definition* — the marker is the one artifact the standard cannot degrade gracefully without, because it is how staleness stays visible (§ 8).
 
-### § 10.4 The requirements index
+### § 10.4 The requirements list
 
 Normative content is mechanically extractable from this document by construction: every binding requirement carries an ALL-CAPS keyword (preamble), so the full MUST/SHOULD inventory is one grep away, each hit carrying its section anchor.
-The implementer's checklist is therefore a **generated artifact**, and producing it is a `standard-repo` obligation (§ 10.2): the compendium MUST ship the generator alongside the standard — a script like any other verb, hand-runnable — and MUST regenerate the index whenever the standard changes.
+A condensed list of requirements (*reqlist*) is therefore an artifact generated downstream of this standard, and producing it is a `standard-repo` obligation (§ 10.2): 
+the compendium MUST ship the reqlist-generator alongside the standard — a script like any other verb, hand-runnable — and MUST regenerate the index whenever the standard changes.
 Two honest bounds on what generation buys.
 The keyword and the section anchor are *derived* — that part of the index can never disagree with the source.
 The **conformance class** of a hit is not derivable by grep: it follows the § 10.2 ownership rule, which the generator carries as an explicit section→class mapping (seeded from the § 10.2 table, reviewed like any other code); a hit the mapping cannot place is listed *unclassified* rather than guessed.

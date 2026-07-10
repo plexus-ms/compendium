@@ -1,0 +1,16 @@
+amends "package://github.com/jdx/hk/releases/download/v1.48.0/hk@1.48.0#/Config.pkl"
+
+hooks {
+  ["pre-commit"] {
+    fix = true
+    stash = true
+    steps {
+      ["reqlist"] {
+        glob = List("plexus/PLX.md", "plexus/generate-reqlist.sh")
+        check = "mise reqlist --check"
+        fix = "mise reqlist"
+        stage = List("plexus/PLX-reqlist.md")
+      }
+    }
+  }
+}

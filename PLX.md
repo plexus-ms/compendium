@@ -34,12 +34,8 @@ It intended for Plexus contributors, and anyone operating any Plexus-governed te
 *The key words **MUST**, **MUST NOT**, **SHOULD**, **SHOULD NOT**, and **MAY** are to be interpreted as described in [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119) when they appear in ALL CAPITALS. 
 Everything else is informative rationale, description, or documentation.*
 
-*This standard is versioned. 
-The frontmatter `version` identifies the revision of PLX itself:
-`v0` while the standard is a draft, then `vMAJOR.MINOR` (e.g. `v1.0`) once live. The frontmatter `timestamp` records the version's date.
-Minor revisions are additive or clarifying:
-a repo conformant to `v1.0` remains conformant under every `v1.x`; only a major revision may change or remove requirements. 
-A repo records in its `PLEXUS.md` (§ 6) which PLX version it targets.*
+*This standard is versioned, and conformance to it is recorded per repo. 
+§ 10 defines the versioning scheme, what conformance means, and the format of the per-repo `PLEXUS.md` marker.*
 
 *Concrete tools and services are named in two different strengths, and the conformance keyword decides which.
 A tool named **inside a MUST or SHOULD is normative** — part of the standard itself, and the reference-stack convention below never softens it: 
@@ -291,7 +287,7 @@ Every Plexus app repo MUST provide:
 - **A healthcheck** — `GET /healthz`, with **readiness semantics**, pinned normatively because the deploy verb's rollback decision rides on this endpoint (§ 7.2): it MUST return 200 if and only if the process can serve real requests *right now* — which includes probing hard dependencies the app cannot serve without (its own database, with a short bounded timeout) and MUST NOT include soft or third-party dependencies the app survives degraded. The endpoint MUST be cheap, side-effect-free, and unauthenticated (it is reachable only via loopback anyway). Plexus deliberately does **not** split liveness from readiness: that distinction pays for itself only where a reconciler restarts processes on liveness, and the standard has no reconciler (§ 7.2, the fence) — one endpoint, one meaning. Transient dependency blips are the *poller's* problem, and handled there (§ 7.2).
 - **Logs on stdout/stderr** — the app MUST write logs to stdout/stderr and MUST NOT manage its own log files; shipping and retention are the platform's job.
 - **A CI reference** — the app's CI MUST run the shared pipeline (§ 7.3: lint → typecheck → test → build → push image); on the reference stack this is a ~5-line reference to the shared reusable workflow.
-- **A `PLEXUS.md`** — records the PLX version the repo targets (see *Versioning of this standard*). (The per-repo contract marker — deliberately distinct from this document, `PLX.md`, the standard itself.)
+- **A `PLEXUS.md`** — the per-repo conformance marker: the PLX version targeted, the profile taken, and any owned deviations. Format and semantics: § 10.
 
 ### § 6.1 Migration discipline
 
@@ -418,7 +414,7 @@ Consumers customize by **overriding at the edges** (their `biome.json` extends y
 **Scaffolding (copied once, then owned)** — the irreducible repo shape. Three tiers, chosen per artifact:
 1. **Convert to a dependency if at all possible.** Most "boilerplate" is secretly extractable — a `mise.toml` can `include` a shared, **version-pinned** task file (`git::…?ref=vN`), keeping only project-specific tasks local. This is the highest-value work; every bit extracted moves from the rotting pile to the auto-propagating pile (and unlike `just import`, the version pin lets Renovate carry the updates).
 2. **Use a re-appliable scaffolder, not `cp`.** **copier**: a project records the template version it was generated from; `copier update` re-applies template changes as a diff, merging against local edits like a rebase, surfacing conflicts explicitly. Template-as-living-dependency.
-3. **For the genuine remainder, make staleness visible:** the `PLEXUS.md` contract version + a Renovate-scheduled check flagging repos that have drifted behind the current standard. You won't auto-fix these, but you'll never again *not know* which repos are stale — which kills most of the fog by itself.
+3. **For the genuine remainder, make staleness visible:** the `PLEXUS.md` conformance marker (its § 10.3 frontmatter is what makes this mechanically checkable) + a Renovate-scheduled check flagging repos that have drifted behind the current standard. You won't auto-fix these, but you'll never again *not know* which repos are stale — which kills most of the fog by itself.
 
 ### The dependency-mechanics rule (monorepo vs publish)
 A monorepo has **one** access boundary, so it **cannot span tenants** without dissolving the federation. Therefore:
@@ -444,3 +440,37 @@ Written down so these are *decisions*, not drift:
 - **Preview environments per PR** — deferred deliberately. A single `staging` per app covers ~90% of the value; revisit when a product has real customers.
 - **Per-tenant second admins** — provision lazily, only when a real second operator exists.
 - **A second maintainer for `plexus-ms` itself** — the initiative's own bus-factor mitigation (§ 4.2). Same lazy rule as second admins — when a real second contributor exists — but with one proactive trigger: the day a third-party tenant runs the standard in production, single-maintainer governance stops being merely honest and starts being a liability to someone else.
+
+
+## § 10 Versioning & conformance
+
+### § 10.1 Versioning of this standard
+
+The frontmatter `version` of this document identifies the revision of PLX itself: `v0` while the standard is a draft, then `vMAJOR.MINOR` (e.g. `v1.0`) once live; the frontmatter `timestamp` records the version's date.
+Minor revisions are additive or clarifying — a repo conformant to `v1.0` remains conformant under every `v1.x`; only a major revision may change or remove requirements.
+
+### § 10.2 What conformance means
+
+A repo **conforms** to a PLX version when it satisfies every MUST and MUST NOT applicable to it under that version.
+SHOULD and SHOULD NOT mark the paved road: deviating is permitted, but the deviation MUST be *owned* — recorded in the repo's `PLEXUS.md` (§ 10.3) with a sentence of rationale, so it reads as a decision, never as drift.
+Reference-stack substitutions (see preamble) follow the same rule: substituting is conformant, and `PLEXUS.md` is where the tenant owns the divergence.
+
+### § 10.3 The `PLEXUS.md` marker
+
+Every conforming repo carries a `PLEXUS.md`; in a tenant monorepo, each app additionally carries one at its app root.
+(The name is deliberately distinct from this document: `PLX.md` is the standard, `PLEXUS.md` is the per-repo marker.)
+Because § 8's staleness detection must parse it mechanically, its format is specified:
+
+```markdown
+---
+plx: v1.0        # PLX version this repo targets — REQUIRED
+profile: app     # app | stateless-app | tenant-monorepo — REQUIRED
+---
+
+Free-form prose. Owned SHOULD-deviations and reference-stack
+substitutions live here — one bullet each, with rationale.
+```
+
+Machine checks read **only the YAML frontmatter**; the body is for humans.
+`plx` is compared against the current standard version to flag drift (§ 8, tier 3); `profile` selects which contract requirements apply (`app` and `stateless-app` per § 6/§ 6.2, `tenant-monorepo` per § 4.3).
+A repo whose `PLEXUS.md` is missing or unparsable is *non-conformant by definition* — the marker is the one artifact the standard cannot degrade gracefully without, because it is how staleness stays visible (§ 8).

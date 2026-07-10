@@ -38,10 +38,14 @@ Minor revisions are additive or clarifying:
 a repo conformant to `v1.0` remains conformant under every `v1.x`; only a major revision may change or remove requirements. 
 A repo records in its `PLEXUS.md` (§ 6) which PLX version it targets.*
 
-*Where concrete tools and services are named without a conformance keyword, that describes the **reference stack**:
-the stack that we, the maintainers, use in our own projects; the stack which `plexus-ms` repos were built for.
-Plexus is designed tool-agnostically where possible; 
-a tenant MAY substitute an equivalent for any reference-stack tool, but owns the divergence.*
+*Concrete tools and services are named in two different strengths, and the conformance keyword decides which.
+A tool named **inside a MUST or SHOULD is normative** — part of the standard itself, and the reference-stack convention below never softens it: 
+mise and hk are normative across all stacks (§ 5, § 6); pnpm and the rest of the § 5.1 toolchain are normative within JS/TS repos.
+A tool or service named **without a keyword** belongs to the **reference stack**:
+the concrete choice we, the maintainers, use in our own projects and built the `plexus-ms` repos for — chiefly the external services Plexus deliberately consumes rather than self-hosts (GitHub as forge, 1Password as vault, the hosting provider) and swappable platform components (e.g. Caddy).
+A tenant MAY substitute an equivalent for any reference-stack choice, and owns the divergence.
+The design intent behind the split is lock-in resistance:
+proprietary services sit behind thin adapters over Plexus's own portable primitives — workflow wrappers are dumb mounts over hand-runnable verbs, `op.env` is plain dotenv pointers any vault CLI could resolve — so leaving a reference service means rewriting a mount, never a verb (§ 7).*
 
 
 ## § 1 Why Plexus exists
@@ -89,7 +93,7 @@ Mounts carry no logic.
 - **Seam** — where the dev side and the ops side meet, made explicit as the app contract (§ 6).
 - **The paved road** — the composed default path (toolchain, CI, deploy, backup) a new project lands on with near-zero overhead.
 In pursuit of convenience and standardization, ties to the reference stack cannot be avoided on this road.
-- **Reference stack** — the concrete tool choices the paved road assumes; see preamble above.
+- **Reference stack** — the substitutable concrete choices (external services, swappable platform components) named without a conformance keyword; see preamble above. Keyword-bearing tool names are normative, not reference stack.
 - **Fog** — the operational memory loss described in § 1; the failure mode Plexus exists to eliminate.
 
 
@@ -193,7 +197,7 @@ How Plexus software is *built*: the pinned toolchain, the shared packages, and t
 
 Scope, honestly: v0 standardizes the toolchain, the publishing mechanics, and the release models. The reusable application plumbing the § 3 boundary principle aims at — framework glue, common auth concerns, repeatable non-domain features — is future work, deferred with its trigger in § 9; until it exists, that plumbing lives in the app that needs it.
 
-Nor is Plexus secretly JS-only: mise is language-neutral, so the standard verbs (§ 6) are the stack-neutral layer every app answers, and § 5.1's pnpm/tsc specifics bind only JS/TS repos. A Python or Go app takes the same contract with different incantations behind the same verbs — JS/TS is simply the first toolchain the standard has decided.
+Nor is Plexus secretly JS-only: mise and hk are language-neutral, so they bind every Plexus repo regardless of stack — the standard verbs (§ 6) are the stack-neutral layer every app answers, and the hook discipline of § 5.1 applies with stack-appropriate checks behind the same hooks. Only § 5.1's pnpm/tsc specifics bind JS/TS repos alone. A Python or Go app takes the same contract with different incantations behind the same verbs — JS/TS is simply the first toolchain the standard has decided.
 
 ### § 5.1 The JS/TS toolchain convention
 

@@ -155,6 +155,9 @@ What none of them contain is any tenant's **substance**: each tenant instantiate
 
 What spans the tenants is **separate trust domains sharing a *methodology*, not a *runtime*.** 
 This is federation under a common standard — *one cookbook, many kitchens*. 
+And to preempt what the word usually evokes: nothing federates at *runtime*. 
+Tenants never talk to each other — no shared identity, no inter-instance protocol, no ActivityPub; what travels is versioned methodology from one upstream, hub-and-spoke. 
+A federation of practice, not of instances.
 
 - **Shared across all tenants (the methodology):** the contract, the `@plexus-ms/*` config/lib packages, the reusable CI workflow, the deploy verb, the copier template, the Ansible *roles*, the doctrine. Knowledge, and code-shaped-as-knowledge. No tenant owns it.
 - **Never shared (the substance):** hosts and root access, git org/repo access, secrets vaults, databases, backups, domains. These MUST remain partitioned by tenant.
@@ -322,12 +325,12 @@ A new or reworked primitive MUST pass both litmus tests (§ 3) before it is decl
 
 Procedures are layered as shared logic cores with thin mounts (all in `plexus-ms/itops`, versioned by one tag), and the boundary is load-bearing:
 
-- **Verbs** — portable bash scripts (`scripts/`) that contain *all* the logic and MUST stay hand-runnable: `git clone && ./scripts/deploy.sh deploy@host app image` works with no forge at all. This is what passes the degradation test.
+- **Verbs** — portable bash scripts (`scripts/`) that contain *all* the logic and MUST stay hand-runnable: `git clone && ./scripts/deploy.sh deploy@host app image` works with no forge at all. This is what passes the degradation test. Bash's native failure modes (unset variables expanding to nothing, pipelines failing silently) are second-reader traps, so a safety baseline is normative: every verb MUST run under strict mode (`set -euo pipefail` or equivalent) and MUST be shellcheck-clean, enforced mechanically at the repo boundary (hook or check — never the honor system).
 - **Workflow wrappers** — thin reusable GitHub workflows (`.github/workflows/`) that merely mount a verb on the forge's events: checkout, secrets plumbing, one invocation. **Logic MUST NOT live in the YAML.** GitHub's workflow format is not an open standard — the runner is self-hostable but GitHub remains the scheduler — so the wrapper is forge-specific and disposable, while the verb is portable and permanent. Leaving GitHub would mean rewriting the mounts, never the verbs.
 - **Ansible roles** (`ansible/` — the `plexus.itops` collection) — the same split applied to the platform layer: the roles are the shared logic core, and each tenant's `infra/` keeps only the binding — `site.yml` (a roles list), inventory, group_vars, `op.env`. A tenant playbook is to the roles what a workflow wrapper is to a verb: a mount, not logic. Tenants MUST pin the collection by tag in `requirements.yml`; every change under `ansible/` MUST bump `galaxy.yml` (SCM installs record that version — a moved tag alone won't reinstall).
 
 ### Forge
-**GitHub** (reference stack — deliberately not self-hosted). Code and CI configs aren't personal data, and self-hosting the forge would make it a tier-0 dependency to secure and back up before it backs you up. GitHub is the event source for all git-triggered procedures and hosts the container registry (GHCR).
+**GitHub** (reference stack — deliberately not self-hosted). Code and CI configs aren't personal data, and self-hosting the forge would make it a tier-0 dependency *you* must secure and back up before it backs you up. Be honest about what that decision buys, though: **the forge is tier-0 for deploys either way** — CI is the deploy trigger and GHCR holds the images, so a GitHub outage means no automated deploys, and rolling back during one leans on the previous image still sitting in the host's local cache (or on git plus a local build). That trade is accepted, and named here rather than implied away: not-self-hosting avoids *operating* tier-0, not *depending* on it. What bounds the damage is the usual pair — running systems keep running and git is distributed, so an outage costs deploy availability, never data; and the verbs stay hand-runnable (degradation test), so a forge-less deploy remains possible, just not convenient. GitHub is the event source for all git-triggered procedures and hosts the container registry (GHCR).
 
 ### The deploy verb — a verb, not a system
 A stateless procedure (`plexus-ms/itops` `scripts/deploy.sh`), ~150 lines, referenced by version tag:

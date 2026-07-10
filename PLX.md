@@ -307,14 +307,14 @@ treats every app identically:
 - **`compose.yml`** declares only the app service with `plexus.tenant=<id>`; **no data
   service and no `plexus.backup` label** (nothing to back up).
 - **`mise :migrate` MUST still be present** (as a documented no-op); `seed` MAY be omitted. The deploy verb still
-  calls `mise migrate` uniformly — it never needs to know an app is stateless.
+  calls `mise migrate` uniformly (bare form, deliberately — deploy-host context, § 5.1) — it never needs to know an app is stateless.
 - **The env schema MAY declare zero secrets** (only runtime knobs like `PORT`).
 - **`/healthz`, the CI reference, and `PLEXUS.md` remain MUSTs.**
 
 A stateless app passes the degradation test trivially: the host is fully reconstructable
 from git + the image registry, with no data to restore.
 
-What the contract deliberately does **not** mention: databases, ORMs, frameworks, or anything interior. The deploy verb only needs *"is there a migration step and how do I invoke it"* → `mise migrate`. The backup job only needs *"which services hold state and of what type"* → the labels. Adding Mongo support means writing one `mongodump` handler once in the platform, after which every Mongo app is covered.
+What the contract deliberately does **not** mention: databases, ORMs, frameworks, or anything interior. The deploy verb only needs *"is there a migration step and how do I invoke it"* → `mise migrate` (bare form: on the deploy host, the verb runs against the app's standalone `mise.toml`, where path syntax does not apply — § 5.1). The backup job only needs *"which services hold state and of what type"* → the labels. Adding Mongo support means writing one `mongodump` handler once in the platform, after which every Mongo app is covered.
 
 
 ## § 7 The ops side (all stateless, all second-reader-test-passable)
@@ -338,7 +338,8 @@ A stateless procedure (`plexus-ms/itops` `scripts/deploy.sh`), ~150 lines, refer
 ```
 deploy(host, app, image_tag):
   ssh → docker compose pull
-      → mise migrate            # idempotent, roll-forward-only (§ 6)
+      → mise migrate            # bare form: standalone mise.toml on the host (§ 5.1);
+                                # idempotent, roll-forward-only (§ 6.1)
       → docker compose up -d
       → poll /healthz
       → on failure: re-up previous tag, alert

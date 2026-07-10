@@ -99,11 +99,11 @@ In pursuit of convenience and standardization, ties to the reference stack canno
 
 ## § 3 Core principles
 
-These principles are PLX's load-bearing philosophy.
+These principles are PLX's load-bearing philosophy: the defaults every design starts from, not positions to re-debate per project.
 
-However, they are not to be seen as non-negotiable, as in reality they will often be at odds with each other and require compromise, or will not be possible to implement at all.
-When architecting new primitives or reworking existing ones, trade-offs must be considered and a balance must be struck.
-Ideally, assumptions and constraints should be documented or clearly apparent to avoid second-guessing the structure.
+In real designs they will pull against each other — statelessness against convenience, standardized boundaries against a genuinely bespoke need. 
+When principles conflict, the resolution is a **documented trade-off**: decide, record the assumption or constraint that drove the decision where the next reader will meet it (in the primitive itself, or as an owned deviation in `PLEXUS.md` — § 10.2), and move on. 
+A principle set aside with a written reason is the standard working as designed; a principle eroded silently is drift.
 
 - **Have state in Git, runnable, greppable.** 
   Control planes and other heavyweight ITOps applications routinely create opaque and stateful abstraction layers that are hard to see through and debug.
@@ -190,7 +190,8 @@ Everything else — Docker, ingress, secrets vault, backups, domains — SHOULD 
 Feeling the need to deviate from this and sharing ingress, networking, secrets, might be acceptable under certain conditions but must also be interpreted as a sign of a deeper structural problem, of the standard falling short of its own economics goals.
 Also, be clear about what virtualization does and does not buy:
 it solves performance and fault isolation, but it *centralizes* access rather than partitioning it — a hypervisor has God-mode over every VM, so the host is a critical attack vector — and it does nothing for legal controllership: 
-distinct legal persons sharing one box under one admin MUST document the arrangement in writing in order to stay compliant in most jurisdictions (e.g. a one-page document defining the relationship, plus a data-processing agreement, e.g. an AVV/DPA where the GDPR applies).
+distinct legal persons sharing one box under one admin MUST document the arrangement in writing — e.g. a one-page document defining the relationship, plus a data-processing agreement where applicable. 
+*Why (informative, and not legal advice):* data-protection regimes commonly require such arrangements to exist in writing — under the GDPR, typically an AVV/DPA. The standard can require the artifact; whether the artifact satisfies a given jurisdiction is a legal question each tenant answers for itself — PLX conformance is not legal compliance.
 
 **Tenant identifier** — every tenant MUST have a short slug (e.g. `acme`, `initech`, and `plexus` itself, the project dogfooding its own standard) that threads through as consistently as possible: forge org names, VM hostnames, Ansible inventory groups, vault names, and a `plexus.tenant=` label, which every deployed service MUST carry. 
 That label makes the boundary visible exactly where fog otherwise creeps back in (staring at a host wondering whose service this is).

@@ -14,17 +14,24 @@ order: 2
 - Blockquotes in this document are reserved for normative statements; everything outside a blockquote is informative prose.
 - Normative keywords appear only inside blockquotes; a keyword outside one is a defect in this document, and the reqlist generator rejects it.
 
-## § 1.5 Conformance & owned deviations
+## § 1.6 Conformance & owned deviations
 
 - A repo conforms to a PLX version when it satisfies every MUST and MUST NOT applicable to it under that version.
 - Deviating from a SHOULD or SHOULD NOT is permitted, but the deviation MUST be recorded in the repo's `PLEXUS.md` with a sentence of rationale.
-- A tenant MAY substitute an equivalent for any reference-stack choice (§ 1.3); the substitution MUST be recorded the same way.
+- A tenant MAY substitute an equivalent for any reference-stack choice (§ 1.4); the substitution MUST be recorded the same way.
 
-## § 1.6 The `PLEXUS.md` marker
+## § 1.7 The `PLEXUS.md` marker
 
 - Every conforming repo MUST carry a `PLEXUS.md`; in a tenant monorepo, each app additionally carries one at its app root.
 - The marker MUST carry YAML frontmatter with `plx` (the PLX version targeted) and `profile` (`stateless-app`, `stateful-app`, or `tenant-monorepo`).
 - A repo whose `PLEXUS.md` is missing or unparsable is non-conformant.
+
+## § 2 The supply chain & upstream guarantees
+
+- `@plexus-ms/*` packages are published to public npmjs under the `@plexus-ms` scope; published versions are immutable and carry provenance attestations linking each version to its source commit and build.
+- A breaking change to a `@plexus-ms/*` package is released as a semver major, with a migration note in the changelog.
+- Tenant substance — business logic, secrets, anything tenant-specific — never appears in a public `@plexus-ms/*` package.
+- The shared repos are public and GPLv3-licensed; every change is reviewable, and nothing breaks on the day the upstream goes unmaintained — published versions keep resolving, and the repos remain forkable.
 
 ## § 3.1 Trust domain
 
@@ -49,13 +56,6 @@ order: 2
 - A tenant SHOULD use the monorepo pattern: one `<org>/<tenant>` repo holding both the dev side (`apps/`, `packages/`) and the ops side (`infra/`: inventory, host definitions, deployment configs).
 - Tenant monorepos SHOULD be generated from `plexus-ms/preset`.
 
-## § 3.5 The supply chain & upstream guarantees
-
-- `@plexus-ms/*` packages are published to public npmjs under the `@plexus-ms` scope; published versions are immutable and carry provenance attestations linking each version to its source commit and build.
-- A breaking change to a `@plexus-ms/*` package is released as a semver major, with a migration note in the changelog.
-- Tenant substance — business logic, secrets, anything tenant-specific — never appears in a public `@plexus-ms/*` package.
-- The shared repos are public and GPLv3-licensed; every change is reviewable, and nothing breaks on the day the upstream goes unmaintained — published versions keep resolving, and the repos remain forkable.
-
 ## § 4.1 mise & hk, in every repo
 
 - Every tenant repo MUST pin its tools in `mise.toml` and expose its verbs as mise tasks.
@@ -72,7 +72,7 @@ order: 2
 
 ## § 5 The app contract
 
-- Every app MUST satisfy this section, and MUST declare exactly one § 6 profile in its `PLEXUS.md` (§ 1.6).
+- Every app MUST satisfy this section, and MUST declare exactly one § 6 profile in its `PLEXUS.md` (§ 1.7).
 
 ## § 5.1 Standard verbs
 
@@ -96,7 +96,7 @@ order: 2
 - An unflagged key is optional and non-secret; a `secret` key MUST have an empty value position — a default secret in git is a leak, not a default.
 - Parsers MUST ignore full-line comments.
 - Every consumer of the schema MUST parse it through the canonical parser `itops` ships; where this grammar is silent, that parser's behavior is normative.
-- Secret values MUST NOT be committed; they are resolved from the tenant's vault at provisioning time (§ 8.2).
+- Secret values MUST NOT be committed; they are resolved from the tenant's vault at provisioning time (§ 7.2).
 
 ## § 5.4 One HTTP port
 
@@ -117,7 +117,7 @@ order: 2
 
 ## § 5.7 CI reference
 
-- The app's CI MUST run the shared pipeline (§ 7.4): lint → typecheck → test → build → push image.
+- The app's CI MUST run the shared pipeline (§ 8.5): lint → typecheck → test → build → push image.
 
 ## § 6.1 The stateless app
 
@@ -128,7 +128,7 @@ order: 2
 
 ## § 6.2 The stateful app
 
-- Data services MUST carry the labels `plexus.tenant=<slug>` and `plexus.backup=<type>`; a `plexus.backup` value is valid exactly when `itops` ships a backup handler for it (§ 8.3).
+- Data services MUST carry the labels `plexus.tenant=<slug>` and `plexus.backup=<type>`; a `plexus.backup` value is valid exactly when `itops` ships a backup handler for it (§ 7.3).
 - The app SHOULD default to one database container of its own — full isolation, dies with the app.
 - `migrate` MUST be idempotent: already-applied steps are skipped, and running it against a fully-migrated schema is a no-op.
 - A `migrate` failure partway through MUST leave the schema in a state from which re-running `migrate` can complete, each step applied atomically where the database supports it.
@@ -137,31 +137,13 @@ order: 2
 - A genuinely breaking migration — one that cannot honor expand/contract — MUST be deployed as a deliberate act: fresh backup taken first, and the operator aware that reverting means restoring, not re-upping the previous tag.
 - The app MUST provide `mise :seed`, loading development sample data only; it MAY assume a fresh database (right after `migrate`) and MUST NOT be invoked by the deploy verb.
 
-## § 7.1 Environment branches
-
-- Tenant monorepos MUST use environment branches: `main`→prod, `develop`→staging.
-- Apps MUST NOT use changesets.
-- A hotfix branches from `main` and merges to `main`; it MUST be back-merged `main → develop` immediately.
-
-## § 7.2 The release train
-
-- CI MUST be path-scoped per app: an app's own directory plus every workspace package it depends on.
-- `develop` MUST stay promotable; unfinished or still-soaking work lives on feature branches, never parked on `develop`.
-- Selective promotion — cherry-picks, path-restricted merges — MUST NOT be used.
-- While a staging deploy is red, `develop → main` MUST NOT be merged.
-- Staging and prod MAY share a VM or take one each — both sit inside one tenant's trust domain; § 3.3 partitions tenants, not environments.
-
-## § 7.4 The CI pipeline
-
-- A tenant MUST NOT operate its own CI control plane.
-
-## § 8.1 Ingress
+## § 7.1 Ingress
 
 - Each app's host port MUST be assigned in the tenant's inventory (`apps[].port`), in the same record that binds its domain.
 - The playbook SHOULD fail on a duplicate host port per VM.
 - The proxy SHOULD refuse external requests for `/healthz`.
 
-## § 8.2 Secrets
+## § 7.2 Secrets
 
 - Secret values MUST live only in the tenant's vault; git holds only references.
 - Secrets MUST be resolved at provisioning time, never at deploy time.
@@ -169,22 +151,47 @@ order: 2
 - The playbook MUST re-create the affected containers whenever `secrets.env` changed; rotation MUST NOT be left to ride along on whenever the next deploy happens to run.
 - The compose-up invocation MUST be encoded exactly once, as an `itops` verb that both the deploy verb's up step and the rotation handler call.
 
-## § 8.3 Backups
+## § 7.3 Backups
 
 - Backup schedule and retention MUST live as code in the tenant's `infra/`.
 - The backup job MUST discover what to dump by reading the `plexus.backup` labels (§ 6.2).
 - A new backup path MUST pass one end-to-end restore before it is relied upon, and MUST be re-verified after any material change to the path.
-- A scheduled restore test SHOULD run at least monthly: restore the latest snapshot of each labelled data service into a scratch container, run a sanity check, and ping its own dead-man's-switch check (§ 8.4), separate from the backup job's.
+- A scheduled restore test SHOULD run at least monthly: restore the latest snapshot of each labelled data service into a scratch container, run a sanity check, and ping its own dead-man's-switch check (§ 7.4), separate from the backup job's.
 
-## § 8.4 Scheduling & the dead-man's-switch
+## § 7.4 Scheduling & the dead-man's-switch
 
 - A workflow orchestrator MUST NOT be stood up as platform infrastructure.
 - Every scheduled job MUST ping a per-job check on success, and a missed ping MUST raise an alert.
 - A tenant that finds itself with an orchestrator that barely runs anything SHOULD migrate its jobs onto the mechanisms below or retire it.
 
-## § 8.5 Host lifecycle (interim)
+## § 7.5 Host lifecycle (interim)
 
 - Tenant hosts SHOULD run the distribution's unattended security upgrades (the base role's default).
+
+## § 8.1 Environment branches
+
+- Tenant monorepos MUST use environment branches: `main`→prod, `develop`→staging.
+- Apps MUST NOT use changesets.
+- A hotfix branches from `main` and merges to `main`; it MUST be back-merged `main → develop` immediately.
+- Staging and prod MAY share a VM or take one each — both sit inside one tenant's trust domain; § 3.3 partitions tenants, not environments.
+
+## § 8.2 The release train
+
+- CI MUST be path-scoped per app: an app's own directory plus every workspace package it depends on.
+- `develop` MUST stay promotable; unfinished or still-soaking work lives on feature branches, never parked on `develop`.
+- Selective promotion — cherry-picks, path-restricted merges — MUST NOT be used.
+
+## § 8.3 Failed deploys & recovery
+
+- While a staging deploy is red, `develop → main` MUST NOT be merged.
+
+## § 8.5 The CI pipeline
+
+- A tenant MUST NOT operate its own CI control plane.
+
+## § 9 Propagation
+
+- A consumer config SHOULD extend the shared `@plexus-ms/*` config and keep local additions in its own file.
 
 ## § 9.1 The update bot
 
@@ -197,7 +204,3 @@ order: 2
 ## § 9.2 Dependency mechanics
 
 - A shared thing that crosses a tenant boundary MUST be consumed as a published, versioned package; a shared thing inside one tenant is a workspace dependency.
-
-## § 9.3 Customizing at the edges
-
-- A consumer config SHOULD extend the shared `@plexus-ms/*` config and keep local additions in its own file.

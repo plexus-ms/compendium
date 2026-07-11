@@ -15,7 +15,7 @@ It binds the maintainers, not the tenants — a consumer never needs it, and a c
 The tenant-facing contract is [PLX, the Plexus Standard](standard.md); the reasoning behind the whole design is the [Manifesto](manifesto.md).
 
 Unlike the standard, this document carries no BCP 14 keywords: its rules are written in plain prose, and they are still rules.
-Where a maintainer obligation backs a guarantee tenants rely on, the standard states the guarantee (§ 3.5 PLX) and this manual records the mechanics that honor it.
+Where a maintainer obligation backs a guarantee tenants rely on, the standard states the guarantee (§ 2 PLX) and this manual records the mechanics that honor it.
 
 ## The repos
 
@@ -52,7 +52,7 @@ These are the definition of done, not aspirations.
 Inside the fence, invest freely — logging, clean rollback, good error messages.
 Outside it, it is either an existing tool's job or an architecture change, not feature creep.
 
-Two single-encoding obligations sit in `itops` because the standard's platform machinery depends on them (§ 5.3, § 8.2 PLX): the canonical `env.schema` parser (every consumer parses through it, so the micro-format cannot fork), and the compose-up verb (the one encoding of the env-file wiring, called by both the deploy verb's up step and the rotation handler).
+Two single-encoding obligations sit in `itops` because the standard's platform machinery depends on them (§ 5.3, § 7.2 PLX): the canonical `env.schema` parser (every consumer parses through it, so the micro-format cannot fork), and the compose-up verb (the one encoding of the env-file wiring, called by both the deploy verb's up step and the rotation handler).
 
 ## library: releasing the packages
 
@@ -60,7 +60,7 @@ The library is trunk-based on a single `main`, versioned and published by **chan
 Why trunk-based: changesets accumulates changeset files on one branch, bumps them in one PR on that branch, and publishes from it.
 A second long-lived branch (GitFlow `develop`) forces reconciling version numbers between branches on every release — a perpetual back-merge tax; changesets is a trunk-based tool, and pairing it with GitFlow fights it.
 Concurrency is not a reason to avoid this: changeset files have random names and the bump is deferred to one central step, so simultaneous feature branches never conflict and never double-publish.
-(The apps' environment-branch model is the tenant-facing counterpart, specified in § 7.1 PLX — the two models are never mixed.)
+(The apps' environment-branch model is the tenant-facing counterpart, specified in § 8.1 PLX — the two models are never mixed.)
 
 How a release runs:
 
@@ -70,19 +70,19 @@ How a release runs:
 - **Token-less via OIDC.** Publishing authenticates through GitHub OIDC *trusted publishing* (`id-token: write`), not a stored npm token — which also makes provenance automatic.
   *Bootstrap caveat:* a package cannot be registered as a trusted publisher until it exists, so each package's **first** publish is a one-time manual `npm publish` — token-authenticated and therefore *without* provenance; the attestation chain starts at the second release, and CI takes over after.
 - **Tags and GitHub Releases are automatic** — `changeset publish` tags each `@plexus-ms/<pkg>@x.y.z`, the action pushes them and cuts a Release from the changelog.
-  The release branch (`main`) is protected by a ruleset requiring those CI checks — keep it that way; this is what stands behind the § 3.5 PLX guarantees.
+  The release branch (`main`) is protected by a ruleset requiring those CI checks — keep it that way; this is what stands behind the § 2 PLX guarantees.
 
 **Package-design rules.**
-A `@plexus-ms/*` package is tenant-neutral methodology, never substance — this is the standard's guardrail (§ 3.5 PLX), and it binds every publish.
+A `@plexus-ms/*` package is tenant-neutral methodology, never substance — this is the standard's guardrail (§ 2 PLX), and it binds every publish.
 Code utilities start in `@plexus-ms/std` — the standard *library* ("the standard" alone always names PLX itself, never this package) is the default home for any small shared concern — and a concern graduates to its own package once it has its own audience or its own release cadence: a consumer shouldn't take updates because an unrelated helper changed.
 Tool configs (`biome-config`, `tsconfig`) are separate packages by construction: they exist to be one-line `extends` targets.
-Packages follow semver, enforced by changesets — a breaking change is a major bump, and its changeset carries a migration note so the changelog doubles as the upgrade guide (again backing § 3.5 PLX).
+Packages follow semver, enforced by changesets — a breaking change is a major bump, and its changeset carries a migration note so the changelog doubles as the upgrade guide (again backing § 2 PLX).
 
 ## itops: versioning the ops artifacts
 
 All three artifact classes — verbs, workflow wrappers, Ansible roles — version together under one `vN` tag; `itops` has no CI of its own beyond its checks.
 Every change under `ansible/` bumps the `galaxy.yml` version: SCM installs record that version, so a moved tag alone won't reinstall.
-Tenants pin the collection by tag (§ 9.1 PLX); the tag-mutability trade-off this creates is named in the standard (§ 3.5 PLX) and accepted deliberately — revisit if attestation for tag-referenced artifacts becomes practical.
+Tenants pin the collection by tag (§ 9.1 PLX); the tag-mutability trade-off this creates is named in the standard (§ 2 PLX) and accepted deliberately — revisit if attestation for tag-referenced artifacts becomes practical.
 
 ## preset: the template
 
@@ -112,34 +112,34 @@ The standard's structural conventions are self-policing, and the machinery lives
 - `generate-reqlist.sh` regenerates [`standard-reqlist.md`](standard-reqlist.md) from that structure — headings plus quoted lines, nothing cleverer — and *fails* if a BCP 14 keyword appears anywhere outside a blockquote.
   Run it via `mise reqlist`; a pre-commit hook regenerates and stages the list whenever the standard changes.
   The generated list is never hand-edited.
-- Section numbers are append-only within a major version (§ 1.4 PLX): new sections go at the end of their level, insertions wait for a major revision.
+- Section numbers are append-only within a major version (§ 1.5 PLX): new sections go at the end of their level, insertions wait for a major revision.
 
 **Graduating the draft is a bar, not a feeling.** `v1.0` of the standard requires: every roadmap deferral below resolved or explicitly re-deferred, the reqlist generating clean (generation and keyword lint both green), and at least one tenant besides `plexus` itself conformant in production.
 
 ## Governance & roadmap
 
 **Bus factor, honestly.** Today one maintainer controls the doctrine, the packages, the template, and the supply chain.
-The consequences and the day-one safety net are stated where tenants can see them (§ 3.5 PLX, and the [Manifesto](manifesto.md)'s honest edges).
+The consequences and the day-one safety net are stated where tenants can see them (§ 2 PLX, and the [Manifesto](manifesto.md)'s honest edges).
 More maintainers follow the same lazy rule as everything else — when a real second contributor exists — with one proactive trigger: the day a third-party tenant runs the standard in production, single-maintainer governance stops being merely honest and starts being a liability to someone else.
 
 **Deferred decisions, written down so they are decisions, not drift:**
 
-- **An orchestrator (e.g. vanilla Kestra)** — only on the § 8.4 PLX triggers: multi-host dependent workflows, approvals, unmanageable schedule count, replay needs.
+- **An orchestrator (e.g. vanilla Kestra)** — only on the § 7.4 PLX triggers: multi-host dependent workflows, approvals, unmanageable schedule count, replay needs.
 - **Observability (metrics, logs, dashboards, phone alerting)** — becomes part of the paved road later.
   The answer to "when is it time to scale?" is data, not vibes — the usual gap is measurement, not orchestration — and the same stack provides the "what's running where" view grouped by `plexus.tenant`.
   Candidates: Grafana + Prometheus/node-exporter + Loki, or lighter (Beszel + Uptime Kuma).
-  Until then, the only monitoring the standard requires is the § 8.4 PLX dead-man's-switch.
-- **A concrete dead-man's-switch service for the reference stack** — the requirement stands now (§ 8.4 PLX); which service — self-hosted (e.g. Uptime Kuma) or managed (e.g. Healthchecks.io) — joins the reference stack is decided together with observability.
-- **An alerting channel (paging, chat, email)** — the standard requires alerts to exist (§ 7.3, § 8.4 PLX) but defers the channel; today a failed deploy alerts as the failing CI job, and the monitor notifies however it natively can.
+  Until then, the only monitoring the standard requires is the § 7.4 PLX dead-man's-switch.
+- **A concrete dead-man's-switch service for the reference stack** — the requirement stands now (§ 7.4 PLX); which service — self-hosted (e.g. Uptime Kuma) or managed (e.g. Healthchecks.io) — joins the reference stack is decided together with observability.
+- **An alerting channel (paging, chat, email)** — the standard requires alerts to exist (§ 8.4, § 7.4 PLX) but defers the channel; today a failed deploy alerts as the failing CI job, and the monitor notifies however it natively can.
   Who gets woken, and how, is decided together with observability.
-- **Host patching & lifecycle** — the interim posture is in the standard (§ 8.5 PLX: unattended security upgrades on, everything else supervised); the full policy is deferred until patch drift is visible — visibility first, then an honest policy.
+- **Host patching & lifecycle** — the interim posture is in the standard (§ 7.5 PLX: unattended security upgrades on, everything else supervised); the full policy is deferred until patch drift is visible — visibility first, then an honest policy.
 - **Kubernetes** — only on genuine multi-node scheduling / contractual HA-SLA / team-coordination needs.
   Not anticipated for years: single beefy hosts with Compose scale far past small-tenant needs, the bottleneck will be Postgres and operator time long before Compose, and self-hosted K8s would *worsen* the bus factor.
 - **Moving a commercial tenant off shared metal** — the day a tenant has a customer with real data-processing expectations (anything in a regulated domain), revisit migrating that tenant's VMs to hardware it controls itself.
   Not because the hypervisor stops isolating, but because "dedicated, tenant-only" can be a commercial/trust requirement independent of the technical reality; the one-VM-per-tenant rule already keeps the migration path clean.
 - **Application-plumbing packages** — the "standardize boundaries" edges (framework glue, common auth concerns, repeatable non-domain features) as published `@plexus-ms/*` packages.
   Extract when a second app needs the same plumbing — never speculatively from the first; until then it lives in the app that needs it.
-- **Zero-downtime deploys (blue-green / rolling)** — the deploy verb re-creates containers in place and accepts seconds of downtime per deploy (§ 7.3 PLX).
+- **Zero-downtime deploys (blue-green / rolling)** — the deploy verb re-creates containers in place and accepts seconds of downtime per deploy (§ 8.4 PLX).
   Revisit when an app has traffic for which a blink is a real cost; whatever the answer, it stays a verb, not a reconciler (the fence, above).
 - **Registry image retention** — SHA-tagged images accumulate in GHCR unboundedly, and nothing prunes them; that is the deliberate default for now (rollback and re-deploys assume history stays available, and storage is cheap at this scale).
   Revisit when registry cost or quota bites; any future GC policy has a floor — the tags currently deployed in any environment, plus their predecessors — or rollback loses its guarantee.

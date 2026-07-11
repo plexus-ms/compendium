@@ -6,10 +6,10 @@ hooks {
     stash = true
     steps {
       ["reqlist"] {
-        glob = List("plexus/PLX.md", "plexus/generate-reqlist.sh")
+        glob = List("plexus/standard.md", "plexus/generate-reqlist.sh")
         check = "mise reqlist --check"
         fix = "mise reqlist"
-        stage = List("plexus/PLX-reqlist.md")
+        stage = List("plexus/standard-reqlist.md")
       }
     }
   }

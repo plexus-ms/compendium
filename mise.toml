@@ -5,8 +5,8 @@ hk = "1"
 postinstall = "hk install --mise"
 
 [tasks.reqlist]
-description = "Regenerate plexus/PLX-reqlist.md from PLX.md (§ 10.4)"
+description = "Regenerate plexus/standard-reqlist.md from standard.md (§ 10.4 PLX)"
 usage = '''
-flag "--check" help="Exit non-zero if PLX-reqlist.md is stale instead of rewriting it"
+flag "--check" help="Exit non-zero if standard-reqlist.md is stale instead of rewriting it"
 '''
 run = "./plexus/generate-reqlist.sh ${usage_check:+--check}"

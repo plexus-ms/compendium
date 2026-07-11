@@ -8,30 +8,23 @@ note: Auto-generated from `standard.md` v0 (2026-07-11) by `generate-reqlist.sh`
 order: 2
 ---
 
-## § 1.2 Normative language
+## § 1.1 Normative language
 
-- The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY in this document are to be interpreted as described in BCP 14 ([RFC 2119](https://www.rfc-editor.org/rfc/rfc2119), [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174)) when, and only when, they appear in all capitals.
+- The keywords MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY in this document are to be interpreted as described in BCP 14 ([RFC 2119](https://www.rfc-editor.org/rfc/rfc2119), [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174)).
 - Blockquotes in this document are reserved for normative statements; everything outside a blockquote is informative prose.
-- Normative keywords appear only inside blockquotes; a keyword outside one is a defect in this document, and the reqlist generator rejects it.
+- Normative keywords appear only inside blockquotes; a keyword outside one is a defect in this document, and should be reported as a bug.
 
-## § 1.6 Conformance & owned deviations
+## § 1.2 Normative tools and services
 
-- A repo conforms to a PLX version when it satisfies every MUST and MUST NOT applicable to it under that version.
-- Deviating from a SHOULD or SHOULD NOT is permitted, but the deviation MUST be recorded in the repo's `PLEXUS.md` with a sentence of rationale.
-- A tenant MAY substitute an equivalent for any reference-stack choice (§ 1.4); the substitution MUST be recorded the same way.
+- A tool or service named inside a MUST is mandated: part of the standard itself.
+- A tool or service named inside a SHOULD is a suggested default; a tenant MAY substitute an equivalent, owning the deviation in `PLEXUS.md` (§ 3.4).
 
-## § 1.7 The `PLEXUS.md` marker
+## § 2 The supply chain and upstream guarantees
 
-- Every conforming repo MUST carry a `PLEXUS.md`; in a tenant monorepo, each app additionally carries one at its app root.
-- The marker MUST carry YAML frontmatter with `plx` (the PLX version targeted) and `profile` (`stateless-app`, `stateful-app`, or `tenant-monorepo`).
-- A repo whose `PLEXUS.md` is missing or unparsable is non-conformant.
-
-## § 2 The supply chain & upstream guarantees
-
-- `@plexus-ms/*` packages are published to public npmjs under the `@plexus-ms` scope; published versions are immutable and carry provenance attestations linking each version to its source commit and build.
-- A breaking change to a `@plexus-ms/*` package is released as a semver major, with a migration note in the changelog.
-- Tenant substance — business logic, secrets, anything tenant-specific — never appears in a public `@plexus-ms/*` package.
-- The shared repos are public and GPLv3-licensed; every change is reviewable, and nothing breaks on the day the upstream goes unmaintained — published versions keep resolving, and the repos remain forkable.
+- The `plexus-ms` repos are **public and GPLv3-licensed**; every change is reviewable, and nothing breaks on the day the upstream goes unmaintained — published versions keep resolving, and the repos remain forkable.
+- `@plexus-ms/*` packages are published to the public NPM registry; published versions are immutable and carry provenance attestations linking each version to its source commit and build.
+- A breaking change to a package is released as a semver major, with a migration note in the changelog.
+- Tenant substance — business logic, secrets, anything tenant-specific — never appears in a public package.
 
 ## § 3.1 Trust domain
 
@@ -44,13 +37,24 @@ order: 2
 - Every deployed service MUST carry the label `plexus.tenant=<slug>`.
 - The slug SHOULD additionally appear consistently in the tenant's forge org name, VM hostnames, Ansible inventory groups, and vault name.
 
-## § 3.3 Shared metal
+## § 3.3 The `PLEXUS.md` marker
+
+- Every conforming repo MUST carry a `PLEXUS.md`; in a tenant monorepo, each app additionally carries one at its app root.
+- The marker MUST carry YAML frontmatter with `plx` (the PLX version targeted) and `profile` (`stateless-app`, `stateful-app`, or `tenant-monorepo`).
+- A repo whose `PLEXUS.md` is missing or unparsable is non-conformant.
+
+## § 3.4 Conformance & owned deviations
+
+- A repo conforms to a PLX version when it satisfies every MUST and MUST NOT applicable to it under that version.
+- Deviating from a SHOULD or SHOULD NOT is permitted, but the deviation MUST be recorded in the repo's `PLEXUS.md` with a sentence of rationale.
+
+## § 3.5 Shared metal
 
 - Tenants sharing physical hardware MUST be separated by hypervisor virtualization; two tenants never co-mingle inside one VM.
 - Platform concerns — ingress, secrets, backups, monitoring — SHOULD be kept per-tenant as well.
 - Distinct legal persons sharing platform root access MUST document the arrangement in writing — e.g. a one-page document defining the relationship, plus a data-processing agreement where applicable.
 
-## § 3.4 Forge org & monorepo layout
+## § 3.6 Forge org & monorepo layout
 
 - Tenant repos SHOULD be partitioned by separate forge orgs.
 - A tenant SHOULD use the monorepo pattern: one `<org>/<tenant>` repo holding both the dev side (`apps/`, `packages/`) and the ops side (`infra/`: inventory, host definitions, deployment configs).
@@ -72,7 +76,7 @@ order: 2
 
 ## § 5 The app contract
 
-- Every app MUST satisfy this section, and MUST declare exactly one § 6 profile in its `PLEXUS.md` (§ 1.7).
+- Every app MUST satisfy this section, and MUST declare exactly one § 6 profile in its `PLEXUS.md` (§ 3.3).
 
 ## § 5.1 Standard verbs
 
@@ -140,12 +144,14 @@ order: 2
 ## § 7.1 Ingress
 
 - Each app's host port MUST be assigned in the tenant's inventory (`apps[].port`), in the same record that binds its domain.
+- The reverse proxy SHOULD be Caddy.
 - The playbook SHOULD fail on a duplicate host port per VM.
 - The proxy SHOULD refuse external requests for `/healthz`.
 
 ## § 7.2 Secrets
 
 - Secret values MUST live only in the tenant's vault; git holds only references.
+- The vault SHOULD be 1Password.
 - Secrets MUST be resolved at provisioning time, never at deploy time.
 - `secrets.env` on the host MUST be owned by the deploy user, mode 0600, never world-readable.
 - The playbook MUST re-create the affected containers whenever `secrets.env` changed; rotation MUST NOT be left to ride along on whenever the next deploy happens to run.
@@ -173,7 +179,7 @@ order: 2
 - Tenant monorepos MUST use environment branches: `main`→prod, `develop`→staging.
 - Apps MUST NOT use changesets.
 - A hotfix branches from `main` and merges to `main`; it MUST be back-merged `main → develop` immediately.
-- Staging and prod MAY share a VM or take one each — both sit inside one tenant's trust domain; § 3.3 partitions tenants, not environments.
+- Staging and prod MAY share a VM or take one each — both sit inside one tenant's trust domain; § 3.5 partitions tenants, not environments.
 
 ## § 8.2 The release train
 
@@ -188,6 +194,7 @@ order: 2
 ## § 8.5 The CI pipeline
 
 - A tenant MUST NOT operate its own CI control plane.
+- The forge SHOULD be GitHub; a tenant SHOULD NOT self-host a forge.
 
 ## § 9 Propagation
 
@@ -196,8 +203,9 @@ order: 2
 ## § 9.1 The update bot
 
 - Every tenant repo MUST run an automated update bot that watches its pins and opens update PRs.
+- The update bot SHOULD be Renovate, extending the shared preset (`plexus-ms/renovate-config`).
 - Tenants MUST pin the `plexus.itops` collection by tag in `infra/requirements.yml`.
-- For `@plexus-ms/*` packages, CI-green patch/minor auto-merge MAY be enabled and is the paved-road default.
+- For `@plexus-ms/*` packages, CI-green patch/minor auto-merge MAY be enabled and is the recommended default.
 - For CI-workflow and verb tag bumps, auto-merge MAY be enabled; a tenant whose CI holds sensitive credentials SHOULD review these PRs instead.
 - Update PRs for the `plexus.itops` Ansible collection SHOULD NOT be auto-merged; a human reads the diff before anything new runs as root.
 

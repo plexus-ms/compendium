@@ -108,11 +108,11 @@ Three documents with three registers, one per audience:
 
 The standard's structural conventions are self-policing, and the machinery lives here:
 
-- Every requirement is a `> - ` line under its section heading; blockquotes are reserved for requirements (§ 1.2 PLX).
+- Every requirement is a `> - ` line under its section heading; blockquotes are reserved for requirements (§ 1.1 PLX).
 - `generate-reqlist.sh` regenerates [`standard-reqlist.md`](standard-reqlist.md) from that structure — headings plus quoted lines, nothing cleverer — and *fails* if a BCP 14 keyword appears anywhere outside a blockquote.
   Run it via `mise reqlist`; a pre-commit hook regenerates and stages the list whenever the standard changes.
   The generated list is never hand-edited.
-- Section numbers are append-only within a major version (§ 1.5 PLX): new sections go at the end of their level, insertions wait for a major revision.
+- Section numbers are append-only within a major version (PLX preamble): new sections go at the end of their level, insertions wait for a major revision.
 
 **Graduating the draft is a bar, not a feeling.** `v1.0` of the standard requires: every roadmap deferral below resolved or explicitly re-deferred, the reqlist generating clean (generation and keyword lint both green), and at least one tenant besides `plexus` itself conformant in production.
 
@@ -125,11 +125,11 @@ More maintainers follow the same lazy rule as everything else — when a real se
 **Deferred decisions, written down so they are decisions, not drift:**
 
 - **An orchestrator (e.g. vanilla Kestra)** — only on the § 7.4 PLX triggers: multi-host dependent workflows, approvals, unmanageable schedule count, replay needs.
-- **Observability (metrics, logs, dashboards, phone alerting)** — becomes part of the paved road later.
+- **Observability (metrics, logs, dashboards, phone alerting)** — becomes part of the standard's defaults later.
   The answer to "when is it time to scale?" is data, not vibes — the usual gap is measurement, not orchestration — and the same stack provides the "what's running where" view grouped by `plexus.tenant`.
   Candidates: Grafana + Prometheus/node-exporter + Loki, or lighter (Beszel + Uptime Kuma).
   Until then, the only monitoring the standard requires is the § 7.4 PLX dead-man's-switch.
-- **A concrete dead-man's-switch service for the reference stack** — the requirement stands now (§ 7.4 PLX); which service — self-hosted (e.g. Uptime Kuma) or managed (e.g. Healthchecks.io) — joins the reference stack is decided together with observability.
+- **A concrete dead-man's-switch service** — the requirement stands now (§ 7.4 PLX); which service — self-hosted (e.g. Uptime Kuma) or managed (e.g. Healthchecks.io) — becomes the suggested default is decided together with observability.
 - **An alerting channel (paging, chat, email)** — the standard requires alerts to exist (§ 8.4, § 7.4 PLX) but defers the channel; today a failed deploy alerts as the failing CI job, and the monitor notifies however it natively can.
   Who gets woken, and how, is decided together with observability.
 - **Host patching & lifecycle** — the interim posture is in the standard (§ 7.5 PLX: unattended security upgrades on, everything else supervised); the full policy is deferred until patch drift is visible — visibility first, then an honest policy.

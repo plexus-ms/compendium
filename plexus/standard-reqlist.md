@@ -92,9 +92,9 @@ order: 2
 - A verb a given stack has no use for MUST still exist as a documented no-op, never as a missing verb.
 - `migrate` MUST be safe to invoke at any time; its full semantics are defined by the app's profile (§ 6).
 
-### § 5.2 compose.yml
+### § 5.2 compose.yaml
 
-- Every app MUST provide a `compose.yml` declaring the app service and any app-owned infrastructure.
+- Every app MUST provide a `compose.yaml` declaring the app service and any app-owned infrastructure.
 - Every service in it MUST carry the label `plexus.tenant=<slug>` (§ 3.2).
 
 ### § 5.3 The env schema
@@ -113,7 +113,7 @@ order: 2
 ### § 5.4 One HTTP port
 
 - The app MUST serve plain HTTP on exactly one container port, published to loopback only.
-- The app MUST NOT hardcode a host port; `compose.yml` publishes via interpolation — `127.0.0.1:${PLEXUS_APP_PORT}:<container-port>`.
+- The app MUST NOT hardcode a host port; `compose.yaml` publishes via interpolation — `127.0.0.1:${PLEXUS_APP_PORT}:<container-port>`.
 - The app MUST NOT define `PLEXUS_*` keys of its own; the prefix is reserved for platform-injected bindings.
 
 ### § 5.5 Healthcheck
@@ -135,7 +135,7 @@ order: 2
 
 ### § 6.1 The stateless app
 
-- `compose.yml` MUST declare only stateless services — no data services, and no `plexus.backup` labels.
+- `compose.yaml` MUST declare only stateless services — no data services, and no `plexus.backup` labels.
 - `mise :migrate` MUST exist as a documented no-op.
 - `mise :seed` MAY be omitted.
 - The env schema MAY declare zero secrets.

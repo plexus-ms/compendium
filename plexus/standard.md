@@ -235,9 +235,9 @@ The shared pipeline (§ 8.5) and the deploy verb (§ 8.4) invoke an app only thr
 "What was the migration command again?" stops being a memory question; the answer is always `mise :migrate`, and the mise task encodes the real incantation.
 Toolchain pinning follows § 4 — so setup is `git clone && mise :dev` everywhere.
 
-### § 5.2 compose.yml
+### § 5.2 compose.yaml
 
-> - Every app MUST provide a `compose.yml` declaring the app service and any app-owned infrastructure.
+> - Every app MUST provide a `compose.yaml` declaring the app service and any app-owned infrastructure.
 > - Every service in it MUST carry the label `plexus.tenant=<slug>` (§ 3.2).
 
 App-owned infrastructure means services that live and die with the app — a database container is the § 6.2 profile's case.
@@ -263,7 +263,7 @@ The single canonical parser exists so the micro-format can never fork: an ambigu
 ### § 5.4 One HTTP port
 
 > - The app MUST serve plain HTTP on exactly one container port, published to loopback only.
-> - The app MUST NOT hardcode a host port; `compose.yml` publishes via interpolation — `127.0.0.1:${PLEXUS_APP_PORT}:<container-port>`.
+> - The app MUST NOT hardcode a host port; `compose.yaml` publishes via interpolation — `127.0.0.1:${PLEXUS_APP_PORT}:<container-port>`.
 > - The app MUST NOT define `PLEXUS_*` keys of its own; the prefix is reserved for platform-injected bindings.
 
 The host side of the binding is not the app's to choose: the host port is assigned by the platform from the tenant's inventory (§ 7.1) and injected at deploy time.
@@ -305,7 +305,7 @@ Future profiles append here as § 6.3, § 6.4, ….
 
 For apps holding no state of their own: static and marketing sites, stateless APIs.
 
-> - `compose.yml` MUST declare only stateless services — no data services, and no `plexus.backup` labels.
+> - `compose.yaml` MUST declare only stateless services — no data services, and no `plexus.backup` labels.
 > - `mise :migrate` MUST exist as a documented no-op.
 > - `mise :seed` MAY be omitted.
 > - The env schema MAY declare zero secrets.
@@ -395,8 +395,8 @@ flowchart TB
   deploy["deploy mount (§ 8.4–8.5)<br>push → CI: verbs + image build → deploy verb<br>over ssh: pull · migrate · up · poll /healthz · rollback"]
   subgraph vm["tenant VM (one tenant per VM — § 3.5)"]
     caddy["Caddy (§ 7.1)<br>TLS · domain → host port (both from inventory)<br>refuses public /healthz"]
-    subgraph appdir["app directory — compose.yml from git, plus three env files, each with exactly one writer (§ 7.2)"]
-      compose["compose.yml — from git (§ 5.2)"]
+    subgraph appdir["app directory — compose.yaml from git, plus three env files, each with exactly one writer (§ 7.2)"]
+      compose["compose.yaml — from git (§ 5.2)"]
       dotenv[".env"]
       platformenv["platform.env"]
       secretsenv["secrets.env (0600)"]

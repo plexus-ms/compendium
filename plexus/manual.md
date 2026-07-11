@@ -1,6 +1,6 @@
 ---
 title: The Plexus Manual
-short_title: Manual
+short_title: 3. Manual
 description: How the plexus-ms organization operates its own repos — release mechanics, artifact layering, governance, roadmap.
 version: v0
 timestamp: 2026-07-11
@@ -111,7 +111,7 @@ The standard's structural conventions are self-policing, and the machinery lives
 - Every requirement is a `> - ` line under its section heading; blockquotes are reserved for requirements (§ 1.2 PLX).
 - `generate-reqlist.sh` regenerates [`standard-reqlist.md`](standard-reqlist.md) from that structure — headings plus quoted lines, nothing cleverer — and *fails* if a BCP 14 keyword appears anywhere outside a blockquote.
   Run it via `mise reqlist`; a pre-commit hook regenerates and stages the list whenever the standard changes.
-  The generated list is never hand-edited (§ 10.4 PLX).
+  The generated list is never hand-edited.
 - Section numbers are append-only within a major version (§ 1.4 PLX): new sections go at the end of their level, insertions wait for a major revision.
 
 **Graduating the draft is a bar, not a feeling.** `v1.0` of the standard requires: every roadmap deferral below resolved or explicitly re-deferred, the reqlist generating clean (generation and keyword lint both green), and at least one tenant besides `plexus` itself conformant in production.

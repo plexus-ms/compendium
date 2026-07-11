@@ -1,6 +1,6 @@
 ---
-title: PLX — The Plexus Standard
-short_title: PLX
+title: The Plexus Standard (PLX)
+short_title: 2. Standard
 description: The Plexus standard for tenants implementing Plexus — toolchain, app contract, releases, platform.
 version: v0
 timestamp: 2026-07-11

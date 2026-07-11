@@ -78,8 +78,8 @@ generate() {
         exit 1
       }
       print "---"
-      print "title: PLX Reqlist — The Plexus Standard Requirements List"
-      print "short_title: PLX Reqlist"
+      print "title: The Plexus Standard Requirements List (PLX Reqlist"
+      print "short_title: 2. Standard Reqlist"
       print "description: Condensed requirements list extracted from the Plexus Standard."
       print "version: " version
       print "timestamp: " timestamp

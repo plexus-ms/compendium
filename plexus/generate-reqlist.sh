@@ -84,6 +84,7 @@ generate() {
       print "version: " version
       print "timestamp: " timestamp
       print "note: Auto-generated from `standard.md` " version " (" timestamp ") by `generate-reqlist.sh` — do not edit (§ 10.4 PLX)."
+      print "order: 2"
       print "---"
       for (i = 1; i <= no; i++) print out[i]
     }

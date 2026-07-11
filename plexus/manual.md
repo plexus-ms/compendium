@@ -4,6 +4,7 @@ short_title: Manual
 description: How the plexus-ms organization operates its own repos — release mechanics, artifact layering, governance, roadmap.
 version: v0
 timestamp: 2026-07-11
+order: 3
 ---
 
 Plexus is a comprehensive, opinionated, federated IT initiative: 

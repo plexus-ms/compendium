@@ -4,6 +4,7 @@ short_title: Manifesto
 description: Why Plexus exists — the fog problem, and the foundational premises and principles Plexus is built upon.
 version: v0
 timestamp: 2026-07-11
+order: 0
 ---
 
 Plexus is a comprehensive, opinionated, federated IT initiative: 
@@ -32,12 +33,12 @@ If you reject these at a basic level, keeping in mind the below phrasing is exag
 
 1. **Fog is a structure problem, not a discipline problem.**
    Fog is not fixed by promising to document more; documentation written *next to* a system drifts and rots.
-   The fix is making the artifacts *be* the documentation, and making everything as well-structured as possible — **[simple, easy, no magic.](senom.md)**
+   The fix is making the artifacts *be* the documentation, and making everything as well-structured as possible — **[simple, easy, no magic.](../principles/senom.md)**
    If every project answers *"how do I run you?"* the same executable way, nothing needs to be remembered.
 
 2. **Autopilot has a precise mechanism: decide once, encode the decision in a primitive, and propagate it to every project automatically.**
    Most efforts get the first two steps and skip the third — and the propagation step is the whole game; without it every encoded decision is just another artifact that rots in place.
-   Composition follows from it: primitives with clear interfaces get composed instead of reinvented — **[don't repeat yourself.](dry.md)**
+   Composition follows from it: primitives with clear interfaces get composed instead of reinvented — **[don't repeat yourself.](../principles/dry.md)**
 
 ## Core principles
 

@@ -1,6 +1,6 @@
 ---
-title: The Plexus Standard Requirements List (PLX Reqlist)
-short_title: 2. Standard Reqlist
+title: The Plexus Requirements List
+short_title: The Reqlist
 description: Condensed requirements list extracted from the Plexus Standard.
 version: v0
 timestamp: 2026-07-11

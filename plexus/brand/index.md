@@ -1,6 +1,6 @@
 ---
 title: The Plexus Brand
-short_title: Brand
+short_title: The Brand
 description: The Plexus visual identity — the crossing mark, the ple✕us wordmark, IBM Plex typography, and the nerve-ochre color system.
 version: v1.0
 timestamp: 2026-07-11

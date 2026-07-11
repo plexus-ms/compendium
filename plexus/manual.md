@@ -1,6 +1,6 @@
 ---
 title: The Plexus Manual
-short_title: 3. Manual
+short_title: The Manual
 description: How the plexus-ms organization operates its own repos — release mechanics, artifact layering, governance, roadmap.
 version: v0
 timestamp: 2026-07-11

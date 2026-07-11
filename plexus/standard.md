@@ -150,7 +150,7 @@ Machine checks read only the YAML frontmatter; the body is for humans.
 `plx` is compared against the current standard version to flag drift; `profile` selects the § 6 profile for an app, or marks the tenant monorepo itself.
 The marker is the one artifact the standard cannot degrade gracefully without, because it is how staleness stays visible.
 
-### § 3.4 Conformance & owned deviations
+### § 3.4 Conformance
 
 > - A repo or app conforms to a PLX version when it satisfies every MUST and MUST NOT applicable to it under that version.
 > - Deviating from a SHOULD or SHOULD NOT is permitted, but the deviation MUST be recorded in `PLEXUS.md` with a sentence of rationale.
@@ -169,7 +169,7 @@ At small scale, pooling workloads on one physical host is the correct economics,
 Be clear about what it does and does not buy: it solves performance and fault isolation, but it *centralizes* access rather than partitioning it — a hypervisor has unrestricted control over every VM, so the host is a critical attack vector — and it does nothing for legal controllership; hence the written arrangement.
 Sharing ingress, networking, or secrets across tenants is a red flag: if the economics seem to force it, file an issue against the standard rather than normalizing the exception.
 
-### § 3.6 Forge org & monorepo layout
+### § 3.6 Forge layout
 
 > - Tenant repos SHOULD be partitioned by separate forge orgs.
 > - A tenant SHOULD use the monorepo pattern: one `<org>/<tenant>` repo holding both the dev side (`apps/`, `packages/`) and the ops side (`infra/`: inventory, host definitions, deployment configs).

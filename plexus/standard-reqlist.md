@@ -49,7 +49,7 @@ order: 2
 - The app marker MUST carry YAML frontmatter with `plx` (the PLX version targeted) and `profile` being one of the profiles listed in § 6.
 - A repo or app whose `PLEXUS.md` is missing or unparsable is non-conformant.
 
-### § 3.4 Conformance & owned deviations
+### § 3.4 Conformance
 
 - A repo or app conforms to a PLX version when it satisfies every MUST and MUST NOT applicable to it under that version.
 - Deviating from a SHOULD or SHOULD NOT is permitted, but the deviation MUST be recorded in `PLEXUS.md` with a sentence of rationale.
@@ -60,7 +60,7 @@ order: 2
 - Platform concerns — ingress, secrets, backups, monitoring — SHOULD be kept per-tenant as well.
 - Distinct legal persons sharing platform root access or further platform concerns MUST document the arrangement in writing — e.g. a one-page document defining the relationship, plus a data-processing agreement where applicable.
 
-### § 3.6 Forge org & monorepo layout
+### § 3.6 Forge layout
 
 - Tenant repos SHOULD be partitioned by separate forge orgs.
 - A tenant SHOULD use the monorepo pattern: one `<org>/<tenant>` repo holding both the dev side (`apps/`, `packages/`) and the ops side (`infra/`: inventory, host definitions, deployment configs).

@@ -12,11 +12,19 @@ order: 2
 
 - The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY in this document are to be interpreted as described in BCP 14 ([RFC 2119](https://www.rfc-editor.org/rfc/rfc2119), [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174)) when, and only when, they appear in all capitals.
 - Blockquotes in this document are reserved for normative statements; everything outside a blockquote is informative prose.
-- Normative keywords appear only inside blockquotes; a keyword outside one is a defect in this document, and the reqlist generator (§ 10.4) rejects it.
+- Normative keywords appear only inside blockquotes; a keyword outside one is a defect in this document, and the reqlist generator rejects it.
 
-## § 1.3 Normative tools & the reference stack
+## § 1.5 Conformance & owned deviations
 
-- A tenant MAY substitute an equivalent for any reference-stack choice; the substitution MUST be recorded as an owned deviation (§ 10.2).
+- A repo conforms to a PLX version when it satisfies every MUST and MUST NOT applicable to it under that version.
+- Deviating from a SHOULD or SHOULD NOT is permitted, but the deviation MUST be recorded in the repo's `PLEXUS.md` with a sentence of rationale.
+- A tenant MAY substitute an equivalent for any reference-stack choice (§ 1.3); the substitution MUST be recorded the same way.
+
+## § 1.6 The `PLEXUS.md` marker
+
+- Every conforming repo MUST carry a `PLEXUS.md`; in a tenant monorepo, each app additionally carries one at its app root.
+- The marker MUST carry YAML frontmatter with `plx` (the PLX version targeted) and `profile` (`stateless-app`, `stateful-app`, or `tenant-monorepo`).
+- A repo whose `PLEXUS.md` is missing or unparsable is non-conformant.
 
 ## § 3.1 Trust domain
 
@@ -64,7 +72,7 @@ order: 2
 
 ## § 5 The app contract
 
-- Every app MUST satisfy this section, and MUST declare exactly one § 6 profile in its `PLEXUS.md` (§ 10.3).
+- Every app MUST satisfy this section, and MUST declare exactly one § 6 profile in its `PLEXUS.md` (§ 1.6).
 
 ## § 5.1 Standard verbs
 
@@ -193,19 +201,3 @@ order: 2
 ## § 9.3 Customizing at the edges
 
 - A consumer config SHOULD extend the shared `@plexus-ms/*` config and keep local additions in its own file.
-
-## § 10.2 Conformance & owned deviations
-
-- A repo conforms to a PLX version when it satisfies every MUST and MUST NOT applicable to it under that version.
-- Deviating from a SHOULD or SHOULD NOT is permitted, but the deviation MUST be recorded in the repo's `PLEXUS.md` with a sentence of rationale.
-- A reference-stack substitution (§ 1.3) MUST be recorded the same way.
-
-## § 10.3 The `PLEXUS.md` marker
-
-- Every conforming repo MUST carry a `PLEXUS.md`; in a tenant monorepo, each app additionally carries one at its app root.
-- The marker MUST carry YAML frontmatter with `plx` (the PLX version targeted) and `profile` (`stateless-app`, `stateful-app`, or `tenant-monorepo`).
-- A repo whose `PLEXUS.md` is missing or unparsable is non-conformant.
-
-## § 10.4 The requirements list
-
-- The requirements list MUST NOT be hand-edited; this document is the single authority.

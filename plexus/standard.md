@@ -11,7 +11,7 @@ Plexus is a comprehensive, opinionated, federated IT initiative:
 A neutral collection of guidelines, tools, and approaches, spanning software development to operations. 
 
 This document, the Plexus Standard, PLX, or simply "the standard", is the contract a consumer implements.
-It specifies the toolchain (§ 4), the app contract and its profiles (§ 5, § 6), the release and deployment model (§ 7), the tenant platform (§ 8), the propagation machinery (§ 9), and what conformance means (§ 10).
+It specifies the toolchain (§ 4), the app contract and its profiles (§ 5, § 6), the release and deployment model (§ 7), the tenant platform (§ 8), and the propagation machinery (§ 9); its own scope, conventions, and conformance terms are § 1.
 
 The reasoning behind the design lives in the [Plexus Manifesto](manifesto.md); the internal operating rules of the `plexus-ms` organization live in the [Plexus Manual](manual.md).
 Readers new to Plexus start with the Manifesto.
@@ -22,7 +22,7 @@ Readers new to Plexus start with the Manifesto.
 ### § 1.1 Scope & audience
 
 This standard binds **tenants implementing Plexus**: their apps (§ 5, § 6), their monorepos (§ 3, § 4, § 7, § 9), and their operations platforms (§ 3, § 8).
-Which sections apply to which artifact follows from the heading structure itself, and § 10.2 states the rule.
+Applicability follows from that heading structure — no separate classification is needed: § 5 and the app's declared § 6 profile bind each app; § 3, § 4, § 7, and § 9 bind the tenant monorepo; § 8 binds the tenant platform, which is defined by the monorepo's `infra/`, so the monorepo's marker (§ 1.6) speaks for it.
 
 It does not govern the inner workings of the `plexus-ms` repositories that publish the shared methodology — release mechanics, artifact layering, governance are the [Manual](manual.md)'s subject, and become relevant the day a consumer starts contributing back.
 The one exception is § 3.5: the guarantees the upstream makes to tenants are stated here, because tenants' trust decisions rest on them.
@@ -32,7 +32,7 @@ The one exception is § 3.5: the guarantees the upstream makes to tenants are st
 
 > - The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY in this document are to be interpreted as described in BCP 14 ([RFC 2119](https://www.rfc-editor.org/rfc/rfc2119), [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174)) when, and only when, they appear in all capitals.
 > - Blockquotes in this document are reserved for normative statements; everything outside a blockquote is informative prose.
-> - Normative keywords appear only inside blockquotes; a keyword outside one is a defect in this document, and the reqlist generator (§ 10.4) rejects it.
+> - Normative keywords appear only inside blockquotes; a keyword outside one is a defect in this document, and the reqlist generator rejects it.
 
 Each section opens with its requirements as a quoted list like the one above; the prose below a requirements block explains and motivates, but never binds.
 A section without a requirements block is entirely informative.
@@ -44,16 +44,51 @@ Concrete tools and services are named in two different strengths:
 A tool named **inside a normative statement** is part of the standard itself — mise and hk are normative across all stacks (§ 4), pnpm and the § 4.2 toolchain are normative within JS/TS repos.
 
 A tool or service named **only in prose** belongs to the **reference stack**: the concrete choice the maintainers use in their own projects and built the `plexus-ms` repos for — chiefly the external services Plexus deliberately consumes rather than self-hosts (GitHub as forge, 1Password as vault, the hosting provider) and swappable platform components (e.g. Caddy).
-
-> - A tenant MAY substitute an equivalent for any reference-stack choice; the substitution MUST be recorded as an owned deviation (§ 10.2).
+Substituting an equivalent for a reference-stack choice is conformant; the normative rule, and where the substitution is owned, is § 1.5.
 
 The design intent behind the split is lock-in resistance: proprietary services sit behind thin adapters over Plexus's own portable primitives — workflow wrappers are dumb mounts over hand-runnable verbs, `op.env` is plain dotenv pointers any vault CLI could resolve — so leaving a reference service means rewriting a mount, never a verb.
 
-### § 1.4 Citing this standard
+### § 1.4 Versioning & citation
 
 Cite requirements by section mark and the standard's short name: *"Authoritative `mise.toml` (§ 4.1 PLX)"*.
 Section numbers are stable by discipline: sections nest at most three levels deep, and new sections are appended at the end of their level rather than inserted, so existing numbers keep meaning what they meant.
-Version semantics are § 10.1.
+
+The frontmatter `version` of this document identifies the revision of PLX itself: `v0` while the standard is a draft, then `vMAJOR.MINOR` (e.g. `v1.0`) once live; the frontmatter `timestamp` records the version's date.
+Minor revisions are additive or clarifying — a repo conformant to `v1.0` remains conformant under every `v1.x`; only a major revision changes or removes requirements.
+`v0` promises none of that: while the standard is a draft, any revision can change or remove anything, and `plx: v0` in a marker (§ 1.6) means *tracks the draft head* — nothing stronger.
+The stability contract begins at `v1.0`; the graduation bar for leaving the draft is the maintainers' obligation, recorded in the [Manual](manual.md).
+
+### § 1.5 Conformance & owned deviations
+
+> - A repo conforms to a PLX version when it satisfies every MUST and MUST NOT applicable to it under that version.
+> - Deviating from a SHOULD or SHOULD NOT is permitted, but the deviation MUST be recorded in the repo's `PLEXUS.md` with a sentence of rationale.
+> - A tenant MAY substitute an equivalent for any reference-stack choice (§ 1.3); the substitution MUST be recorded the same way.
+
+Which requirements are applicable to a given repo is a scope question, answered by the structure itself (§ 1.1).
+A recorded deviation reads as a decision; an unrecorded one reads as drift — the marker (§ 1.6) is where the difference is made visible.
+
+### § 1.6 The `PLEXUS.md` marker
+
+> - Every conforming repo MUST carry a `PLEXUS.md`; in a tenant monorepo, each app additionally carries one at its app root.
+> - The marker MUST carry YAML frontmatter with `plx` (the PLX version targeted) and `profile` (`stateless-app`, `stateful-app`, or `tenant-monorepo`).
+> - A repo whose `PLEXUS.md` is missing or unparsable is non-conformant.
+
+The name is deliberately distinct from this document: `standard.md` (short name PLX) is the standard, `PLEXUS.md` is the per-repo marker.
+Because staleness detection parses it mechanically, the format is specified:
+
+```markdown
+---
+plx: v1.0             # PLX version this repo targets — REQUIRED
+profile: stateful-app # stateless-app | stateful-app | tenant-monorepo — REQUIRED
+---
+
+Free-form prose. Owned deviations and reference-stack
+substitutions live here — one bullet each, with rationale.
+```
+
+Machine checks read only the YAML frontmatter; the body is for humans.
+`plx` is compared against the current standard version to flag drift; `profile` selects the § 6 profile for an app, or marks the tenant monorepo itself.
+The marker is the one artifact the standard cannot degrade gracefully without, because it is how staleness stays visible.
 
 
 ## § 2 Terminology
@@ -190,7 +225,7 @@ It is small, verb-shaped, and identical for every stack — a PayloadCMS + Mongo
 This section is the profile-neutral base: what CI and the deploy verb rely on for *every* app.
 A profile (§ 6) extends it for the app's actual shape.
 
-> - Every app MUST satisfy this section, and MUST declare exactly one § 6 profile in its `PLEXUS.md` (§ 10.3).
+> - Every app MUST satisfy this section, and MUST declare exactly one § 6 profile in its `PLEXUS.md` (§ 1.6).
 
 ### § 5.1 Standard verbs
 
@@ -269,7 +304,7 @@ The backup job only needs *"which services hold state and of what type"* — the
 ## § 6 Profiles
 
 A profile is a variant of the app contract: it extends and sharpens § 5 for one recognizable shape of app, the way an interface is taken by a concrete type.
-Every app takes exactly one profile and records it in its `PLEXUS.md` (§ 5, § 10.3); the platform treats every app identically through the same verbs and labels, and never needs to know the profile.
+Every app takes exactly one profile and records it in its `PLEXUS.md` (§ 5, § 1.6); the platform treats every app identically through the same verbs and labels, and never needs to know the profile.
 Future profiles append here as § 6.3, § 6.4, ….
 
 ### § 6.1 The stateless app
@@ -414,7 +449,7 @@ Because domain→port→app is one line in `infra/`, per-VM port uniqueness is c
 From that one record, provisioning renders the ingress config *and* injects the port into the app's compose interpolation (§ 5.4): it writes the value to `<app_dir>/platform.env` on the host, and the deploy verb hands that file to compose alongside its own `.env` — the verb itself stays port-unaware.
 
 The `/healthz` fence exists because the endpoint probes hard dependencies (§ 5.5): routing it publicly would publish a database-status oracle.
-A tenant that points an external uptime monitor at it does so as an owned deviation (§ 10.2), knowing what it reveals.
+A tenant that points an external uptime monitor at it does so as an owned deviation (§ 1.5), knowing what it reveals.
 
 ### § 8.2 Secrets
 
@@ -530,53 +565,3 @@ Across tenants: published, versioned packages (§ 3.5) — the only mechanism th
 
 Inheritance with a local override slot: a consumer's `biome.json` extends the shared one and adds local rules, so base updates never clobber local changes — they live in different files.
 The same pattern applies wherever a shared primitive meets a local need: take the dependency, override at the edge, and never fork the base.
-
-
-## § 10 Conformance
-
-### § 10.1 Versioning of this standard
-
-The frontmatter `version` of this document identifies the revision of PLX itself: `v0` while the standard is a draft, then `vMAJOR.MINOR` (e.g. `v1.0`) once live; the frontmatter `timestamp` records the version's date.
-Minor revisions are additive or clarifying — a repo conformant to `v1.0` remains conformant under every `v1.x`; only a major revision changes or removes requirements.
-`v0` promises none of that: while the standard is a draft, any revision can change or remove anything, and `plx: v0` in a marker (§ 10.3) means *tracks the draft head* — nothing stronger.
-The stability contract begins at `v1.0`; the graduation bar for leaving the draft is the maintainers' obligation, recorded in the [Manual](manual.md).
-
-### § 10.2 Conformance & owned deviations
-
-> - A repo conforms to a PLX version when it satisfies every MUST and MUST NOT applicable to it under that version.
-> - Deviating from a SHOULD or SHOULD NOT is permitted, but the deviation MUST be recorded in the repo's `PLEXUS.md` with a sentence of rationale.
-> - A reference-stack substitution (§ 1.3) MUST be recorded the same way.
-
-Which requirements are applicable follows from the document's structure — no separate classification is needed:
-§ 5 and the app's declared § 6 profile bind each app; § 3, § 4, § 7, and § 9 bind the tenant monorepo; § 8 binds the tenant platform, which is defined by that monorepo's `infra/`, so the monorepo's marker speaks for it.
-A recorded deviation reads as a decision; an unrecorded one reads as drift — the marker is where the difference is made visible.
-
-### § 10.3 The `PLEXUS.md` marker
-
-> - Every conforming repo MUST carry a `PLEXUS.md`; in a tenant monorepo, each app additionally carries one at its app root.
-> - The marker MUST carry YAML frontmatter with `plx` (the PLX version targeted) and `profile` (`stateless-app`, `stateful-app`, or `tenant-monorepo`).
-> - A repo whose `PLEXUS.md` is missing or unparsable is non-conformant.
-
-The name is deliberately distinct from this document: `standard.md` (short name PLX) is the standard, `PLEXUS.md` is the per-repo marker.
-Because staleness detection parses it mechanically, the format is specified:
-
-```markdown
----
-plx: v1.0             # PLX version this repo targets — REQUIRED
-profile: stateful-app # stateless-app | stateful-app | tenant-monorepo — REQUIRED
----
-
-Free-form prose. Owned deviations and reference-stack
-substitutions live here — one bullet each, with rationale.
-```
-
-Machine checks read only the YAML frontmatter; the body is for humans.
-`plx` is compared against the current standard version to flag drift; `profile` selects the § 6 profile for an app, or marks the tenant monorepo itself.
-The marker is the one artifact the standard cannot degrade gracefully without, because it is how staleness stays visible.
-
-### § 10.4 The requirements list
-
-> - The requirements list MUST NOT be hand-edited; this document is the single authority.
-
-Normative content is mechanically extractable from this document by construction: every requirement lives in a blockquote under a section heading (§ 1.2), so the condensed requirements list — [standard-reqlist.md](standard-reqlist.md) — is generated, by a hand-runnable script that also rejects any normative keyword found outside a blockquote.
-Producing and regenerating it is the maintainers' obligation, recorded in the [Manual](manual.md); it exists as a checklist view, and this document remains the only authority.

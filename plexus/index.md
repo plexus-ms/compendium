@@ -1,13 +1,12 @@
 ---
-title: Plexus
-description: PLX — the Plexus.ms standard — and the artifacts generated from it.
+title: Plexus.ms
+description: Essential documentation about Plexus itself.
 ---
 
-This section holds the standard itself. [PLX.md](PLX.md) is the founding doctrine and the single normative
-authority — everything else in the compendium, and every `plexus-ms` repo, hangs off it.
+This section holds documentation about Plexus itself, split into three documents by audience and register:
 
-Alongside it live the artifacts the standard obligates its own repo to carry (PLX § 10.4):
-[PLX-reqlist.md](PLX-reqlist.md), the condensed requirements list, grouped by section and labelled with the
-§ 10.2 conformance classes; and `generate-reqlist.sh`, the hand-runnable verb that produces it. The reqlist is
-generated, never hand-edited — regenerate it with `mise reqlist` (a pre-commit hook does so automatically
-whenever the standard changes).
+- [manifesto.md](manifesto.md) — **The Plexus Manifesto**: the high-level why. Readers unfamiliar with Plexus start here.
+- [standard.md](standard.md) — **PLX, the Plexus Standard**: the normative contract for consuming Plexus.
+  Specifies BCP 14 requirements, citable by section mark (e.g. "§ 4.1 PLX"), and the authoritative source for implementation.
+- [manual.md](manual.md) — **The Plexus Manual**: the internal operating manual of the `plexus-ms` organization.
+  Contains release mechanics, artifact layering, governance, roadmap. For contributors, not consumers.

@@ -34,25 +34,39 @@ generate() {
     /^```/ { incode = !incode; next }
     incode { next }
 
-    # A §-numbered heading sets the current section.
+    # A §-numbered heading updates the section stack at its nesting level;
+    # deeper stack entries are cleared so the stack always mirrors the tree.
     /^#+ § / {
-      heading = $0; sub(/^#+ +/, "", heading)
+      started = 1
+      level = 0
+      while (substr($0, level + 1, 1) == "#") level++
+      h = $0; sub(/^#+ +/, "", h)
+      for (l = level; l <= 6; l++) { head[l] = ""; printed[l] = 0 }
+      head[level] = h
       next
     }
 
     # Requirement lines: blockquoted bullets under the current section.
+    # Not-yet-printed ancestor headings are emitted first, at their own
+    # levels, so the reqlist mirrors the standard\047s heading nesting.
     /^> - / {
-      if (heading == "") {
+      if (!started) {
         err[++ne] = "line " NR ": requirement before the first § heading"
         next
       }
       t = $0; sub(/^> - /, "", t)
-      if (heading != lastheading) {
-        out[++no] = ""
-        out[++no] = "## " heading
-        out[++no] = ""
-        lastheading = heading
+      emitted = 0
+      for (l = 2; l <= 6; l++) {
+        if (head[l] != "" && !printed[l]) {
+          hashes = ""
+          for (i = 1; i <= l; i++) hashes = hashes "#"
+          out[++no] = ""
+          out[++no] = hashes " " head[l]
+          printed[l] = 1
+          emitted = 1
+        }
       }
+      if (emitted) out[++no] = ""
       out[++no] = "- " t
       next
     }

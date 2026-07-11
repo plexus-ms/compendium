@@ -8,13 +8,15 @@ note: Auto-generated from `standard.md` v0 (2026-07-11) by `generate-reqlist.sh`
 order: 2
 ---
 
-## § 1.1 Normative language
+## § 1 General provisions
+
+### § 1.1 Normative language
 
 - The keywords MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY in this document are to be interpreted as described in BCP 14 ([RFC 2119](https://www.rfc-editor.org/rfc/rfc2119), [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174)).
 - Blockquotes in this document are reserved for normative statements; everything outside a blockquote is informative prose.
 - Normative keywords appear only inside blockquotes; a keyword outside one is a defect in this document, and should be reported as a bug.
 
-## § 1.2 Normative tools and services
+### § 1.2 Normative tools and services
 
 - A tool or service named inside a MUST is mandated: part of the standard itself.
 - A tool or service named inside a SHOULD is a suggested default; a tenant MAY substitute an equivalent, owning the deviation in `PLEXUS.md` (§ 3.4).
@@ -26,47 +28,51 @@ order: 2
 - A breaking change to a package is released as a semver major, with a migration note in the changelog.
 - Tenant substance — business logic, secrets, anything tenant-specific — never appears in a public package.
 
-## § 3.1 Trust domain
+## § 3 The tenant
+
+### § 3.1 Trust domain
 
 - All tenants MUST share the methodology: the app contract, the `@plexus-ms/*` packages, the reusable CI workflow, the deploy verb, the copier template, the Ansible roles, the doctrine.
 - Tenants MUST NOT share substance: hosts and root access, forge org and repo access, secrets vaults, databases, backups, domains.
 
-## § 3.2 Slug & labels
+### § 3.2 Slug & labels
 
 - Every tenant MUST have a short slug (e.g. `acme`, `initech`, `plexus`).
 - Every deployed service MUST carry the label `plexus.tenant=<slug>`.
 - The slug SHOULD additionally appear consistently in the tenant's forge org name, VM hostnames, Ansible inventory groups, and vault name.
 
-## § 3.3 The `PLEXUS.md` marker
+### § 3.3 The `PLEXUS.md` marker
 
 - Every conforming repo MUST carry a `PLEXUS.md`; in a tenant monorepo, each app additionally carries one at its app root.
 - The marker MUST carry YAML frontmatter with `plx` (the PLX version targeted) and `profile` (`stateless-app`, `stateful-app`, or `tenant-monorepo`).
 - A repo whose `PLEXUS.md` is missing or unparsable is non-conformant.
 
-## § 3.4 Conformance & owned deviations
+### § 3.4 Conformance & owned deviations
 
 - A repo conforms to a PLX version when it satisfies every MUST and MUST NOT applicable to it under that version.
 - Deviating from a SHOULD or SHOULD NOT is permitted, but the deviation MUST be recorded in the repo's `PLEXUS.md` with a sentence of rationale.
 
-## § 3.5 Shared metal
+### § 3.5 Shared metal
 
 - Tenants sharing physical hardware MUST be separated by hypervisor virtualization; two tenants never co-mingle inside one VM.
 - Platform concerns — ingress, secrets, backups, monitoring — SHOULD be kept per-tenant as well.
 - Distinct legal persons sharing platform root access MUST document the arrangement in writing — e.g. a one-page document defining the relationship, plus a data-processing agreement where applicable.
 
-## § 3.6 Forge org & monorepo layout
+### § 3.6 Forge org & monorepo layout
 
 - Tenant repos SHOULD be partitioned by separate forge orgs.
 - A tenant SHOULD use the monorepo pattern: one `<org>/<tenant>` repo holding both the dev side (`apps/`, `packages/`) and the ops side (`infra/`: inventory, host definitions, deployment configs).
 - Tenant monorepos SHOULD be generated from `plexus-ms/preset`.
 
-## § 4.1 mise & hk, in every repo
+## § 4 The toolchain
+
+### § 4.1 mise & hk, in every repo
 
 - Every tenant repo MUST pin its tools in `mise.toml` and expose its verbs as mise tasks.
 - Every tenant repo MUST wire its checks through hk git hooks: format and lint on pre-commit, typecheck-equivalent and test on pre-push, with stack-appropriate checks behind the same hook names.
 - Git hooks SHOULD delegate to mise tasks.
 
-## § 4.2 The JS/TS toolchain
+### § 4.2 The JS/TS toolchain
 
 - Every Plexus JS/TS repo MUST use the toolchain of this section.
 - JS/TS tenant repos MUST use the monorepo pattern: pnpm workspace plus mise monorepo.
@@ -78,18 +84,18 @@ order: 2
 
 - Every app MUST satisfy this section, and MUST declare exactly one § 6 profile in its `PLEXUS.md` (§ 3.3).
 
-## § 5.1 Standard verbs
+### § 5.1 Standard verbs
 
 - Every app MUST define the standard verbs as mise tasks: `dev`, `migrate`, `test`, and the CI-facing `lint`, `typecheck`, `build`.
 - A verb a given stack has no use for MUST still exist as a documented no-op, never as a missing verb.
 - `migrate` MUST be safe to invoke at any time; its full semantics are defined by the app's profile (§ 6).
 
-## § 5.2 compose.yml
+### § 5.2 compose.yml
 
 - Every app MUST provide a `compose.yml` declaring the app service and any app-owned infrastructure.
 - Every service in it MUST carry the label `plexus.tenant=<slug>` (§ 3.2).
 
-## § 5.3 The env schema
+### § 5.3 The env schema
 
 - Every app MUST provide an `env.schema` file at the app root declaring every variable the app reads.
 - One variable per line, `KEY=value` dotenv syntax; every variable the app reads MUST be listed.
@@ -102,35 +108,37 @@ order: 2
 - Every consumer of the schema MUST parse it through the canonical parser `itops` ships; where this grammar is silent, that parser's behavior is normative.
 - Secret values MUST NOT be committed; they are resolved from the tenant's vault at provisioning time (§ 7.2).
 
-## § 5.4 One HTTP port
+### § 5.4 One HTTP port
 
 - The app MUST serve plain HTTP on exactly one container port, published to loopback only.
 - The app MUST NOT hardcode a host port; `compose.yml` publishes via interpolation — `127.0.0.1:${PLEXUS_APP_PORT}:<container-port>`.
 - The app MUST NOT define `PLEXUS_*` keys of its own; the prefix is reserved for platform-injected bindings.
 
-## § 5.5 Healthcheck
+### § 5.5 Healthcheck
 
 - The app MUST expose `GET /healthz` with readiness semantics: it MUST return 200 if and only if the process can serve real requests right now.
 - The probe MUST include hard dependencies the app cannot serve without (its own database, with a short bounded timeout) and MUST NOT include soft or third-party dependencies the app survives degraded.
 - The endpoint MUST be cheap, side-effect-free, and unauthenticated.
 - The response SHOULD carry nothing beyond its status code: no version strings, no dependency names, no timings.
 
-## § 5.6 Logs
+### § 5.6 Logs
 
 - The app MUST write logs to stdout/stderr and MUST NOT manage its own log files.
 
-## § 5.7 CI reference
+### § 5.7 CI reference
 
 - The app's CI MUST run the shared pipeline (§ 8.5): lint → typecheck → test → build → push image.
 
-## § 6.1 The stateless app
+## § 6 The app contract profiles
+
+### § 6.1 The stateless app
 
 - `compose.yml` MUST declare only stateless services — no data services, and no `plexus.backup` labels.
 - `mise :migrate` MUST exist as a documented no-op.
 - `mise :seed` MAY be omitted.
 - The env schema MAY declare zero secrets.
 
-## § 6.2 The stateful app
+### § 6.2 The stateful app
 
 - Data services MUST carry the labels `plexus.tenant=<slug>` and `plexus.backup=<type>`; a `plexus.backup` value is valid exactly when `itops` ships a backup handler for it (§ 7.3).
 - The app SHOULD default to one database container of its own — full isolation, dies with the app.
@@ -141,14 +149,16 @@ order: 2
 - A genuinely breaking migration — one that cannot honor expand/contract — MUST be deployed as a deliberate act: fresh backup taken first, and the operator aware that reverting means restoring, not re-upping the previous tag.
 - The app MUST provide `mise :seed`, loading development sample data only; it MAY assume a fresh database (right after `migrate`) and MUST NOT be invoked by the deploy verb.
 
-## § 7.1 Ingress
+## § 7 The operations platform
+
+### § 7.1 Ingress
 
 - Each app's host port MUST be assigned in the tenant's inventory (`apps[].port`), in the same record that binds its domain.
 - The reverse proxy SHOULD be Caddy.
 - The playbook SHOULD fail on a duplicate host port per VM.
 - The proxy SHOULD refuse external requests for `/healthz`.
 
-## § 7.2 Secrets
+### § 7.2 Secrets
 
 - Secret values MUST live only in the tenant's vault; git holds only references.
 - The vault SHOULD be 1Password.
@@ -157,41 +167,43 @@ order: 2
 - The playbook MUST re-create the affected containers whenever `secrets.env` changed; rotation MUST NOT be left to ride along on whenever the next deploy happens to run.
 - The compose-up invocation MUST be encoded exactly once, as an `itops` verb that both the deploy verb's up step and the rotation handler call.
 
-## § 7.3 Backups
+### § 7.3 Backups
 
 - Backup schedule and retention MUST live as code in the tenant's `infra/`.
 - The backup job MUST discover what to dump by reading the `plexus.backup` labels (§ 6.2).
 - A new backup path MUST pass one end-to-end restore before it is relied upon, and MUST be re-verified after any material change to the path.
 - A scheduled restore test SHOULD run at least monthly: restore the latest snapshot of each labelled data service into a scratch container, run a sanity check, and ping its own dead-man's-switch check (§ 7.4), separate from the backup job's.
 
-## § 7.4 Scheduling & the dead-man's-switch
+### § 7.4 Scheduling & the dead-man's-switch
 
 - A workflow orchestrator MUST NOT be stood up as platform infrastructure.
 - Every scheduled job MUST ping a per-job check on success, and a missed ping MUST raise an alert.
 - A tenant that finds itself with an orchestrator that barely runs anything SHOULD migrate its jobs onto the mechanisms below or retire it.
 
-## § 7.5 Host lifecycle (interim)
+### § 7.5 Host lifecycle (interim)
 
 - Tenant hosts SHOULD run the distribution's unattended security upgrades (the base role's default).
 
-## § 8.1 Environment branches
+## § 8 Releases & deployment
+
+### § 8.1 Environment branches
 
 - Tenant monorepos MUST use environment branches: `main`→prod, `develop`→staging.
 - Apps MUST NOT use changesets.
 - A hotfix branches from `main` and merges to `main`; it MUST be back-merged `main → develop` immediately.
 - Staging and prod MAY share a VM or take one each — both sit inside one tenant's trust domain; § 3.5 partitions tenants, not environments.
 
-## § 8.2 The release train
+### § 8.2 The release train
 
 - CI MUST be path-scoped per app: an app's own directory plus every workspace package it depends on.
 - `develop` MUST stay promotable; unfinished or still-soaking work lives on feature branches, never parked on `develop`.
 - Selective promotion — cherry-picks, path-restricted merges — MUST NOT be used.
 
-## § 8.3 Failed deploys & recovery
+### § 8.3 Failed deploys & recovery
 
 - While a staging deploy is red, `develop → main` MUST NOT be merged.
 
-## § 8.5 The CI pipeline
+### § 8.5 The CI pipeline
 
 - A tenant MUST NOT operate its own CI control plane.
 - The forge SHOULD be GitHub; a tenant SHOULD NOT self-host a forge.
@@ -200,7 +212,7 @@ order: 2
 
 - A consumer config SHOULD extend the shared `@plexus-ms/*` config and keep local additions in its own file.
 
-## § 9.1 The update bot
+### § 9.1 The update bot
 
 - Every tenant repo MUST run an automated update bot that watches its pins and opens update PRs.
 - The update bot SHOULD be Renovate, extending the shared preset (`plexus-ms/renovate-config`).
@@ -209,6 +221,6 @@ order: 2
 - For CI-workflow and verb tag bumps, auto-merge MAY be enabled; a tenant whose CI holds sensitive credentials SHOULD review these PRs instead.
 - Update PRs for the `plexus.itops` Ansible collection SHOULD NOT be auto-merged; a human reads the diff before anything new runs as root.
 
-## § 9.2 Dependency mechanics
+### § 9.2 Dependency mechanics
 
 - A shared thing that crosses a tenant boundary MUST be consumed as a published, versioned package; a shared thing inside one tenant is a workspace dependency.

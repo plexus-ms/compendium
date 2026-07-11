@@ -67,7 +67,6 @@ As we go along, these principles will evolve and change over time.
 - **Have methodology cross tenant lines; never substance.**
   Improvements in shared primitives federate to all tenants.
   Root, secrets, and data access stay siloed per tenant.
-  The one exception — the shared supply chain — is named and mitigated, not waved away (§ 3.5 PLX).
 
 ### Two litmus tests to stay honest over time
 

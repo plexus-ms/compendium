@@ -4,6 +4,10 @@
 #
 #   scan PLX.md → one entry per keyword-bearing line → PLX-reqlist.md
 #
+# Line-based extraction leans on a source convention: PLX.md keeps each
+# statement on one source line (no mid-sentence hard wraps), so a keyword-
+# bearing line is always a complete requirement, never a fragment.
+#
 # The keyword and the section anchor are *derived* — that part can never
 # disagree with the source. The conformance class is NOT derivable by grep:
 # it follows the § 10.2 ownership rule, carried below as an explicit
@@ -27,7 +31,7 @@ generate() {
       # § 10.2 ownership rule as an explicit section→class mapping (the seed;
       # review like code). Lookup: exact subsection first, then parent section;
       # no match → unclassified. Subsections inherit unless listed (6.1 → 6).
-      class["4.2"]  = "tenant-platform, standard-repo"                      # partitioning/labels vs licensing/disclosure
+      class["4.2"]  = "tenant-monorepo, tenant-platform"                    # partitioning/labels vs licensing/disclosure
       class["4.3"]  = "tenant-monorepo"                                     # repo & namespace layout
       class["5"]    = "app, tenant-monorepo, standard-repo"                 # intro binds every Plexus repo
       class["5.1"]  = "app, tenant-monorepo"                                # toolchain
@@ -72,7 +76,10 @@ generate() {
 
     {
       # Count keywords; strip the NOT-forms first so MUST/SHOULD do not double-count.
+      # BCP 14 binds keywords only "as shown here, in all capitals" (preamble):
+      # informal plurals ("MUSTs") are prose, not requirements — neutralized first.
       tmp = $0
+      gsub(/MUSTs/, "", tmp); gsub(/SHOULDs/, "", tmp); gsub(/MAYs/, "", tmp)
       nMN = gsub(/MUST NOT/, "", tmp);   nSN = gsub(/SHOULD NOT/, "", tmp)
       nM  = gsub(/MUST/, "", tmp);       nS  = gsub(/SHOULD/, "", tmp)
       nMY = gsub(/MAY/, "", tmp)

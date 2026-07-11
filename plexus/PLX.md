@@ -157,8 +157,10 @@ And to preempt what the word usually evokes: nothing federates at *runtime*.
 Tenants never talk to each other — no shared identity, no inter-instance protocol, no ActivityPub; what travels is versioned methodology from one upstream, hub-and-spoke. 
 A federation of practice, not of instances.
 
-- **Shared across all tenants (the methodology):** the contract, the `@plexus-ms/*` config/lib packages, the reusable CI workflow, the deploy verb, the copier template, the Ansible *roles*, the doctrine. Knowledge, and code-shaped-as-knowledge. No tenant owns it.
-- **Never shared (the substance):** hosts and root access, git org/repo access, secrets vaults, databases, backups, domains. These MUST remain partitioned by tenant.
+- **All tenants MUST share the methodology:** the contract, the `@plexus-ms/*` config/lib packages, the reusable CI workflow, the deploy verb, the copier template, the Ansible *roles*, the doctrine. 
+  Essentially, this is knowledge, and code-shaped-as-knowledge; no tenant owns it.
+- **Tenants MUST NOT share the substance:** hosts and root access, git org/repo access, secrets vaults, databases, backups, domains. 
+  These will remain partitioned by tenant; as the tenant is the trust boundary.
 
 ```mermaid
 flowchart TB
@@ -187,66 +189,84 @@ Referencing by commit SHA instead is an alternative; for now the trade-off of re
 
 **The standard itself has a bus factor — the degradation test, applied to the initiative.** 
 Plexus removes the operator's head as the database of the *systems*, and in exchange concentrates a new single point: today, one maintainer controls the doctrine, the packages, the template, and the supply chain above. 
-The question that matters is not "will the maintainer stay responsive" but "what happens to a tenant the day `plexus-ms` goes unmaintained" — so that answer is written down here, not discovered under pressure:
-
-- **Nothing breaks on day one.** Every consumption path is pinned and pull-based: published npm versions are immutable, `itops` tags keep resolving, and each generated repo records its template version. No Plexus service runs anywhere; there is nothing to go down.
-- **Everything is forkable — legally, not just technically.** The shared repos are public, and every `plexus-ms` repo MUST carry a permissive OSI-approved license (reference: MIT). A tenant that must move forward alone forks, retags, and re-points its pins — same verbs, same mounts, new upstream.
-- **The real cost is slow drift, not sudden failure:** upstream tools keep moving, security patches stop arriving, and the § 8 staleness visibility starts flagging repos behind a standard that no longer advances. Fog returning on a timescale of months, not an outage — an acceptable degradation mode, and the reason unmaintained-upstream is a *migration trigger*, not an emergency.
-
-Two adoption prerequisites follow from taking that question seriously. 
-**Governance:** the initiative is single-maintainer today, and this document says so plainly rather than performing a committee; growing past that is a named deferred decision (§ 9). 
-**Disclosure:** every `plexus-ms` repo MUST provide a private vulnerability-reporting channel (reference: GitHub private vulnerability reporting, declared in a `SECURITY.md`), and fixes ship as ordinary versions so the § 8 flow propagates them like any other change.
+The question that matters is not "will the maintainer stay responsive" but "what happens to a tenant the day `plexus-ms` goes unmaintained".
+In short, nothing will break on day one, since published npm versions are immutable, tags keep resolving, and repos are public and carry the GPLv3 license.
+The real cost will be slow drift and a standard that no longer advances, mandating a migration elsewhere in some timescale, but not because of an urgent outage.
 
 **Tenants may share bare metal — with eyes open.** 
 At small scale, pooling workloads on one physical host is the correct economics, and virtualization draws the boundary: 
-tenants sharing a host MUST be separated by virtualization technologies (never co-mingling tenants inside one single VM). 
-Everything else — Docker, ingress, secrets vault, backups, domains — SHOULD be kept per-VM as well.
+**Tenants sharing metal MUST be separated by hypervisor virtualization technologies**, never co-mingling tenants inside one single VM. 
+**Platform concerns like ingress, secrets, backups, monitoring SHOULD be kept per-tenant as well.**
 Sharing ingress, networking, or secrets across tenants is a red flag: if the economics seem to force it, the standard has fallen short of its own customer-1001 goal (§ 2) — file an issue against the standard rather than normalizing the exception.
 Also, be clear about what virtualization does and does not buy:
 it solves performance and fault isolation, but it *centralizes* access rather than partitioning it — a hypervisor has unrestricted control over every VM, so the host is a critical attack vector — and it does nothing for legal controllership: 
-distinct legal persons sharing one box under one admin MUST document the arrangement in writing — e.g. a one-page document defining the relationship, plus a data-processing agreement where applicable. 
-*Why (informative, and not legal advice):* data-protection regimes commonly require such arrangements to exist in writing — under the GDPR, typically an AVV/DPA. The standard can require the artifact; whether the artifact satisfies a given jurisdiction is a legal question each tenant answers for itself — PLX conformance is not legal compliance.
+**Distinct legal persons sharing platform root access MUST document the arrangement in writing** — e.g. a one-page document defining the relationship, plus a data-processing agreement where applicable.
 
-**Tenant identifier** — every tenant MUST have a short slug (e.g. `acme`, `initech`, and `plexus` itself, the project dogfooding its own standard), and every deployed service MUST carry the label `plexus.tenant=<slug>`. 
-The slug SHOULD additionally appear in the tenant's forge org name, VM hostnames, Ansible inventory groups, and vault name, so one greppable name threads through every layer. 
+**Every tenant MUST have a short slug** (e.g. `acme`, `initech`, and `plexus` itself, the project dogfooding its own standard).
+**Every deployed service MUST carry the label `plexus.tenant=<slug>`**.
+**The slug SHOULD additionally appear consistently** in the tenant's forge org name, VM hostnames, Ansible inventory groups, and vault name, so one greppable name threads through every layer. 
 The label makes the boundary visible exactly where fog otherwise creeps back in (staring at a host wondering whose service this is).
 
 ### § 4.3 Repo & namespace layout
 
-- **The neutral namespace hosts the methodology.** `plexus-ms` is the tenant-neutral home of `library`, `preset`, and `itops` (see § 4.1 for details), and of the `@plexus-ms` npm scope the library publishes under.
-It doubles as the org of the public dogfooding tenant (`plexus`).
-- **Tag discipline for `itops`:** one version tag covers its three artifact classes (verbs, workflow wrappers, Ansible collection — § 7) atomically;
-tenants MUST reference `itops` artifacts by tag, never by branch.
-(Tags are git's *movable* pointer — this mandate deliberately accepts the supply-chain sharp edge named in § 4.2, where the tag-over-SHA trade-off is owned.)
-- **One forge org (or account) per tenant (MUST)** — org membership governs code access; a person in tenant A's org is simply not in tenant B's.
-- **One monorepo per tenant (SHOULD)** — `<org>/<tenant>` (e.g. `plexus-ms/plexus`) holds **both** dev side (most likely a mise monorepo with pnpm workspace, maybe with advanced monorepo tooling like Turborepo in the future) and ops side (Ansible inventory, host/VM definitions, that tenant's deployment configs). The benefits are direct: apps and the platform that runs them version together, cross-cutting changes land as one atomic commit, and it is safe because a monorepo is one access boundary (§ 8).
-Tenant monorepos SHOULD be generated from `plexus-ms/preset`.
-With several apps in one repo, deploys are per-app and promotion is repo-wide (the release train — § 5.4); a product that persistently needs its own release cadence is the one reason to give it its own repo within the tenant's org.
+- **A neutral namespace hosts the methodology.** 
+  `plexus-ms` is the tenant-neutral home of `library`, `preset`, and `itops` (see § 4.1 for details), and of the `@plexus-ms` npm scope the library publishes under.
+  It doubles as the org of the public dogfooding tenant (`plexus`).
+- **Tenant monorepos SHOULD be partitioned by separate forge orgs.** 
+  Org membership governs code access; a person in tenant A's org is simply not in tenant B's.
+- **A tenant SHOULD make use of the monorepo pattern.**
+  `<org>/<tenant>` (e.g. `plexus-ms/plexus`) holds **both** dev side (most likely a mise monorepo with pnpm workspace, maybe with advanced monorepo tooling like Turborepo in the future) and ops side (Ansible inventory, host/VM definitions, that tenant's deployment configs).
+  The benefits are direct: apps and the platform that runs them version together, cross-cutting changes land as one atomic commit, and it is safe because a monorepo is one access boundary (§ 8).
+  With several apps in one repo, deploys are per-app and promotion is repo-wide (the release train — § 5.4); 
+  a product that persistently needs its own release cadence is the one reason to give it its own repo within the tenant's org.
+- **Tenant monorepos SHOULD be generated from `plexus-ms/preset`.**
 
 ## § 5 The dev side
 
-How Plexus software is *built*: the pinned toolchain, the shared packages, and the release models. These are the dev side of § 4.1; their ops counterparts are the primitives of § 7, and the contract between the two sides is § 6.
+How Plexus software is *built*: the pinned toolchain, the shared packages, and the release models. 
+These are the dev side of § 4.1; their ops counterparts are the primitives of § 7, and the contract between the two sides is § 6.
 
-The scope of v0, stated plainly: it standardizes the toolchain, the publishing mechanics, and the release models. The reusable application plumbing the § 3 boundary principle aims at — framework glue, common auth concerns, repeatable non-domain features — is future work, deferred with its trigger in § 9; until it exists, that plumbing lives in the app that needs it.
+The scope of v0: it standardizes the toolchain, the publishing mechanics, and the release models.
+The reusable application plumbing the § 3 boundary principle aims at — framework glue, common auth concerns, repeatable non-domain features — is future work, deferred with its trigger in § 9; until it exists, that plumbing lives in the app that needs it.
 
-Nor is Plexus secretly JS-only: mise and hk are language-neutral, and their bindings are stack-neutral requirements, not JS conventions — every Plexus repo MUST pin its tools in `mise.toml` and expose its verbs as mise tasks, and every Plexus repo MUST wire its checks through `hk` git hooks per the § 5.1 hook discipline (format/lint on pre-commit, typecheck-equivalent + test on pre-push), with stack-appropriate checks behind the same hooks. The standard verbs (§ 6) are the stack-neutral layer every app answers; only § 5.1's pnpm/tsc specifics bind JS/TS repos alone. A Python or Go app takes the same contract with different incantations behind the same verbs — JS/TS is simply the first toolchain the standard has specified.
+Plexus mandates the use of the language neutral [mise-en-place](https://mise.jdx.dev/) for toolchain management and [hk](https://hk.jdx.dev/) for Git hooks wiring.
+Every Plexus repo MUST pin its tools in `mise.toml` and expose its verbs as mise tasks.
+Every Plexus repo MUST wire its checks through `hk` git hooks per the § 5.1 hook discipline (format/lint on pre-commit, typecheck-equivalent + test on pre-push), with stack-appropriate checks behind the same hooks.
+Git hooks SHOULD delegate to mise tasks to avoid drift from duplication.
+The source of truth is considered to be `mise.toml` with tool and task definitions, while `hk` configuration is considered to be a plumbing layer on top of that.
+The standard verbs (§ 6) are the stack-neutral layer every app answers; only § 5.1's pnpm/tsc specifics bind JS/TS repos alone.
+A Python or Go app takes the same contract with different incantations behind the same verbs — JS/TS is simply the first toolchain the standard has specified.
 
 ### § 5.1 The JS/TS toolchain convention
 
-Every Plexus JS/TS repo MUST use this toolchain, each choice made to pass the second-reader and degradation tests:
+Every Plexus JS/TS repo MUST use the toolchain mandated in this section.
 
-- **mise is the single toolchain authority.** Tool versions (node, pnpm, biome, even `npm:@changesets/cli`) MUST be pinned in `mise.toml` and *nowhere else*; a `package.json` MUST NOT carry `packageManager` or `engines`. *Why:* two pins for one fact is drift.
-- **mise is also the verb runner.** Contract verbs (§ 2) are mise tasks, so "how do I run you?" is always `mise :<verb>`, never `mise run`. (The ops verbs of § 7 are bash scripts invoked directly — `./scripts/deploy.sh` — and need no mise at all; that independence is their degradation-test point.) The path syntax: `:verb` addresses the current root, `//apps/<app>:verb` a specific project from anywhere, `//...:verb` fans out over all of them; bare `mise <verb>` applies only against a standalone `mise.toml`, as on a deploy host. *Why mise and not justfiles:* mise unifies tools + env + verbs in one artifact, and its task `include`s are version-pinned (`git::…?ref=vN`) — which `just import` cannot do — so shared verbs propagate via Renovate like any other dependency (§ 8).
+- JS/TS tenant repos MUST use the monorepo pattern.
+- **mise is the single toolchain authority.** Tool versions (node, pnpm, biome, even `npm:@changesets/cli`) MUST be pinned in `mise.toml` and *nowhere else*; a `package.json` MUST NOT carry `packageManager` or `engines`. 
+  *Why:* two pins for one fact is drift.
+- **mise is the verb runner.** Contract verbs (§ 2) MUST be defined as mise tasks. The answer to "how do I run you?" will always be `mise <verb>`. 
+  The monorepo path syntax for mise tasks: `mise :verb` addresses the current root, `//apps/<app>:verb` a specific project from anywhere, `//...:verb` fans out over all of them, and bare `mise <verb>` applies only against a standalone `mise.toml`, as on a deploy host.
+- The pnpm package manager MUST be used.
 - **Monorepo = pnpm workspace + mise monorepo.** `pnpm-workspace.yaml` (`packages:` globs + a `catalog:` pinning shared dev-tool versions) owns install/linking; `monorepo_root = true` + `[monorepo] config_roots` in the root `mise.toml` gives two-altitude verbs — `mise //...:test` at the root fans out, `mise :test` inside a package runs only that one.
-- **No root `package.json` unless a tool forces it.** A monorepo root MUST NOT carry a `package.json` except where a tool leaves no alternative; pnpm defines the workspace without one. The single current exception is changesets (its `@manypkg/find-root` needs a root manifest to anchor the monorepo), so the root carries a dependency-free, pin-free stub (`{ name, private }`).
-- **Build with `tsc`, test with Node's built-in runner.** A published package compiles to `dist/` via `tsc` (transparent, no bundler) and tests via `node --test` on Node's native TS type-stripping (zero test dependencies). Both stay trivially hand-runnable.
-- **Git hooks via `hk`, self-installing.** Pre-commit runs biome (format + lint on staged files); pre-push runs typecheck + test. `hk` is a mise tool and its config is `hk.pkl`; a `mise.toml` `[hooks] postinstall = "hk install --mise"` wires the git hooks on the first `mise install` — no per-repo or per-machine step. The copier template ships `hk.pkl` + that hook, so every repo gets working hooks the moment its toolchain is installed (decide once → versioned artifact → propagate). `HK=0 git …` bypasses a hook when needed.
+- **No root `package.json` unless a tool forces it.** 
+  A monorepo root MUST NOT carry a `package.json` except where a tool leaves no alternative; pnpm defines the workspace without one. 
+  The single current exception is changesets (its `@manypkg/find-root` needs a root manifest to anchor the monorepo), so the root carries a dependency-free, pin-free stub (`{ name, private }`).
+- **Git hooks via `hk`, self-installing.** 
+  Pre-commit runs biome (format + lint on staged files); pre-push runs typecheck + test. 
+  `hk` is a mise tool and its config is `hk.pkl`; a `mise.toml` `[hooks] postinstall = "hk install --mise"` wires the git hooks on the first `mise install` — no per-repo or per-machine step.
+  The copier template ships `hk.pkl` + that hook, so every repo gets working hooks the moment its toolchain is installed (decide once → versioned artifact → propagate).
+  `HK=0 git …` bypasses a hook when needed.
 
 ### § 5.2 Publishing the `@plexus-ms/*` packages
 
-Cross-tenant sharing MUST use **published, versioned packages** (§ 8). The `@plexus-ms/*` packages are published to **public npmjs** under the `@plexus-ms` scope, versioned by **changesets** (merge a "version packages" PR → CI publishes), with **npm provenance**. Provenance is a signed attestation, generated in CI via OIDC, that links each published version to the exact source commit and workflow that built it. Going public (rather than a private registry) is consistent with `@plexus-ms/*` being tenant-neutral *methodology, not substance* — which makes one guardrail load-bearing: **tenant substance (business logic, secrets, anything tenant-specific) MUST NOT appear in a public `@plexus-ms/*` package.**
+Cross-tenant sharing MUST use **published, versioned packages** (§ 8). 
+The `@plexus-ms/*` packages are published to **public npmjs** under the `@plexus-ms` scope, versioned by **changesets** (merge a "version packages" PR → CI publishes), with **npm provenance**. 
+Provenance is a signed attestation, generated in CI via OIDC, that links each published version to the exact source commit and workflow that built it. 
+Going public is consistent with `@plexus-ms/*` being tenant-neutral *methodology, not substance*.
+**tenant substance (business logic, secrets, anything tenant-specific) MUST NOT appear in a public `@plexus-ms/*` package.**
 
-Apart from that guardrail, this subsection binds the standard's own repos (§ 10.2): tenants consume these packages; only `plexus-ms/library` publishes them.
+Apart from that guardrail, this subsection binds the standard's own repos (§ 10.2):
+tenants consume these packages; only `plexus-ms/library` publishes them.
 
 How the release runs:
 
@@ -321,19 +341,14 @@ Every Plexus app repo MUST provide:
 
 ### § 6.2 The stateless-app profile
 
-Some apps hold no state — static/marketing sites, stateless APIs. They still take the
-contract; the state-specific MUSTs collapse to *documented no-ops* so the platform
-treats every app identically:
+Some apps hold no state — static/marketing sites, stateless APIs. They still take the contract; the state-specific MUSTs collapse to *documented no-ops* so the platform treats every app identically:
 
-- **`compose.yml`** declares only the app service with `plexus.tenant=<id>`; **no data
-  service and no `plexus.backup` label** (nothing to back up).
-- **`mise :migrate` MUST still be present** (as a documented no-op); `seed` MAY be omitted. The deploy verb still
-  calls `mise migrate` uniformly (bare form, deliberately — deploy-host context, § 5.1) — it never needs to know an app is stateless.
+- **`compose.yml`** declares only the app service with `plexus.tenant=<id>`; **no data service and no `plexus.backup` label** (nothing to back up).
+- **`mise :migrate` MUST still be present** (as a documented no-op); `seed` MAY be omitted. The deploy verb still calls `mise migrate` uniformly (bare form, deliberately — deploy-host context, § 5.1) — it never needs to know an app is stateless.
 - **The env schema MAY declare zero secrets** (only runtime knobs like `PORT`).
-- **`/healthz`, the CI reference, and `PLEXUS.md` remain MUSTs.**
+- **`/healthz`, the CI reference, and `PLEXUS.md` MUST still be provided.**
 
-A stateless app passes the degradation test trivially: the host is fully reconstructable
-from git + the image registry, with no data to restore.
+A stateless app passes the degradation test trivially: the host is fully reconstructable from git + the image registry, with no data to restore.
 
 What the contract deliberately does **not** mention: databases, ORMs, frameworks, or anything interior. The deploy verb only needs *"is there a migration step and how do I invoke it"* → `mise migrate` (bare form: on the deploy host, the verb runs against the app's standalone `mise.toml`, where path syntax does not apply — § 5.1). The backup job only needs *"which services hold state and of what type"* → the labels. Adding Mongo support means writing one `mongodump` handler once in the platform, after which every Mongo app is covered.
 
@@ -487,7 +502,6 @@ A monorepo has **one** access boundary, so it **cannot span tenants** without di
 
 Written down so these are *decisions*, not drift:
 
-- **Komodo (thin git-native deploy UI)** — trial after the foundation is stable, if a dashboard is wanted. Not before.
 - **An orchestrator (e.g. vanilla Kestra)** — only on the § 7.8 triggers (multi-host dependent workflows, approvals, unmanageable schedule count, replay needs).
 - **Observability (metrics, logs, dashboards, phone alerting)** — becomes part of the paved road later. The answer to "when is it time to scale?" is *data, not vibes* — the usual gap is measurement, not orchestration — and the same stack provides the "what's running where" view grouped by `plexus.tenant`. Candidates: Grafana + Prometheus/node-exporter + Loki, or lighter (Beszel + Uptime Kuma). Until then, the only monitoring the standard requires is the § 7.8 dead-man's-switch.
 - **A concrete dead-man's-switch service for the reference stack** — the § 7.8 requirement (every scheduled job MUST ping on success) stands now; which service — self-hosted (e.g. Uptime Kuma) or managed (e.g. Healthchecks.io) — joins the reference stack is decided together with observability.
@@ -500,7 +514,7 @@ Written down so these are *decisions*, not drift:
 - **Registry image retention** — SHA-tagged images accumulate in GHCR unboundedly, and nothing prunes them; that is the deliberate default for now (rollback — § 7.2 — and re-deploys assume history stays available, and storage is cheap at this scale). Revisit when registry cost or quota bites; any future GC policy has a floor — the tags currently deployed in any environment, plus their predecessors — or rollback loses its guarantee.
 - **Preview environments per PR** — deferred deliberately. A single `staging` per app covers ~90% of the value; revisit when a product has real customers.
 - **Per-tenant second admins** — provision lazily, only when a real second operator exists.
-- **A second maintainer for `plexus-ms` itself** — the initiative's own bus-factor mitigation (§ 4.2). Same lazy rule as second admins — when a real second contributor exists — but with one proactive trigger: the day a third-party tenant runs the standard in production, single-maintainer governance stops being merely honest and starts being a liability to someone else.
+- **More maintainers for `plexus-ms` itself** — the initiative's own bus-factor mitigation (§ 4.2). Same lazy rule as second admins — when a real second contributor exists — but with one proactive trigger: the day a third-party tenant runs the standard in production, single-maintainer governance stops being merely honest and starts being a liability to someone else.
 
 
 ## § 10 Versioning & conformance

@@ -2,44 +2,49 @@
 
 > **GENERATED** from `PLX.md` v0 (2026-07-10) by `generate-reqlist.sh` — do not edit (§ 10.4).
 
-75 entries: 63 MUST · 21 MUST NOT · 18 SHOULD · 2 SHOULD NOT · 8 MAY · 2 unclassified.
+79 entries: 61 MUST · 22 MUST NOT · 20 SHOULD · 2 SHOULD NOT · 8 MAY · 2 unclassified.
 
 ## § 4.2 Federation, not multi-tenancy
-*Classes: tenant-platform, standard-repo*
+*Classes: tenant-monorepo, tenant-platform*
 
-- **MUST** — **Never shared (the substance):** hosts and root access, git org/repo access, secrets vaults, databases, backups, domains. These MUST remain partitioned by tenant.
-- **MUST** — **Everything is forkable — legally, not just technically.** The shared repos are public, and every `plexus-ms` repo MUST carry a permissive OSI-approved license (reference: MIT). A tenant that must move forward alone forks, retags, and re-points its pins — same verbs, same mounts, new upstream.
-- **MUST** — **Disclosure:** every `plexus-ms` repo MUST provide a private vulnerability-reporting channel (reference: GitHub private vulnerability reporting, declared in a `SECURITY.md`), and fixes ship as ordinary versions so the § 8 flow propagates them like any other change.
-- **MUST** — tenants sharing a host MUST be separated by virtualization technologies (never co-mingling tenants inside one single VM). 
-- **SHOULD** — Everything else — Docker, ingress, secrets vault, backups, domains — SHOULD be kept per-VM as well.
-- **MUST** — distinct legal persons sharing one box under one admin MUST document the arrangement in writing — e.g. a one-page document defining the relationship, plus a data-processing agreement where applicable. 
-- **MUST** — **Tenant identifier** — every tenant MUST have a short slug (e.g. `acme`, `initech`, and `plexus` itself, the project dogfooding its own standard), and every deployed service MUST carry the label `plexus.tenant=<slug>`. 
-- **SHOULD** — The slug SHOULD additionally appear in the tenant's forge org name, VM hostnames, Ansible inventory groups, and vault name, so one greppable name threads through every layer. 
+- **MUST** — **All tenants MUST share the methodology:** the contract, the `@plexus-ms/*` config/lib packages, the reusable CI workflow, the deploy verb, the copier template, the Ansible *roles*, the doctrine. 
+- **MUST NOT** — **Tenants MUST NOT share the substance:** hosts and root access, git org/repo access, secrets vaults, databases, backups, domains. 
+- **MUST** — **Tenants sharing metal MUST be separated by hypervisor virtualization technologies**, never co-mingling tenants inside one single VM. 
+- **SHOULD** — **Platform concerns like ingress, secrets, backups, monitoring SHOULD be kept per-tenant as well.**
+- **MUST** — **Distinct legal persons sharing platform root access MUST document the arrangement in writing** — e.g. a one-page document defining the relationship, plus a data-processing agreement where applicable.
+- **MUST** — **Every tenant MUST have a short slug** (e.g. `acme`, `initech`, and `plexus` itself, the project dogfooding its own standard).
+- **MUST** — **Every deployed service MUST carry the label `plexus.tenant=<slug>`**.
+- **SHOULD** — **The slug SHOULD additionally appear consistently** in the tenant's forge org name, VM hostnames, Ansible inventory groups, and vault name, so one greppable name threads through every layer. 
 
 ## § 4.3 Repo & namespace layout
 *Class: tenant-monorepo*
 
-- **MUST** — tenants MUST reference `itops` artifacts by tag, never by branch.
-- **MUST** — **One forge org (or account) per tenant (MUST)** — org membership governs code access; a person in tenant A's org is simply not in tenant B's.
-- **SHOULD** — **One monorepo per tenant (SHOULD)** — `<org>/<tenant>` (e.g. `plexus-ms/plexus`) holds **both** dev side (most likely a mise monorepo with pnpm workspace, maybe with advanced monorepo tooling like Turborepo in the future) and ops side (Ansible inventory, host/VM definitions, that tenant's deployment configs). The benefits are direct: apps and the platform that runs them version together, cross-cutting changes land as one atomic commit, and it is safe because a monorepo is one access boundary (§ 8).
-- **SHOULD** — Tenant monorepos SHOULD be generated from `plexus-ms/preset`.
+- **SHOULD** — **Tenant monorepos SHOULD be partitioned by separate forge orgs.** 
+- **SHOULD** — **A tenant SHOULD make use of the monorepo pattern.**
+- **SHOULD** — **Tenant monorepos SHOULD be generated from `plexus-ms/preset`.**
 
 ## § 5 The dev side
 *Classes: app, tenant-monorepo, standard-repo*
 
-- **MUST** — Nor is Plexus secretly JS-only: mise and hk are language-neutral, and their bindings are stack-neutral requirements, not JS conventions — every Plexus repo MUST pin its tools in `mise.toml` and expose its verbs as mise tasks, and every Plexus repo MUST wire its checks through `hk` git hooks per the § 5.1 hook discipline (format/lint on pre-commit, typecheck-equivalent + test on pre-push), with stack-appropriate checks behind the same hooks. The standard verbs (§ 6) are the stack-neutral layer every app answers; only § 5.1's pnpm/tsc specifics bind JS/TS repos alone. A Python or Go app takes the same contract with different incantations behind the same verbs — JS/TS is simply the first toolchain the standard has specified.
+- **MUST** — Every Plexus repo MUST pin its tools in `mise.toml` and expose its verbs as mise tasks.
+- **MUST** — Every Plexus repo MUST wire its checks through `hk` git hooks per the § 5.1 hook discipline (format/lint on pre-commit, typecheck-equivalent + test on pre-push), with stack-appropriate checks behind the same hooks.
+- **SHOULD** — Git hooks SHOULD delegate to mise tasks to avoid drift from duplication.
 
 ## § 5.1 The JS/TS toolchain convention
 *Classes: app, tenant-monorepo*
 
-- **MUST** — Every Plexus JS/TS repo MUST use this toolchain, each choice made to pass the second-reader and degradation tests:
-- **MUST, MUST NOT** — **mise is the single toolchain authority.** Tool versions (node, pnpm, biome, even `npm:@changesets/cli`) MUST be pinned in `mise.toml` and *nowhere else*; a `package.json` MUST NOT carry `packageManager` or `engines`. *Why:* two pins for one fact is drift.
-- **MUST NOT** — **No root `package.json` unless a tool forces it.** A monorepo root MUST NOT carry a `package.json` except where a tool leaves no alternative; pnpm defines the workspace without one. The single current exception is changesets (its `@manypkg/find-root` needs a root manifest to anchor the monorepo), so the root carries a dependency-free, pin-free stub (`{ name, private }`).
+- **MUST** — Every Plexus JS/TS repo MUST use the toolchain mandated in this section.
+- **MUST** — JS/TS tenant repos MUST use the monorepo pattern.
+- **MUST, MUST NOT** — **mise is the single toolchain authority.** Tool versions (node, pnpm, biome, even `npm:@changesets/cli`) MUST be pinned in `mise.toml` and *nowhere else*; a `package.json` MUST NOT carry `packageManager` or `engines`. 
+- **MUST** — **mise is the verb runner.** Contract verbs (§ 2) MUST be defined as mise tasks. The answer to "how do I run you?" will always be `mise <verb>`. 
+- **MUST** — The pnpm package manager MUST be used.
+- **MUST NOT** — A monorepo root MUST NOT carry a `package.json` except where a tool leaves no alternative; pnpm defines the workspace without one. 
 
 ## § 5.2 Publishing the `@plexus-ms/*` packages
 *Class: standard-repo*
 
-- **MUST, MUST NOT** — Cross-tenant sharing MUST use **published, versioned packages** (§ 8). The `@plexus-ms/*` packages are published to **public npmjs** under the `@plexus-ms` scope, versioned by **changesets** (merge a "version packages" PR → CI publishes), with **npm provenance**. Provenance is a signed attestation, generated in CI via OIDC, that links each published version to the exact source commit and workflow that built it. Going public (rather than a private registry) is consistent with `@plexus-ms/*` being tenant-neutral *methodology, not substance* — which makes one guardrail load-bearing: **tenant substance (business logic, secrets, anything tenant-specific) MUST NOT appear in a public `@plexus-ms/*` package.**
+- **MUST** — Cross-tenant sharing MUST use **published, versioned packages** (§ 8). 
+- **MUST NOT** — **tenant substance (business logic, secrets, anything tenant-specific) MUST NOT appear in a public `@plexus-ms/*` package.**
 - **MUST** — **Tags + GitHub Releases are automatic** (`changeset publish` tags each `@plexus-ms/<pkg>@x.y.z`, the action pushes them and cuts a Release from the changelog). The release branch (`main`) MUST be protected by a ruleset requiring those CI checks — a requirement, not a description of current setup.
 - **MUST, SHOULD** — **Package-design rules.** A `@plexus-ms/*` package MUST be tenant-neutral methodology (the guardrail above). Code utilities SHOULD start in `@plexus-ms/std` — the standard *library* ("the standard" alone always names PLX itself, never this package) is the default home for any small shared concern — and a concern graduates to its own package once it has its own audience or its own release cadence (a consumer shouldn't take updates because an unrelated helper changed). Tool configs (`biome-config`, `tsconfig`) are separate packages by construction: they exist to be one-line `extends` targets. **API stability:** packages follow semver, enforced by changesets — a breaking change MUST be a major bump, and its changeset SHOULD carry a migration note so the changelog doubles as the upgrade guide.
 
@@ -85,10 +90,9 @@
 ## § 6.2 The stateless-app profile
 *Class: app*
 
-- **MUST** — contract; the state-specific MUSTs collapse to *documented no-ops* so the platform
-- **MUST, MAY** — **`mise :migrate` MUST still be present** (as a documented no-op); `seed` MAY be omitted. The deploy verb still
+- **MUST, MAY** — **`mise :migrate` MUST still be present** (as a documented no-op); `seed` MAY be omitted. The deploy verb still calls `mise migrate` uniformly (bare form, deliberately — deploy-host context, § 5.1) — it never needs to know an app is stateless.
 - **MAY** — **The env schema MAY declare zero secrets** (only runtime knobs like `PORT`).
-- **MUST** — **`/healthz`, the CI reference, and `PLEXUS.md` remain MUSTs.**
+- **MUST** — **`/healthz`, the CI reference, and `PLEXUS.md` MUST still be provided.**
 
 ## § 7 The ops side
 *Classes: tenant-platform, standard-repo*

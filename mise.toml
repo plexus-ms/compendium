@@ -5,7 +5,7 @@ hk = "1"
 postinstall = "hk install --mise"
 
 [tasks.reqlist]
-description = "Regenerate plexus/standard-reqlist.md from standard.md (§ 10.4 PLX)"
+description = "Regenerate standard-reqlist.md from standard.md"
 usage = '''
 flag "--check" help="Exit non-zero if standard-reqlist.md is stale instead of rewriting it"
 '''

@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 #
-# Plexus reqlist generator — § 10.4 PLX. A verb, not a system:
+# Plexus reqlist generator — a verb, not a system:
 #
 #   scan standard.md → headings + "> - " requirement lines → standard-reqlist.md
 #
 # The standard carries its requirements as blockquoted bullets under section
-# headings (§ 1.2 PLX), so extraction is structural: no classification, no
+# headings, so extraction is structural: no classification, no
 # heuristics. The same pass lints the convention — a BCP 14 keyword found
 # outside a blockquote, or a malformed blockquote line, fails the run.
 #
@@ -66,7 +66,7 @@ generate() {
     # Everything else is informative prose — no BCP 14 keyword may appear here.
     {
       tmp = $0
-      # Informal plurals ("MUSTs") are prose, not keywords (§ 1.2 PLX: "in all capitals").
+      # Informal plurals ("MUSTs") are prose, not keywords
       gsub(/MUSTs/, "", tmp); gsub(/SHOULDs/, "", tmp); gsub(/MAYs/, "", tmp)
       if (tmp ~ /MUST|SHOULD|MAY/)
         err[++ne] = "line " NR ": BCP 14 keyword outside a blockquote: " $0
@@ -78,12 +78,12 @@ generate() {
         exit 1
       }
       print "---"
-      print "title: The Plexus Standard Requirements List (PLX Reqlist"
+      print "title: The Plexus Standard Requirements List (PLX Reqlist)"
       print "short_title: 2. Standard Reqlist"
       print "description: Condensed requirements list extracted from the Plexus Standard."
       print "version: " version
       print "timestamp: " timestamp
-      print "note: Auto-generated from `standard.md` " version " (" timestamp ") by `generate-reqlist.sh` — do not edit (§ 10.4 PLX)."
+      print "note: Auto-generated from `standard.md` " version " (" timestamp ") by `generate-reqlist.sh` — do not edit."
       print "order: 2"
       print "---"
       for (i = 1; i <= no; i++) print out[i]

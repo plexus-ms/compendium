@@ -1,10 +1,10 @@
 ---
-title: The Plexus Standard Requirements List (PLX Reqlist
+title: The Plexus Standard Requirements List (PLX Reqlist)
 short_title: 2. Standard Reqlist
 description: Condensed requirements list extracted from the Plexus Standard.
 version: v0
 timestamp: 2026-07-11
-note: Auto-generated from `standard.md` v0 (2026-07-11) by `generate-reqlist.sh` — do not edit (§ 10.4 PLX).
+note: Auto-generated from `standard.md` v0 (2026-07-11) by `generate-reqlist.sh` — do not edit.
 order: 2
 ---
 

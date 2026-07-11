@@ -43,20 +43,22 @@ order: 2
 
 ### § 3.3 The `PLEXUS.md` marker
 
-- Every conforming repo MUST carry a `PLEXUS.md`; in a tenant monorepo, each app additionally carries one at its app root.
-- The marker MUST carry YAML frontmatter with `plx` (the PLX version targeted) and `profile` (`stateless-app`, `stateful-app`, or `tenant-monorepo`).
-- A repo whose `PLEXUS.md` is missing or unparsable is non-conformant.
+- Every conforming repo MUST carry a `PLEXUS.md` marker at its root.
+- The repo marker MUST carry YAML frontmatter with `plx` (the PLX version targeted) and `profile` = `repository`).
+- Every conforming app MUST carry a `PLEXUS.md` marker at its root. In a tenant monorepo, this will be at `apps/<app-name>/PLEXUS.md`.
+- The app marker MUST carry YAML frontmatter with `plx` (the PLX version targeted) and `profile` being one of the profiles listed in § 6.
+- A repo or app whose `PLEXUS.md` is missing or unparsable is non-conformant.
 
 ### § 3.4 Conformance & owned deviations
 
-- A repo conforms to a PLX version when it satisfies every MUST and MUST NOT applicable to it under that version.
-- Deviating from a SHOULD or SHOULD NOT is permitted, but the deviation MUST be recorded in the repo's `PLEXUS.md` with a sentence of rationale.
+- A repo or app conforms to a PLX version when it satisfies every MUST and MUST NOT applicable to it under that version.
+- Deviating from a SHOULD or SHOULD NOT is permitted, but the deviation MUST be recorded in `PLEXUS.md` with a sentence of rationale.
 
 ### § 3.5 Shared metal
 
-- Tenants sharing physical hardware MUST be separated by hypervisor virtualization; two tenants never co-mingle inside one VM.
+- Tenants sharing physical hardware MUST be separated by hypervisor virtualization; two tenants MUST NOT co-mingle inside one VM.
 - Platform concerns — ingress, secrets, backups, monitoring — SHOULD be kept per-tenant as well.
-- Distinct legal persons sharing platform root access MUST document the arrangement in writing — e.g. a one-page document defining the relationship, plus a data-processing agreement where applicable.
+- Distinct legal persons sharing platform root access or further platform concerns MUST document the arrangement in writing — e.g. a one-page document defining the relationship, plus a data-processing agreement where applicable.
 
 ### § 3.6 Forge org & monorepo layout
 

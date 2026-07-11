@@ -127,21 +127,23 @@ The label makes the boundary visible exactly where it otherwise blurs: staring a
 
 ### § 3.3 The `PLEXUS.md` marker
 
-> - Every conforming repo MUST carry a `PLEXUS.md`; in a tenant monorepo, each app additionally carries one at its app root.
-> - The marker MUST carry YAML frontmatter with `plx` (the PLX version targeted) and `profile` (`stateless-app`, `stateful-app`, or `tenant-monorepo`).
-> - A repo whose `PLEXUS.md` is missing or unparsable is non-conformant.
+> - Every conforming repo MUST carry a `PLEXUS.md` marker at its root.
+> - The repo marker MUST carry YAML frontmatter with `plx` (the PLX version targeted) and `profile` = `repository`).
+> - Every conforming app MUST carry a `PLEXUS.md` marker at its root. In a tenant monorepo, this will be at `apps/<app-name>/PLEXUS.md`.
+> - The app marker MUST carry YAML frontmatter with `plx` (the PLX version targeted) and `profile` being one of the profiles listed in § 6.
+> - A repo or app whose `PLEXUS.md` is missing or unparsable is non-conformant.
 
-The name is deliberately distinct from this document: `standard.md` (short name PLX) is the standard, `PLEXUS.md` is the per-repo marker.
 Because staleness detection parses it mechanically, the format is specified:
 
 ```markdown
 ---
 plx: v1.0             # PLX version this repo targets — REQUIRED
-profile: stateful-app # stateless-app | stateful-app | tenant-monorepo — REQUIRED
+profile: stateful-app # stateless-app | stateful-app | repository — REQUIRED
 ---
 
-Free-form prose. Owned deviations live here —
-one bullet each, with rationale.
+- Free-form prose. 
+- Owned deviations live here.
+- One bullet each, with rationale.
 ```
 
 Machine checks read only the YAML frontmatter; the body is for humans.
@@ -150,18 +152,18 @@ The marker is the one artifact the standard cannot degrade gracefully without, b
 
 ### § 3.4 Conformance & owned deviations
 
-> - A repo conforms to a PLX version when it satisfies every MUST and MUST NOT applicable to it under that version.
-> - Deviating from a SHOULD or SHOULD NOT is permitted, but the deviation MUST be recorded in the repo's `PLEXUS.md` with a sentence of rationale.
+> - A repo or app conforms to a PLX version when it satisfies every MUST and MUST NOT applicable to it under that version.
+> - Deviating from a SHOULD or SHOULD NOT is permitted, but the deviation MUST be recorded in `PLEXUS.md` with a sentence of rationale.
 
-Which requirements are applicable to a given repo is a scope question, answered by the structure itself (§ 1.4).
+Which requirements are applicable to a given repo or app is a scope question, answered roughly as listed in § 1.4.
 Substituting an equivalent for a suggested tool (§ 1.2) is one such deviation.
-A recorded deviation reads as a decision; an unrecorded one reads as drift — the marker (§ 3.3) is where the difference is made visible.
+A recorded deviation reads as a conformant decision; an unrecorded one reads as drift — the marker is where the difference is made visible.
 
 ### § 3.5 Shared metal
 
-> - Tenants sharing physical hardware MUST be separated by hypervisor virtualization; two tenants never co-mingle inside one VM.
+> - Tenants sharing physical hardware MUST be separated by hypervisor virtualization; two tenants MUST NOT co-mingle inside one VM.
 > - Platform concerns — ingress, secrets, backups, monitoring — SHOULD be kept per-tenant as well.
-> - Distinct legal persons sharing platform root access MUST document the arrangement in writing — e.g. a one-page document defining the relationship, plus a data-processing agreement where applicable.
+> - Distinct legal persons sharing platform root access or further platform concerns MUST document the arrangement in writing — e.g. a one-page document defining the relationship, plus a data-processing agreement where applicable.
 
 At small scale, pooling workloads on one physical host is the correct economics, and virtualization draws the boundary.
 Be clear about what it does and does not buy: it solves performance and fault isolation, but it *centralizes* access rather than partitioning it — a hypervisor has unrestricted control over every VM, so the host is a critical attack vector — and it does nothing for legal controllership; hence the written arrangement.

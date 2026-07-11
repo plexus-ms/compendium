@@ -1,6 +1,7 @@
 ---
 title: Plexus.ms
 description: Essential documentation about Plexus itself.
+order: 0
 ---
 
 This section holds documentation about Plexus itself, split into three documents by audience and register:

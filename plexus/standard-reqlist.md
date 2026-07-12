@@ -70,17 +70,21 @@ order: 2
 
 ### § 4.1 mise & hk, in every repo
 
-- Every tenant repo MUST pin its tools in `mise.toml` and expose its verbs as mise tasks.
-- Every tenant repo MUST wire its checks through hk git hooks: format and lint on pre-commit, typecheck-equivalent and test on pre-push, with stack-appropriate checks behind the same hook names.
+- Every tenant repo MUST expose its verbs as mise tasks at the repo root, and MUST bootstrap its stack's entry-point tools in `mise.toml`.
+- A fact with an ecosystem-canonical home MUST live in that home and MUST NOT be restated elsewhere; mise pins only facts that have no such home.
+- Every tenant repo MUST wire its checks through hk git hooks: format and lint on pre-commit, `check` and `test` on pre-push, with stack-appropriate checks behind the same hook names.
 - Git hooks SHOULD delegate to mise tasks.
+- mise tasks MUST NOT encode cross-project ordering; the task graph belongs to the stack's graph-aware tool (§ 4.2), to which the verbs delegate.
 
 ### § 4.2 The JS/TS toolchain
 
 - Every Plexus JS/TS repo MUST use the toolchain of this section.
-- JS/TS tenant repos MUST use the monorepo pattern: pnpm workspace plus mise monorepo.
-- Tool versions (node, pnpm, biome, …) MUST be pinned in `mise.toml` and nowhere else; a `package.json` MUST NOT carry `packageManager` or `engines`.
-- The pnpm package manager MUST be used.
-- A monorepo root MUST NOT carry a `package.json`, except where a tool leaves no alternative.
+- JS/TS tenant repos MUST use the monorepo pattern: pnpm workspace plus Turborepo.
+- Turborepo owns the task graph: leaf tasks are `package.json` scripts, `turbo.json` states the task rules (`build`, `typecheck`, and `test` depend on `^build`), and the workspace edges are read from each `package.json` — the graph MUST NOT be re-encoded in mise tasks or CI configuration.
+- Leaf projects MUST NOT carry a `mise.toml`; the root verbs delegate to turbo.
+- mise MUST install only node for the JS/TS toolchain; the package manager arrives through node itself — a `postinstall` hook enables corepack, which installs the pnpm version pinned in the root `package.json` `packageManager` field, the single pnpm pin (Turborepo requires the field anyway).
+- The node version MUST be pinned exactly once: `NODE_VERSION` in the root `mise.toml` `[env]`, read by `[tools]` via template, by CI via `mise env`, and by the image build as a build arg.
+- JS-ecosystem dev tools (turbo, biome, …) MUST be devDependencies — on the PATH via mise's `_.path`, never mise `[tools]` entries; a `package.json` MUST NOT carry `engines`.
 
 ## § 5 The app contract
 
@@ -88,9 +92,10 @@ order: 2
 
 ### § 5.1 Standard verbs
 
-- Every app MUST define the standard verbs as mise tasks: `dev`, `migrate`, `test`, and the CI-facing `lint`, `typecheck`, `build`.
-- A verb a given stack has no use for MUST still exist as a documented no-op, never as a missing verb.
-- `migrate` MUST be safe to invoke at any time; its full semantics are defined by the app's profile (§ 6).
+- Every tenant repo MUST answer the standard verbs as root mise tasks, each taking an optional app argument: `dev`, `build`, `check`, `test`.
+- `dev` MUST take a fresh checkout to a running development environment; `build` MUST produce the production artifact; `check` MUST run every static check that gates a deploy; `test` MUST run the tests that gate a deploy, providing whatever environment they need.
+- Every verb MUST succeed from a fresh checkout — installing dependencies and building internal workspace packages first is the repo's own business (§ 4.2), never the caller's.
+- A verb a given stack has no use for MUST still exist and pass (a documented no-op), never as a missing verb.
 
 ### § 5.2 compose.yaml
 
@@ -129,27 +134,28 @@ order: 2
 
 ### § 5.7 CI reference
 
-- The app's CI MUST run the shared pipeline (§ 8.5): lint → typecheck → test → build → push image.
+- The app's CI MUST run the shared pipeline (§ 8.5): check → test → build → package & push image.
+- The app MUST provide a runtime-only Dockerfile: it packages the `build` verb's output into the runtime image and MUST NOT rebuild the app.
 
 ## § 6 The app contract profiles
 
 ### § 6.1 The stateless app
 
-- `compose.yaml` MUST declare only stateless services — no data services, and no `plexus.backup` labels.
-- `mise :migrate` MUST exist as a documented no-op.
-- `mise :seed` MAY be omitted.
+- `compose.yaml` MUST declare only stateless services — no data services, no `plexus.backup` labels, and no `migrate` service.
+- A `seed` task MAY be omitted.
 - The env schema MAY declare zero secrets.
 
 ### § 6.2 The stateful app
 
 - Data services MUST carry the labels `plexus.tenant=<slug>` and `plexus.backup=<type>`; a `plexus.backup` value is valid exactly when `itops` ships a backup handler for it (§ 7.3).
 - The app SHOULD default to one database container of its own — full isolation, dies with the app.
+- `compose.yaml` MUST declare a one-shot `migrate` service: the app's own image, its migration command, and `profiles: ["migrate"]` so a plain `up` never starts it.
 - `migrate` MUST be idempotent: already-applied steps are skipped, and running it against a fully-migrated schema is a no-op.
 - A `migrate` failure partway through MUST leave the schema in a state from which re-running `migrate` can complete, each step applied atomically where the database supports it.
 - Concurrent `migrate` invocations MUST NOT corrupt the schema; `migrate` SHOULD serialize itself via a lock.
 - Every migration MUST be backward-compatible with the release currently in production — expand/contract discipline, roll-forward only.
 - A genuinely breaking migration — one that cannot honor expand/contract — MUST be deployed as a deliberate act: fresh backup taken first, and the operator aware that reverting means restoring, not re-upping the previous tag.
-- The app MUST provide `mise :seed`, loading development sample data only; it MAY assume a fresh database (right after `migrate`) and MUST NOT be invoked by the deploy verb.
+- The app MUST provide a `seed` task, loading development sample data only; it MAY assume a fresh database (right after `migrate`) and MUST NOT be invoked by the deploy verb.
 
 ## § 7 The operations platform
 

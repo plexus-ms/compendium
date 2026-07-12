@@ -88,6 +88,8 @@ Tenants pin the collection by tag (§ 9.1 PLX); the tag-mutability trade-off thi
 
 `copier copy gh:plexus-ms/preset <tenant>` generates a tenant monorepo; `copier update` re-applies template changes as a three-way merge against local edits, surfacing conflicts explicitly — template as living dependency, not `cp`.
 
+Since the standard defers the concrete toolchain arrangement to the preset (§ 4.2 PLX), the template is an *arrangement authority*, not a convenience: it needs the same versioning discipline as the packages — tagged releases, a changelog entry per arrangement change, and `copier update` treated as the structural counterpart of a dependency bump.
+
 Scaffolding is the last resort, chosen per artifact in three tiers:
 
 1. **Convert to a dependency if at all possible.** Most "boilerplate" is secretly extractable — a `mise.toml` can `include` a shared, version-pinned task file (`git::…?ref=vN`), keeping only project-specific tasks local.

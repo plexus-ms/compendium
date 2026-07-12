@@ -52,7 +52,7 @@ The standard's vocabulary, defined once:
 - **Verb** — a stateless, hand-runnable procedure that does one operational thing (deploy, backup, migrate, …), authored in a portable manner.
   One name, two shapes: 
   - **ops verbs** are the shared bash scripts `itops` ships (`scripts/deploy.sh` — § 8.4), tenant-neutral and versioned by the `itops` tag; 
-  - **contract verbs** are the per-app mise tasks the app contract requires (`mise :migrate` — § 5.1), each encoding that app's own incantation behind the standard name.
+  - **contract verbs** are the root mise tasks the app contract requires (`mise :check` — § 5.1), each delegating to the repo's own incantation behind the standard name.
 - **Mount** — the thin, disposable glue binding a verb or role to an event or state source it doesn't own: a workflow wrapper on forge events (§ 8.5), a tenant playbook on an inventory (§ 7), a systemd timer on the clock (§ 7.4).
   Mounts carry no logic.
 - **Methodology** and **substance** — the federation's sharing axis (§ 3.1): *methodology* is knowledge and code-shaped-as-knowledge, shared across all tenants; *substance* is data, secrets, access, hosts, and is never shared.
@@ -184,32 +184,43 @@ With several apps in one repo, deploys are per-app and promotion is repo-wide (t
 
 ### § 4.1 mise & hk, in every repo
 
-> - Every tenant repo MUST pin its tools in `mise.toml` and expose its verbs as mise tasks.
-> - Every tenant repo MUST wire its checks through hk git hooks: format and lint on pre-commit, typecheck-equivalent and test on pre-push, with stack-appropriate checks behind the same hook names.
+> - Every tenant repo MUST expose its verbs as mise tasks at the repo root, and MUST bootstrap its stack's entry-point tools in `mise.toml`.
+> - A fact with an ecosystem-canonical home MUST live in that home and MUST NOT be restated elsewhere; mise pins only facts that have no such home.
+> - Every tenant repo MUST wire its checks through hk git hooks: format and lint on pre-commit, `check` and `test` on pre-push, with stack-appropriate checks behind the same hook names.
 > - Git hooks SHOULD delegate to mise tasks.
+> - mise tasks MUST NOT encode cross-project ordering; the task graph belongs to the stack's graph-aware tool (§ 4.2), to which the verbs delegate.
 
 Plexus mandates the language-neutral [mise-en-place](https://mise.jdx.dev/) for toolchain management and [hk](https://hk.jdx.dev/) for git-hook wiring.
-The source of truth is `mise.toml`, holding tool and task definitions; hk configuration (`hk.pkl`) is a plumbing layer on top, which is why hooks delegate — two encodings of one check is drift.
-Hooks self-install: a `mise.toml` `[hooks] postinstall = "hk install --mise"` wires them on the first `mise install`, with no per-repo or per-machine step; `HK=0 git …` bypasses a hook when needed.
+mise is the front door, not the landlord: it bootstraps the stack's entry point onto the PATH, exports env, wires hooks, and names the verbs — then hands off to the stack's own machinery, and every fact past the bootstrap lives where its ecosystem natively binds it.
+The canonical home matters twice over: it is where a developer of that stack already looks, and it is the API the machine ecosystem reads — update bots, IDEs, and the stack's own tools all consume the canonical files and are blind to a custom scheme.
+The shell is accordingly graph-blind: mise knows nothing of a workspace's dependency edges, and every ecosystem already has a graph-aware tool that does — cargo, go, and gradle natively; JS/TS via § 4.2's designated one.
+That delegation is one line in one task, which makes it the deliberate swap point: a repo that outgrows its orchestrator (or mixes stacks and reaches for a stack-agnostic one) changes the line behind the verbs, and nothing above them.
+hk configuration (`hk.pkl`) is likewise a plumbing layer over mise tasks, which is why hooks delegate — two encodings of one check is the same drift as two encodings of one graph.
+Hooks self-install via the `mise.toml` `[hooks] postinstall` on the first `mise install`, with no per-repo or per-machine step; `HK=0 git …` bypasses a hook when needed.
 
-The answer to *"how do I run you?"* is always a mise verb.
-The monorepo path syntax: `mise :verb` addresses the current root, `mise //apps/<app>:verb` a specific project from anywhere, `mise //...:verb` fans out over all of them; bare `mise <verb>` applies only against a standalone `mise.toml`, as on a deploy host.
+The answer to *"how do I run you?"* is always a mise verb, asked at the repo root: `mise :verb` answers repo-wide, `mise :verb <app>` scopes the answer to one app (§ 5.1).
+The verbs live only at the root — a per-app mise.toml would be a second encoding of the same delegation.
 
-The standard verbs (§ 5.1) are the stack-neutral layer every app answers; only § 4.2's pnpm/tsc specifics bind JS/TS repos alone.
+The standard verbs (§ 5.1) are the stack-neutral layer every app answers; only § 4.2's specifics bind JS/TS repos alone.
 A Python or Go app takes the same contract with different incantations behind the same verbs — JS/TS is simply the first toolchain the standard has specified.
 
 ### § 4.2 The JS/TS toolchain
 
 > - Every Plexus JS/TS repo MUST use the toolchain of this section.
-> - JS/TS tenant repos MUST use the monorepo pattern: pnpm workspace plus mise monorepo.
-> - Tool versions (node, pnpm, biome, …) MUST be pinned in `mise.toml` and nowhere else; a `package.json` MUST NOT carry `packageManager` or `engines`.
-> - The pnpm package manager MUST be used.
-> - A monorepo root MUST NOT carry a `package.json`, except where a tool leaves no alternative.
+> - JS/TS tenant repos MUST use the monorepo pattern: pnpm workspace plus Turborepo.
+> - Turborepo owns the task graph: leaf tasks are `package.json` scripts, `turbo.json` states the task rules (`build`, `typecheck`, and `test` depend on `^build`), and the workspace edges are read from each `package.json` — the graph MUST NOT be re-encoded in mise tasks or CI configuration.
+> - Leaf projects MUST NOT carry a `mise.toml`; the root verbs delegate to turbo.
+> - mise MUST install only node for the JS/TS toolchain; the package manager arrives through node itself — a `postinstall` hook enables corepack, which installs the pnpm version pinned in the root `package.json` `packageManager` field, the single pnpm pin (Turborepo requires the field anyway).
+> - The node version MUST be pinned exactly once: `NODE_VERSION` in the root `mise.toml` `[env]`, read by `[tools]` via template, by CI via `mise env`, and by the image build as a build arg.
+> - JS-ecosystem dev tools (turbo, biome, …) MUST be devDependencies — on the PATH via mise's `_.path`, never mise `[tools]` entries; a `package.json` MUST NOT carry `engines`.
 
-Two pins for one fact is drift — hence mise as the single toolchain authority.
-`pnpm-workspace.yaml` (`packages:` globs plus a `catalog:` pinning shared dev-tool versions) owns install and linking; `monorepo_root = true` with `[monorepo] config_roots` in the root `mise.toml` gives two-altitude verbs — `mise //...:test` at the root fans out, `mise :test` inside a package runs only that one.
-pnpm defines the workspace without a root manifest; the known tool that forces one is changesets, which tenants do not use (§ 8.1) — the exception lives in `plexus-ms/library` and is the [Manual](manual.md)'s business.
-Formatting and linting is Biome; the pre-commit hook runs it on staged files, pre-push runs typecheck and test, per the § 4.1 hook discipline.
+Each fact sits in its § 4.1 canonical home: the pnpm version where pnpm itself and every update bot reads it, dev tools where npm's ecosystem versions them, the task graph where turbo reads it.
+node is the bootstrap — the one fact with no canonical home once mise is the entry point — so its pin is an ordinary env var, defined once and read like one everywhere: the `[tools]` template locally, `mise env` in CI, an `ARG` in the Dockerfile.
+`pnpm-workspace.yaml` (`packages:` globs plus a `catalog:` pinning shared dev-tool versions) owns install and linking; turbo owns ordering and caching on top of it.
+The division of labor is exact: pnpm knows the package graph but not tasks, mise knows tasks but not the graph, turbo knows both — `dependsOn: ["^build"]` says once, for every consumer present and future, that internal packages build before their dependents typecheck, test, or build.
+That single rule is what makes every verb answerable from a fresh checkout (§ 5.1): a workspace package's `dist/` is a build product, never a commit.
+Formatting and linting is Biome, invoked repo-wide by `check` and on staged files by the pre-commit hook, per the § 4.1 hook discipline.
+The concrete arrangement — the mise.toml, `turbo.json`, root `package.json`, hook config, Dockerfile — is not specified here: the preset ships it (§ 9), and staying current with the template *is* the conformant arrangement.
 
 
 ## § 5 The app contract
@@ -222,17 +233,19 @@ This section is the profile-neutral base: what CI and the deploy verb rely on fo
 A profile (§ 6) extends it for the app's actual shape.
 
 What the contract deliberately does **not** mention: databases, ORMs, frameworks, or anything interior.
-The deploy verb only needs *"is there a migration step and how do I invoke it"* — `mise migrate` (bare form: on the deploy host, the verb runs against the app's standalone `mise.toml`, where path syntax does not apply — § 4.1).
+The deploy verb only needs *"is there a migration step and how do I invoke it"* — answered by `compose.yaml`: a stateful app declares a one-shot `migrate` service (§ 6.2) and the verb runs it through docker alone, so the deploy host never needs the app's toolchain.
 The backup job only needs *"which services hold state and of what type"* — the § 6.2 labels.
 
 ### § 5.1 Standard verbs
 
-> - Every app MUST define the standard verbs as mise tasks: `dev`, `migrate`, `test`, and the CI-facing `lint`, `typecheck`, `build`.
-> - A verb a given stack has no use for MUST still exist as a documented no-op, never as a missing verb.
-> - `migrate` MUST be safe to invoke at any time; its full semantics are defined by the app's profile (§ 6).
+> - Every tenant repo MUST answer the standard verbs as root mise tasks, each taking an optional app argument: `dev`, `build`, `check`, `test`.
+> - `dev` MUST take a fresh checkout to a running development environment; `build` MUST produce the production artifact; `check` MUST run every static check that gates a deploy; `test` MUST run the tests that gate a deploy, providing whatever environment they need.
+> - Every verb MUST succeed from a fresh checkout — installing dependencies and building internal workspace packages first is the repo's own business (§ 4.2), never the caller's.
+> - A verb a given stack has no use for MUST still exist and pass (a documented no-op), never as a missing verb.
 
-The shared pipeline (§ 8.5) and the deploy verb (§ 8.4) invoke an app only through these standard names, so the names are load-bearing and the incantations behind them are not.
-"What was the migration command again?" stops being a memory question; the answer is always `mise :migrate`, and the mise task encodes the real incantation.
+The shared pipeline (§ 8.5) invokes an app only through these standard names, so the names are load-bearing and the incantations behind them are not.
+The verbs are deliberately stack-neutral in a way earlier drafts were not: `check` subsumes what a JS/TS repo answers with biome + tsc and a Go repo answers with vet — *typecheck* and *lint* were incantations posing as contract.
+Migration is deliberately not a verb: at deploy time the repo is absent and the artifact is what's present, so migrating is a capability of the image, declared in `compose.yaml` (§ 6.2) and invoked by the deploy verb through docker (§ 8.4).
 Toolchain pinning follows § 4 — so setup is `git clone && mise :dev` everywhere.
 
 ### § 5.2 compose.yaml
@@ -290,9 +303,11 @@ Shipping and retention are the platform's job.
 
 ### § 5.7 CI reference
 
-> - The app's CI MUST run the shared pipeline (§ 8.5): lint → typecheck → test → build → push image.
+> - The app's CI MUST run the shared pipeline (§ 8.5): check → test → build → package & push image.
+> - The app MUST provide a runtime-only Dockerfile: it packages the `build` verb's output into the runtime image and MUST NOT rebuild the app.
 
 In practice this is a ~5-line reference to the shared reusable workflow; in a multi-app monorepo the reference is path-scoped per § 8.2.
+The Dockerfile rule keeps the build stated once: a build stage inside the image would be a second encoding of the `build` verb, and the two would drift.
 
 
 ## § 6 The app contract profiles
@@ -305,12 +320,11 @@ Future profiles append here as § 6.3, § 6.4, ….
 
 For apps holding no state of their own: static and marketing sites, stateless APIs.
 
-> - `compose.yaml` MUST declare only stateless services — no data services, and no `plexus.backup` labels.
-> - `mise :migrate` MUST exist as a documented no-op.
-> - `mise :seed` MAY be omitted.
+> - `compose.yaml` MUST declare only stateless services — no data services, no `plexus.backup` labels, and no `migrate` service.
+> - A `seed` task MAY be omitted.
 > - The env schema MAY declare zero secrets.
 
-The deploy verb still calls `mise migrate` uniformly — it never needs to know an app is stateless.
+The deploy verb checks `compose.yaml` for a `migrate` service, finds none, and moves on — uniform handling, with no knowledge of the profile.
 A stateless app degrades gracefully by construction: the host is fully reconstructable from git plus the image registry, with no data to restore.
 
 ### § 6.2 The stateful app
@@ -319,14 +333,16 @@ For apps backed by one or more data services of their own — the common case.
 
 > - Data services MUST carry the labels `plexus.tenant=<slug>` and `plexus.backup=<type>`; a `plexus.backup` value is valid exactly when `itops` ships a backup handler for it (§ 7.3).
 > - The app SHOULD default to one database container of its own — full isolation, dies with the app.
+> - `compose.yaml` MUST declare a one-shot `migrate` service: the app's own image, its migration command, and `profiles: ["migrate"]` so a plain `up` never starts it.
 > - `migrate` MUST be idempotent: already-applied steps are skipped, and running it against a fully-migrated schema is a no-op.
 > - A `migrate` failure partway through MUST leave the schema in a state from which re-running `migrate` can complete, each step applied atomically where the database supports it.
 > - Concurrent `migrate` invocations MUST NOT corrupt the schema; `migrate` SHOULD serialize itself via a lock.
 > - Every migration MUST be backward-compatible with the release currently in production — expand/contract discipline, roll-forward only.
 > - A genuinely breaking migration — one that cannot honor expand/contract — MUST be deployed as a deliberate act: fresh backup taken first, and the operator aware that reverting means restoring, not re-upping the previous tag.
-> - The app MUST provide `mise :seed`, loading development sample data only; it MAY assume a fresh database (right after `migrate`) and MUST NOT be invoked by the deploy verb.
+> - The app MUST provide a `seed` task, loading development sample data only; it MAY assume a fresh database (right after `migrate`) and MUST NOT be invoked by the deploy verb.
 
-`migrate` is the one contract verb the deploy pipeline invokes against production data, hence the precision.
+`migrate` is the one contract step the deploy pipeline invokes against production data, hence the precision.
+It runs as a container from the very image being deployed (`docker compose run --rm migrate` — § 8.4): the image carries its own migration tooling, dev runs the identical step with the identical command, and the deploy host needs docker and nothing else.
 The deploy flow has no down-migration step, and its rollback path (§ 8.4) re-launches the *previous* image against the *already-migrated* schema — which is sound only if additive changes (new tables, nullable columns, backfills) ship first and destructive ones (drops, renames, constraint tightening) ship only in a later release, once no deployed code depends on the old shape.
 Mainstream migration tools provide locking out of the box, so that requirement is usually just *don't disable it*.
 Production data arrives by restore or by real use, never by seed.
@@ -520,8 +536,9 @@ And `compose up -d` re-creates containers in place, so every deploy buys its sim
 > - A tenant MUST NOT operate its own CI control plane.
 > - The forge SHOULD be GitHub; a tenant SHOULD NOT self-host a forge.
 
-One reusable workflow in `plexus-ms/itops` runs lint → typecheck → test → build → push image (tagged with the git SHA).
+One reusable workflow in `plexus-ms/itops` runs check → test → build, then packages the built artifact into the app's runtime-only Dockerfile (§ 5.7) and pushes the image, tagged with the git SHA.
 Every stage that touches the app runs through its contract verbs (§ 5.1); the image push is the workflow's own step.
+There is no setup stage: verbs prepare what they need (§ 5.1), so the check job is literally checkout → toolchain → verbs.
 That indirection is what keeps one workflow tenant- and stack-neutral: it knows verb names, never incantations.
 Each app references it in ~5 lines, path-scoped per § 8.2.
 Push to an environment branch composes the whole flow: `push → CI (verbs, image build) → deploy verb (pull, migrate, up, healthcheck, rollback-on-fail)` — continuous behaviour from a continuous event source, with nothing of the tenant's running continuously.

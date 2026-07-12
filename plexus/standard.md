@@ -211,11 +211,10 @@ A Python or Go app takes the same contract with different incantations behind th
 > - Turborepo owns the task graph: leaf tasks are `package.json` scripts, `turbo.json` states the task rules (`build`, `typecheck`, and `test` depend on `^build`), and the workspace edges are read from each `package.json` — the graph MUST NOT be re-encoded in mise tasks or CI configuration.
 > - Leaf projects MUST NOT carry a `mise.toml`; the root verbs delegate to turbo.
 > - mise MUST install only node for the JS/TS toolchain; the package manager arrives through node itself — a `postinstall` hook enables corepack, which installs the pnpm version pinned in the root `package.json` `packageManager` field, the single pnpm pin (Turborepo requires the field anyway).
-> - The node version MUST be pinned exactly once: `NODE_VERSION` in the root `mise.toml` `[env]`, read by `[tools]` via template, by CI via `mise env`, and by the image build as a build arg.
+> - The node version MUST be pinned exactly once: a `.node-version` file at the repo root, read by mise natively (`idiomatic_version_file_enable_tools`), by CI as a plain file, and by the image build as a build arg.
 > - JS-ecosystem dev tools (turbo, biome, …) MUST be devDependencies — on the PATH via mise's `_.path`, never mise `[tools]` entries; a `package.json` MUST NOT carry `engines`.
 
-Each fact sits in its § 4.1 canonical home: the pnpm version where pnpm itself and every update bot reads it, dev tools where npm's ecosystem versions them, the task graph where turbo reads it.
-node is the bootstrap — the one fact with no canonical home once mise is the entry point — so its pin is an ordinary env var, defined once and read like one everywhere: the `[tools]` template locally, `mise env` in CI, an `ARG` in the Dockerfile.
+Each fact sits in its § 4.1 canonical home: the pnpm version where pnpm itself and every update bot reads it, dev tools where npm's ecosystem versions them, the task graph where turbo reads it — and the node version in `.node-version`, the file the node ecosystem's own version managers converged on, which any consumer can read without a toolchain (`cat` in CI, an `ARG` in the Dockerfile, mise natively).
 `pnpm-workspace.yaml` (`packages:` globs plus a `catalog:` pinning shared dev-tool versions) owns install and linking; turbo owns ordering and caching on top of it.
 The division of labor is exact: pnpm knows the package graph but not tasks, mise knows tasks but not the graph, turbo knows both — `dependsOn: ["^build"]` says once, for every consumer present and future, that internal packages build before their dependents typecheck, test, or build.
 That single rule is what makes every verb answerable from a fresh checkout (§ 5.1): a workspace package's `dist/` is a build product, never a commit.
@@ -303,11 +302,13 @@ Shipping and retention are the platform's job.
 
 ### § 5.7 CI reference
 
-> - The app's CI MUST run the shared pipeline (§ 8.5): check → test → build → package & push image.
-> - The app MUST provide a runtime-only Dockerfile: it packages the `build` verb's output into the runtime image and MUST NOT rebuild the app.
+> - The app's CI MUST run the shared pipeline (§ 8.5): check → test → build & push image.
+> - The app MUST provide a multi-stage Dockerfile whose build stage invokes the same task-graph entry as the `build` verb; the Dockerfile MUST NOT restate build incantations of its own.
 
 In practice this is a ~5-line reference to the shared reusable workflow; in a multi-app monorepo the reference is path-scoped per § 8.2.
-The Dockerfile rule keeps the build stated once: a build stage inside the image would be a second encoding of the `build` verb, and the two would drift.
+The image build is hermetic — it runs inside the Dockerfile, so the artifact is correct from any host, macOS included, and a local `docker build --platform` can produce an image for any target.
+Hermeticity does not duplicate the build: what *build* means is encoded once, in the task graph (§ 4.2), and the Dockerfile is a second invocation context — the same relationship CI has to the verbs.
+CI publishes for the deploy hosts' platform (amd64 today); multi-arch publishing is a deferred decision with a trigger — an ARM deploy host, or the routine need to run production images on ARM laptops — and when triggered it is a workflow change (a per-platform matrix on native runners plus a manifest merge), not an architecture change.
 
 
 ## § 6 The app contract profiles
@@ -538,7 +539,7 @@ And `compose up -d` re-creates containers in place, so every deploy buys its sim
 > - A tenant MUST NOT operate its own CI control plane.
 > - The forge SHOULD be GitHub; a tenant SHOULD NOT self-host a forge.
 
-One reusable workflow in `plexus-ms/itops` runs check → test → build, then packages the built artifact into the app's runtime-only Dockerfile (§ 5.7) and pushes the image, tagged with the git SHA.
+One reusable workflow in `plexus-ms/itops` runs check → test, then builds the image hermetically (§ 5.7) and pushes it, tagged with the git SHA.
 Every stage that touches the app runs through its contract verbs (§ 5.1); the image push is the workflow's own step.
 There is no setup stage: verbs prepare what they need (§ 5.1), so the check job is literally checkout → toolchain → verbs.
 That indirection is what keeps one workflow tenant- and stack-neutral: it knows verb names, never incantations.

@@ -83,7 +83,7 @@ order: 2
 - Turborepo owns the task graph: leaf tasks are `package.json` scripts, `turbo.json` states the task rules (`build`, `typecheck`, and `test` depend on `^build`), and the workspace edges are read from each `package.json` — the graph MUST NOT be re-encoded in mise tasks or CI configuration.
 - Leaf projects MUST NOT carry a `mise.toml`; the root verbs delegate to turbo.
 - mise MUST install only node for the JS/TS toolchain; the package manager arrives through node itself — a `postinstall` hook enables corepack, which installs the pnpm version pinned in the root `package.json` `packageManager` field, the single pnpm pin (Turborepo requires the field anyway).
-- The node version MUST be pinned exactly once: `NODE_VERSION` in the root `mise.toml` `[env]`, read by `[tools]` via template, by CI via `mise env`, and by the image build as a build arg.
+- The node version MUST be pinned exactly once: a `.node-version` file at the repo root, read by mise natively (`idiomatic_version_file_enable_tools`), by CI as a plain file, and by the image build as a build arg.
 - JS-ecosystem dev tools (turbo, biome, …) MUST be devDependencies — on the PATH via mise's `_.path`, never mise `[tools]` entries; a `package.json` MUST NOT carry `engines`.
 
 ## § 5 The app contract
@@ -134,8 +134,8 @@ order: 2
 
 ### § 5.7 CI reference
 
-- The app's CI MUST run the shared pipeline (§ 8.5): check → test → build → package & push image.
-- The app MUST provide a runtime-only Dockerfile: it packages the `build` verb's output into the runtime image and MUST NOT rebuild the app.
+- The app's CI MUST run the shared pipeline (§ 8.5): check → test → build & push image.
+- The app MUST provide a multi-stage Dockerfile whose build stage invokes the same task-graph entry as the `build` verb; the Dockerfile MUST NOT restate build incantations of its own.
 
 ## § 6 The app contract profiles
 

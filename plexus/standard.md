@@ -505,12 +505,14 @@ The verb's own authoring rules are the [Manual](manual.md)'s subject.
 ```
 deploy(host, app, image_tag):
   ssh → docker compose pull
-      → mise migrate            # bare form: standalone mise.toml on the host (§ 4.1);
-                                # safe at any time (§ 5.1), roll-forward-only (§ 6.2)
+      → docker compose run --rm migrate   # only if compose.yaml declares it (§ 6.2);
+                                          # same image, idempotent, roll-forward-only
       → docker compose up -d
       → poll /healthz
       → on failure: re-up previous tag, alert
 ```
+
+A migrate failure aborts before `up`, so the previous release keeps serving — the failing job is the alert.
 
 It reads everything from git (compose, env schema) and from the host (`docker ps` is runtime truth) and stores nothing.
 "Which version is live" is the running container's image tag, queryable from reality.

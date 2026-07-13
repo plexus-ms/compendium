@@ -2,6 +2,8 @@
 title: Next.js Code Structure
 short_title: Code Structure
 description: Directory layout, naming, and component colocation conventions for Next.js apps.
+authors:
+  - David Julian Albers
 ---
 
 - Use a `src/` directory, which will contain `app/`, `components/`, `dal/`, and `lib/`.

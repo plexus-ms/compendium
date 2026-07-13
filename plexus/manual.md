@@ -45,7 +45,7 @@ Every `plexus-ms` repo follows the same toolchain conventions the standard sets 
 
 Procedures are layered as shared logic cores with thin mounts, and the boundary is load-bearing:
 
-- **Verbs** — portable bash scripts (`ci-cd` `scripts/`) that contain *all* the logic and stay hand-runnable: `git clone && ./scripts/deploy.sh deploy@host app image` works with no forge at all. This is what passes the degradation test.
+- **Verbs** — portable bash scripts (`ci-cd` `scripts/`) that contain *all* the logic and stay hand-runnable: `git clone && ./scripts/deploy.sh deploy@host tenant app image` works with no forge at all. This is what passes the degradation test.
   Bash's native failure modes (unset variables expanding to nothing, pipelines failing silently) are second-reader traps, so a safety baseline applies to every verb: strict mode (`set -euo pipefail` or equivalent) and shellcheck-clean, enforced mechanically at the repo boundary — hook or check, never the honor system.
 - **Workflow wrappers** — thin reusable GitHub workflows that merely mount a verb on the forge's events: checkout, secrets plumbing, one invocation.
   Logic never lives in the YAML.

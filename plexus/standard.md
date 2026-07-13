@@ -372,6 +372,7 @@ A reverse proxy per VM terminates TLS and maps domains to app ports.
 Each tenant's deploy playbook writes its routes into its own file — a per-tenant fragment imported by the proxy's root config — so tenants co-hosted on one VM never touch each other's routes.
 Because domain→port→app is one line in `platform/`, per-VM port uniqueness is checkable in a single file instead of being coordination state scattered across app repos.
 From that one record, the deploy playbook renders the ingress config *and* injects the port into the app's compose interpolation (§ 5.4): it writes the value to `<app_dir>/platform.env` on the host — the per-app directory the deploy playbook lays out as `<deploy root>/<tenant>/<app>` (e.g. `/opt/stacks/plexus/website`) — and the deploy verb hands that file to compose alongside its own `.env` — the verb itself stays port-unaware.
+The same file pins the compose project name to `<tenant>-<app>`: container and network names all derive from the project name, and its directory-basename default would collide the moment two co-hosted tenants deploy an app with the same name.
 
 The `/healthz` fence exists because the endpoint probes hard dependencies (§ 5.5): routing it publicly would publish a database-status oracle.
 A tenant that points an external uptime monitor at it does so as an owned deviation (§ 3.4), knowing what it reveals.

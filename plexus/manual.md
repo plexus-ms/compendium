@@ -132,6 +132,7 @@ More maintainers follow the same lazy rule as everything else — when a real se
 
 **Deferred decisions, written down so they are decisions, not drift:**
 
+- **Staleness/drift check against PLEXUS.md.** – Not until v1.0 of PLX, indicated by a compendium repo tag.
 - **The canonical `env.schema` parser and the compose-up verb** — the two single-encoding obligations (§ 5.3, § 7.2 PLX) that will live in `ci-cd`; until they ship, the schema grammar in § 5.3 PLX is the sole normative definition, and the standard marks the dependent requirements as deferred.
 - **Backup handlers, the `restore` verb, and the scheduled restore test** — § 7.3 PLX is written and marked deferred; ships together with the backup stack (the `plexus.backup` label vocabulary is valid only once a handler exists).
 - **The shared Renovate preset (`plexus-ms/renovate-config`)** — § 9.1 PLX suggests it; until it ships, a tenant configures Renovate directly.

@@ -87,19 +87,23 @@ Code utilities start in `@plexus-ms/std` — the standard *library* ("the standa
 Tool configs are the one deliberate exception to per-concern packages: they bundle into `@plexus-ms/config` as subpath exports (`@plexus-ms/config/biome`, `/tsconfig`, …) — each still a one-line `extends` target, but sharing one package because they share one audience and one release cadence (and each separate package costs a manual bootstrap publish). A config splits out only if it ever grows its own cadence.
 Packages follow semver, enforced by changesets — a breaking change is a major bump, and its changeset carries a migration note so the changelog doubles as the upgrade guide (again backing § 2 PLX).
 
-## platform & ci-cd: versioning the ops artifacts
+## the release train: versioning the ops artifacts
 
-Each ops repo versions all of its artifact classes together under one `vN` tag of its own, on its own cadence: `ci-cd` tags verbs and workflow wrappers together (a wrapper always checks out its verb at the same tag), `platform` tags the Ansible collection and Terraform modules together.
-Neither repo has CI of its own beyond its checks.
-The itops-era tags `v0.1`–`v0.6` live on frozen in `platform`'s history (GitHub redirects the old repo name), kept for existing pins and never retargeted.
-Every change under `platform`'s `ansible/` additionally bumps the `galaxy.yml` version: SCM installs record that version, so a moved tag alone won't reinstall — the galaxy version is deliberately decoupled from the git tags.
+The release repos — `platform`, `ci-cd`, `preset-repo-web`, `preset-app-nextjs` — version in lockstep: one release train, one plain-semver tag (`0.22.0`, no `v` prefix), stamped on every train repo whether or not it changed.
+The train is the tested set: the only combination ever validated is the one the dogfood tenant runs together, so independent per-repo version lines named compatibility cells nobody tests — a fiction the lockstep number retires.
+Because an unchanged repo still gets the tag, every cross-repo pin — the preset's platform pin, a tenant's workflow refs — can cite the train version and be right by construction; the umbrella `ship` task writes that bookkeeping (pins, the galaxy version), tags, pushes, and copier-updates consumers in one pass.
+Minor bumps are routine trains; a major bump signals tenant-breaking changes (expect migration steps on `copier update`); patch is reserved for hotfix trains.
+Within the train, `ci-cd` still tags verbs and workflow wrappers together (a wrapper always checks out its verb at the same tag), and `platform` tags the Ansible collection and Terraform modules together; neither repo has CI of its own beyond its checks.
+The pre-train per-repo `vN` lines and the itops-era tags `v0.1`–`v0.6` live on frozen in history, kept for existing pins and never retargeted.
+`platform`'s `galaxy.yml` version mirrors the train tag exactly: SCM installs record that version, so a re-pointed tag alone won't reinstall — and since ansible-galaxy reinstalls on any *different* recorded version, the one-time regression from the pre-train 5.x galaxy line was safe.
+`packages` (npm semver via changesets) and `compendium` (untagged until the 1.0.0 train) ride outside the train.
 Tenants pin the collection by tag (§ 9.1 PLX); the tag-mutability trade-off this creates is named in the standard (§ 2 PLX) and accepted deliberately — revisit if attestation for tag-referenced artifacts becomes practical.
 
 ## the presets: the templates
 
 `copier copy gh:plexus-ms/preset-repo-web <tenant>` generates a tenant monorepo, and `copier copy gh:plexus-ms/preset-app-nextjs <tenant>/apps/<app>` adds an app to it; `copier update` re-applies template changes as a three-way merge against local edits, surfacing conflicts explicitly — template as living dependency, not `cp`.
 
-Since the standard defers the concrete toolchain arrangement to the preset (§ 4.2 PLX), the template is an *arrangement authority*, not a convenience: it needs the same versioning discipline as the packages — tagged releases, a changelog entry per arrangement change, and `copier update` treated as the structural counterpart of a dependency bump.
+Since the standard defers the concrete toolchain arrangement to the preset (§ 4.2 PLX), the template is an *arrangement authority*, not a convenience: it needs real versioning discipline — it ships on the release train like the other ops artifacts, with `copier update` treated as the structural counterpart of a dependency bump.
 
 Scaffolding is the last resort, chosen per artifact in three tiers:
 

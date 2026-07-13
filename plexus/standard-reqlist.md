@@ -3,8 +3,8 @@ title: The Plexus Requirements List
 short_title: The Reqlist
 description: Condensed requirements list extracted from the Plexus Standard.
 version: v0
-timestamp: 2026-07-11
-note: Auto-generated from `standard.md` v0 (2026-07-11) by `generate-reqlist.sh` — do not edit.
+timestamp: 2026-07-13
+note: Auto-generated from `standard.md` v0 (2026-07-13) by `generate-reqlist.sh` — do not edit.
 order: 2
 ---
 
@@ -63,8 +63,8 @@ order: 2
 ### § 3.6 Forge layout
 
 - Tenant repos SHOULD be partitioned by separate forge orgs.
-- A tenant SHOULD use the monorepo pattern: one `<org>/<tenant>` repo holding both the dev side (`apps/`, `packages/`) and the ops side (`infra/`: inventory, host definitions, deployment configs).
-- Tenant monorepos SHOULD be generated from `plexus-ms/preset`.
+- A tenant SHOULD use the monorepo pattern: one `<org>/<tenant>` repo holding both the dev side (`apps/`, `packages/`) and the ops side (`platform/`: inventory, host definitions, deployment configs).
+- Tenant monorepos SHOULD be generated from `plexus-ms/preset-repo-web`; apps within them from `plexus-ms/preset-app-nextjs`.
 
 ## § 4 The toolchain
 
@@ -112,7 +112,7 @@ order: 2
 - A value containing a literal `#` MUST be quoted; an unquoted `#` starts a comment.
 - An unflagged key is optional and non-secret; a `secret` key MUST have an empty value position — a default secret in git is a leak, not a default.
 - Parsers MUST ignore full-line comments.
-- Every consumer of the schema MUST parse it through the canonical parser `itops` ships; where this grammar is silent, that parser's behavior is normative.
+- Once the canonical parser ships from `ci-cd` (deferred — see the Manual's roadmap), every consumer of the schema MUST parse it through that parser; where this grammar is silent, that parser's behavior is normative. Until it ships, the grammar above is the sole normative definition.
 - Secret values MUST NOT be committed; they are resolved from the tenant's vault at provisioning time (§ 7.2).
 
 ### § 5.4 One HTTP port
@@ -147,7 +147,7 @@ order: 2
 
 ### § 6.2 The stateful app
 
-- Data services MUST carry the labels `plexus.tenant=<slug>` and `plexus.backup=<type>`; a `plexus.backup` value is valid exactly when `itops` ships a backup handler for it (§ 7.3).
+- Data services MUST carry the labels `plexus.tenant=<slug>` and `plexus.backup=<type>`; a `plexus.backup` value is valid exactly when the `plexus.platform` collection ships a backup handler for it (§ 7.3 — deferred).
 - The app SHOULD default to one database container of its own — full isolation, dies with the app.
 - `compose.yaml` MUST declare a one-shot `migrate` service: the app's own image, its migration command, and `profiles: ["migrate"]` so a plain `up` never starts it.
 - `migrate` MUST be idempotent: already-applied steps are skipped, and running it against a fully-migrated schema is a no-op.
@@ -173,16 +173,16 @@ order: 2
 - Secrets MUST be resolved at provisioning time, never at deploy time.
 - `secrets.env` on the host MUST be owned by the deploy user, mode 0600, never world-readable.
 - The playbook MUST re-create the affected containers whenever `secrets.env` changed; rotation MUST NOT be left to ride along on whenever the next deploy happens to run.
-- The compose-up invocation MUST be encoded exactly once, as an `itops` verb that both the deploy verb's up step and the rotation handler call.
+- Once the compose-up verb ships from `ci-cd` (deferred — see the Manual's roadmap), the compose-up invocation MUST be encoded exactly once, as that verb, called by both the deploy verb's up step and the rotation handler.
 
-### § 7.3 Backups
+### § 7.3 Backups (deferred)
 
-- Backup schedule and retention MUST live as code in the tenant's `infra/`.
+- Backup schedule and retention MUST live as code in the tenant's `platform/`.
 - The backup job MUST discover what to dump by reading the `plexus.backup` labels (§ 6.2).
 - A new backup path MUST pass one end-to-end restore before it is relied upon, and MUST be re-verified after any material change to the path.
 - A scheduled restore test SHOULD run at least monthly: restore the latest snapshot of each labelled data service into a scratch container, run a sanity check, and ping its own dead-man's-switch check (§ 7.4), separate from the backup job's.
 
-### § 7.4 Scheduling & the dead-man's-switch
+### § 7.4 Scheduling & the dead-man's-switch (interim)
 
 - A workflow orchestrator MUST NOT be stood up as platform infrastructure.
 - Every scheduled job MUST ping a per-job check on success, and a missed ping MUST raise an alert.
@@ -220,14 +220,14 @@ order: 2
 
 - A consumer config SHOULD extend the shared `@plexus-ms/*` config and keep local additions in its own file.
 
-### § 9.1 The update bot
+### § 9.1 The update bot (interim)
 
 - Every tenant repo MUST run an automated update bot that watches its pins and opens update PRs.
-- The update bot SHOULD be Renovate, extending the shared preset (`plexus-ms/renovate-config`).
-- Tenants MUST pin the `plexus.itops` collection by tag in `infra/requirements.yml`.
+- The update bot SHOULD be Renovate, extending the shared preset (`plexus-ms/renovate-config` — deferred, not yet shipped; until then a tenant configures Renovate directly).
+- Tenants MUST pin the `plexus.platform` collection by tag in `platform/requirements.yml`.
 - For `@plexus-ms/*` packages, CI-green patch/minor auto-merge MAY be enabled and is the recommended default.
 - For CI-workflow and verb tag bumps, auto-merge MAY be enabled; a tenant whose CI holds sensitive credentials SHOULD review these PRs instead.
-- Update PRs for the `plexus.itops` Ansible collection SHOULD NOT be auto-merged; a human reads the diff before anything new runs as root.
+- Update PRs for the `plexus.platform` Ansible collection SHOULD NOT be auto-merged; a human reads the diff before anything new runs as root.
 
 ### § 9.2 Dependency mechanics
 

@@ -3,7 +3,7 @@ title: The Plexus Manual
 short_title: The Manual
 description: How the plexus-ms organization operates its own repos — release mechanics, artifact layering, governance, roadmap.
 version: v0
-timestamp: 2026-07-11
+timestamp: 2026-07-13
 order: 3
 ---
 
@@ -21,10 +21,14 @@ Where a maintainer obligation backs a guarantee tenants rely on, the standard st
 
 | Repo | Offering |
 |---|---|
-| **`library`** — dev side, focused on web technologies | The published `@plexus-ms/*` packages for the web / Node / TypeScript world: shared tool configs (biome, tsconfig), the `std` utilities, and — over time — the reusable application plumbing (framework glue, common auth concerns, repeatable non-domain features) that keeps each app's domain core small. |
-| **`itops`** — ops side, focused on GitOps and IaC | The operations primitives: portable bash verbs, thin workflow wrappers that mount them on the forge, and the `plexus.itops` Ansible collection that provisions tenant hosts. Three artifact classes, one version tag. |
-| **`preset`** — uniting both sides | A copier template that composes dev and ops into a ready tenant monorepo — `apps/` consuming the library, `infra/` binding the Ansible collection — and keeps generated repos re-syncable via `copier update`. |
+| **`packages`** — dev side, focused on web technologies | The published `@plexus-ms/*` packages for the web / Node / TypeScript world: shared tool configs (biome, tsconfig), the `std` utilities, and — over time — the reusable application plumbing (framework glue, common auth concerns, repeatable non-domain features) that keeps each app's domain core small. |
+| **`platform`** — ops side, the operations platform (§ 7 PLX) | The `plexus.platform` Ansible collection that provisions tenant hosts (base hardening, docker, caddy, per-app deploy, alloy), plus reusable Terraform modules. |
+| **`ci-cd`** — ops side, the CI/CD flows (§ 8 PLX) | The portable bash verbs (`scripts/deploy.sh`) and the thin reusable workflow wrappers that mount them on the forge. |
+| **`preset-repo-web`** — uniting both sides | A copier template that composes dev and ops into a ready tenant monorepo — `apps/` consuming the packages, `platform/` binding the Ansible collection — and keeps generated repos re-syncable via `copier update`. |
+| **`preset-app-nextjs`** — the app template | A copier template for a Next.js app inside a tenant monorepo: contract-verb scripts, Dockerfile, `compose.yaml` with the `web` service and contract labels. |
 | **`compendium`** — the doctrine | The three documents (Manifesto, Standard, Manual), the generated requirements list, and the supporting reference docs. |
+
+`platform` and `ci-cd` were one repo (`itops`) until mid-2026; the split follows the standard's own section boundary (§ 7 vs § 8 PLX).
 
 The org doubles as home of `plexus`, the public dogfooding tenant — which is bound by the standard like any other tenant, not by this manual.
 The border between dev side and ops side is blurry, and that is fine: CI is dev-side checks on an ops-side mount, and the app contract (§ 5 PLX) is the seam made explicit.
@@ -36,13 +40,13 @@ Every `plexus-ms` repo follows the same toolchain conventions the standard sets 
 
 Procedures are layered as shared logic cores with thin mounts, and the boundary is load-bearing:
 
-- **Verbs** — portable bash scripts (`itops` `scripts/`) that contain *all* the logic and stay hand-runnable: `git clone && ./scripts/deploy.sh deploy@host app image` works with no forge at all. This is what passes the degradation test.
+- **Verbs** — portable bash scripts (`ci-cd` `scripts/`) that contain *all* the logic and stay hand-runnable: `git clone && ./scripts/deploy.sh deploy@host app image` works with no forge at all. This is what passes the degradation test.
   Bash's native failure modes (unset variables expanding to nothing, pipelines failing silently) are second-reader traps, so a safety baseline applies to every verb: strict mode (`set -euo pipefail` or equivalent) and shellcheck-clean, enforced mechanically at the repo boundary — hook or check, never the honor system.
 - **Workflow wrappers** — thin reusable GitHub workflows that merely mount a verb on the forge's events: checkout, secrets plumbing, one invocation.
   Logic never lives in the YAML.
   GitHub's workflow format is not an open standard — the runner is self-hostable but GitHub remains the scheduler — so the wrapper is forge-specific and disposable, while the verb is portable and permanent.
   Leaving GitHub would mean rewriting the mounts, never the verbs.
-- **Ansible roles** — the same split applied to the platform layer: the roles are the shared logic core, and each tenant's `infra/` keeps only the binding — `site.yml` (a roles list), inventory, group_vars, `op.env`.
+- **Ansible roles** — the same split applied to the platform layer: the roles are the shared logic core, and each tenant's `platform/` keeps only the binding — `platform.yml` (a roles list), inventory, group_vars, the committed `op://`-pointer env files.
   A tenant playbook is to the roles what a workflow wrapper is to a verb: a mount, not logic.
 
 Two definition-of-done gates for any new or reworked primitive, from the [Manifesto](manifesto.md)'s litmus tests: a competent second reader understands it top to bottom in half an hour, and if it vanished tonight the job would still be doable by hand from the artifacts in git.
@@ -52,11 +56,11 @@ These are the definition of done, not aspirations.
 Inside the fence, invest freely — logging, clean rollback, good error messages.
 Outside it, it is either an existing tool's job or an architecture change, not feature creep.
 
-Two single-encoding obligations sit in `itops` because the standard's platform machinery depends on them (§ 5.3, § 7.2 PLX): the canonical `env.schema` parser (every consumer parses through it, so the micro-format cannot fork), and the compose-up verb (the one encoding of the env-file wiring, called by both the deploy verb's up step and the rotation handler).
+Two single-encoding obligations will sit in `ci-cd` because the standard's platform machinery depends on them (§ 5.3, § 7.2 PLX): the canonical `env.schema` parser (every consumer parses through it, so the micro-format cannot fork), and the compose-up verb (the one encoding of the env-file wiring, called by both the deploy verb's up step and the rotation handler). Neither has shipped yet — both are deferred decisions in the roadmap below, and the standard marks the requirements that ride on them accordingly.
 
-## library: releasing the packages
+## packages: releasing the packages
 
-The library is trunk-based on a single `main`, versioned and published by **changesets**.
+The packages repo is trunk-based on a single `main`, versioned and published by **changesets**.
 Why trunk-based: changesets accumulates changeset files on one branch, bumps them in one PR on that branch, and publishes from it.
 A second long-lived branch (GitFlow `develop`) forces reconciling version numbers between branches on every release — a perpetual back-merge tax; changesets is a trunk-based tool, and pairing it with GitFlow fights it.
 Concurrency is not a reason to avoid this: changeset files have random names and the bump is deferred to one central step, so simultaneous feature branches never conflict and never double-publish.
@@ -78,15 +82,17 @@ Code utilities start in `@plexus-ms/std` — the standard *library* ("the standa
 Tool configs (`biome-config`, `tsconfig`) are separate packages by construction: they exist to be one-line `extends` targets.
 Packages follow semver, enforced by changesets — a breaking change is a major bump, and its changeset carries a migration note so the changelog doubles as the upgrade guide (again backing § 2 PLX).
 
-## itops: versioning the ops artifacts
+## platform & ci-cd: versioning the ops artifacts
 
-All three artifact classes — verbs, workflow wrappers, Ansible roles — version together under one `vN` tag; `itops` has no CI of its own beyond its checks.
-Every change under `ansible/` bumps the `galaxy.yml` version: SCM installs record that version, so a moved tag alone won't reinstall.
+Each ops repo versions all of its artifact classes together under one `vN` tag of its own, on its own cadence: `ci-cd` tags verbs and workflow wrappers together (a wrapper always checks out its verb at the same tag), `platform` tags the Ansible collection and Terraform modules together.
+Neither repo has CI of its own beyond its checks.
+The itops-era tags `v0.1`–`v0.6` live on frozen in `platform`'s history (GitHub redirects the old repo name), kept for existing pins and never retargeted.
+Every change under `platform`'s `ansible/` additionally bumps the `galaxy.yml` version: SCM installs record that version, so a moved tag alone won't reinstall — the galaxy version is deliberately decoupled from the git tags.
 Tenants pin the collection by tag (§ 9.1 PLX); the tag-mutability trade-off this creates is named in the standard (§ 2 PLX) and accepted deliberately — revisit if attestation for tag-referenced artifacts becomes practical.
 
-## preset: the template
+## the presets: the templates
 
-`copier copy gh:plexus-ms/preset <tenant>` generates a tenant monorepo; `copier update` re-applies template changes as a three-way merge against local edits, surfacing conflicts explicitly — template as living dependency, not `cp`.
+`copier copy gh:plexus-ms/preset-repo-web <tenant>` generates a tenant monorepo, and `copier copy gh:plexus-ms/preset-app-nextjs <tenant>/apps/<app>` adds an app to it; `copier update` re-applies template changes as a three-way merge against local edits, surfacing conflicts explicitly — template as living dependency, not `cp`.
 
 Since the standard defers the concrete toolchain arrangement to the preset (§ 4.2 PLX), the template is an *arrangement authority*, not a convenience: it needs the same versioning discipline as the packages — tagged releases, a changelog entry per arrangement change, and `copier update` treated as the structural counterpart of a dependency bump.
 
@@ -126,6 +132,9 @@ More maintainers follow the same lazy rule as everything else — when a real se
 
 **Deferred decisions, written down so they are decisions, not drift:**
 
+- **The canonical `env.schema` parser and the compose-up verb** — the two single-encoding obligations (§ 5.3, § 7.2 PLX) that will live in `ci-cd`; until they ship, the schema grammar in § 5.3 PLX is the sole normative definition, and the standard marks the dependent requirements as deferred.
+- **Backup handlers, the `restore` verb, and the scheduled restore test** — § 7.3 PLX is written and marked deferred; ships together with the backup stack (the `plexus.backup` label vocabulary is valid only once a handler exists).
+- **The shared Renovate preset (`plexus-ms/renovate-config`)** — § 9.1 PLX suggests it; until it ships, a tenant configures Renovate directly.
 - **An orchestrator (e.g. vanilla Kestra)** — only on the § 7.4 PLX triggers: multi-host dependent workflows, approvals, unmanageable schedule count, replay needs.
 - **Observability (metrics, logs, dashboards, phone alerting)** — becomes part of the standard's defaults later.
   The answer to "when is it time to scale?" is data, not vibes — the usual gap is measurement, not orchestration — and the same stack provides the "what's running where" view grouped by `plexus.tenant`.

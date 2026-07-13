@@ -3,7 +3,7 @@ title: The Plexus Standard (PLX)
 short_title: The Standard
 description: The Plexus standard for tenants implementing Plexus — toolchain, app contract, releases, platform.
 version: v0
-timestamp: 2026-07-11
+timestamp: 2026-07-13
 order: 1
 ---
 
@@ -51,7 +51,7 @@ The standard's vocabulary, defined once:
   Decided once, reused, versioned and published, or otherwise propagated (§ 9).
 - **Verb** — a stateless, hand-runnable procedure that does one operational thing (deploy, backup, migrate, …), authored in a portable manner.
   One name, two shapes: 
-  - **ops verbs** are the shared bash scripts `itops` ships (`scripts/deploy.sh` — § 8.4), tenant-neutral and versioned by the `itops` tag; 
+  - **ops verbs** are the shared bash scripts `ci-cd` ships (`scripts/deploy.sh` — § 8.4), tenant-neutral and versioned by the `ci-cd` tag; 
   - **contract verbs** are the root mise tasks the app contract requires (`mise :check` — § 5.1), each delegating to the repo's own incantation behind the standard name.
 - **Mount** — the thin, disposable glue binding a verb or role to an event or state source it doesn't own: a workflow wrapper on forge events (§ 8.5), a tenant playbook on an inventory (§ 7), a systemd timer on the clock (§ 7.4).
   Mounts carry no logic.
@@ -89,13 +89,13 @@ Referencing by commit SHA is the immutable alternative; for now the trade-off of
 
 ```mermaid
 flowchart TB
-  library["LIBRARY<br>@plexus-ms packages;<br>use semver + provenance"]
-  preset["PRESET<br>monorepo template"]
-  itops["ITOPS<br>ops verbs · mounts<br>Ansible · Terraform"]
+  packages["PACKAGES<br>@plexus-ms packages;<br>use semver + provenance"]
+  preset["PRESETS<br>repo + app templates"]
+  ops["PLATFORM + CI-CD<br>ops verbs · mounts<br>Ansible · Terraform"]
   boundary{{"SHARED METHODOLOGY<br><br>SEPARATE SUBSTANCE"}}
-  library -- "npm versions" --> boundary
+  packages -- "npm versions" --> boundary
   preset -- "copier update" --> boundary
-  itops -- "git tags" --> boundary
+  ops -- "git tags" --> boundary
   boundary --> acme["TENANT: fooCorp<br>forge org · monorepo(s)<br>host(s) · vault · backups"]
   boundary --> initech["TENANT: barCorp<br>forge org · monorepo(s)<br>host(s) · vault · backups"]
   boundary --> plexus["TENANT: plexus<br>dogfood; runs<br>plexus-ms.org"]
@@ -172,8 +172,8 @@ Sharing ingress, networking, or secrets across tenants is a red flag: if the eco
 ### § 3.6 Forge layout
 
 > - Tenant repos SHOULD be partitioned by separate forge orgs.
-> - A tenant SHOULD use the monorepo pattern: one `<org>/<tenant>` repo holding both the dev side (`apps/`, `packages/`) and the ops side (`infra/`: inventory, host definitions, deployment configs).
-> - Tenant monorepos SHOULD be generated from `plexus-ms/preset`.
+> - A tenant SHOULD use the monorepo pattern: one `<org>/<tenant>` repo holding both the dev side (`apps/`, `packages/`) and the ops side (`platform/`: inventory, host definitions, deployment configs).
+> - Tenant monorepos SHOULD be generated from `plexus-ms/preset-repo-web`; apps within them from `plexus-ms/preset-app-nextjs`.
 
 Org membership governs code access; a person in tenant A's org is simply not in tenant B's.
 The monorepo's benefits are direct: apps and the platform that runs them version together, cross-cutting changes land as one atomic commit, and it is safe because a monorepo is one access boundary (§ 9.2).
@@ -265,12 +265,12 @@ The platform reads runtime truth from the host (`docker ps`, labels), never from
 > - A value containing a literal `#` MUST be quoted; an unquoted `#` starts a comment.
 > - An unflagged key is optional and non-secret; a `secret` key MUST have an empty value position — a default secret in git is a leak, not a default.
 > - Parsers MUST ignore full-line comments.
-> - Every consumer of the schema MUST parse it through the canonical parser `itops` ships; where this grammar is silent, that parser's behavior is normative.
+> - Once the canonical parser ships from `ci-cd` (deferred — see the Manual's roadmap), every consumer of the schema MUST parse it through that parser; where this grammar is silent, that parser's behavior is normative. Until it ships, the grammar above is the sole normative definition.
 > - Secret values MUST NOT be committed; they are resolved from the tenant's vault at provisioning time (§ 7.2).
 
 The base format is not invented: it is plain dotenv, the same syntax `docker compose --env-file` and every language's dotenv library already parse; the only Plexus addition is the two-word flag vocabulary.
 The result is stack-neutral, greppable (`grep secret env.schema`), and checkable — the platform diffs the schema against the env it provides.
-The single canonical parser exists so the micro-format can never fork: an ambiguity is a parser bug to fix once, never a dialect to negotiate.
+The single canonical parser, once shipped, is what keeps the micro-format from forking: an ambiguity is a parser bug to fix once, never a dialect to negotiate.
 
 ### § 5.4 One HTTP port
 
@@ -332,7 +332,7 @@ A stateless app degrades gracefully by construction: the host is fully reconstru
 
 For apps backed by one or more data services of their own — the common case.
 
-> - Data services MUST carry the labels `plexus.tenant=<slug>` and `plexus.backup=<type>`; a `plexus.backup` value is valid exactly when `itops` ships a backup handler for it (§ 7.3).
+> - Data services MUST carry the labels `plexus.tenant=<slug>` and `plexus.backup=<type>`; a `plexus.backup` value is valid exactly when the `plexus.platform` collection ships a backup handler for it (§ 7.3 — deferred).
 > - The app SHOULD default to one database container of its own — full isolation, dies with the app.
 > - `compose.yaml` MUST declare a one-shot `migrate` service: the app's own image, its migration command, and `profiles: ["migrate"]` so a plain `up` never starts it.
 > - `migrate` MUST be idempotent: already-applied steps are skipped, and running it against a fully-migrated schema is a no-op.
@@ -364,7 +364,7 @@ Plexus puts state in git and in tools it doesn't author, takes events from syste
 > - The proxy SHOULD refuse external requests for `/healthz`.
 
 A reverse proxy per VM terminates TLS and maps domains to app ports.
-Because domain→port→app is one line in `infra/`, per-VM port uniqueness is checkable in a single file instead of being coordination state scattered across app repos.
+Because domain→port→app is one line in `platform/`, per-VM port uniqueness is checkable in a single file instead of being coordination state scattered across app repos.
 From that one record, provisioning renders the ingress config *and* injects the port into the app's compose interpolation (§ 5.4): it writes the value to `<app_dir>/platform.env` on the host, and the deploy verb hands that file to compose alongside its own `.env` — the verb itself stays port-unaware.
 
 The `/healthz` fence exists because the endpoint probes hard dependencies (§ 5.5): routing it publicly would publish a database-status oracle.
@@ -377,11 +377,11 @@ A tenant that points an external uptime monitor at it does so as an owned deviat
 > - Secrets MUST be resolved at provisioning time, never at deploy time.
 > - `secrets.env` on the host MUST be owned by the deploy user, mode 0600, never world-readable.
 > - The playbook MUST re-create the affected containers whenever `secrets.env` changed; rotation MUST NOT be left to ride along on whenever the next deploy happens to run.
-> - The compose-up invocation MUST be encoded exactly once, as an `itops` verb that both the deploy verb's up step and the rotation handler call.
+> - Once the compose-up verb ships from `ci-cd` (deferred — see the Manual's roadmap), the compose-up invocation MUST be encoded exactly once, as that verb, called by both the deploy verb's up step and the rotation handler.
 
 Two flows, both resolved when the playbook runs:
 
-- **Platform secrets** (deploy SSH key, registry credentials): the tenant's `infra/op.env` is a committed dotenv file of `op://` pointers — it holds no values, so it is safe in git — and the playbook runs as `op run --env-file=op.env -- ansible-playbook site.yml`, which resolves the pointers into env vars the playbook reads.
+- **Platform secrets** (deploy SSH key, registry credentials): the tenant's committed `platform/secrets.env` is a dotenv file of `op://` pointers — it holds no values, so it is safe in git — and the playbook wrapper (`ansible-playbookw`) runs `op run -- ansible-playbook platform.yml`, which resolves the pointers into env vars the playbook reads.
 - **App runtime secrets:** each key marked `# secret` in an app's `env.schema` (§ 5.3) is declared in the tenant's inventory (`apps[].secrets`), resolved from the vault, and written to `<app_dir>/secrets.env` on the host; the app's compose file loads it via `env_file`.
 
 The deploy verb never touches secrets.
@@ -392,9 +392,9 @@ The full loop — change the vault item → re-run the playbook → re-create th
 The single-encoding rule exists because an Ansible handler that open-codes its own `docker compose up -d` is a second copy of the env-file wiring, waiting to drift.
 A redeploy also picks up the current `secrets.env` as a side effect of re-creating containers — yet the verb itself still never reads, writes, or resolves a secret.
 
-### § 7.3 Backups
+### § 7.3 Backups (deferred)
 
-> - Backup schedule and retention MUST live as code in the tenant's `infra/`.
+> - Backup schedule and retention MUST live as code in the tenant's `platform/`.
 > - The backup job MUST discover what to dump by reading the `plexus.backup` labels (§ 6.2).
 > - A new backup path MUST pass one end-to-end restore before it is relied upon, and MUST be re-verified after any material change to the path.
 > - A scheduled restore test SHOULD run at least monthly: restore the latest snapshot of each labelled data service into a scratch container, run a sanity check, and ping its own dead-man's-switch check (§ 7.4), separate from the backup job's.
@@ -403,7 +403,7 @@ Ansible installs a nightly unit per VM: `pg_dump`/`mongodump` per labelled data 
 Label-driven discovery means a newly deployed app is automatically backed up, with zero bookkeeping.
 A failed nightly unit never pings its check, and the missed ping alerts (§ 7.4).
 
-Untested backups are not backups, and the rule is encoded rather than aspirational: the `restore` verb (`plexus-ms/itops`, `scripts/restore.sh`) restores hand-runnably with no platform present, the scheduled restore test exercises it, and its first run against a new backup path *is* the first-use verification.
+Untested backups are not backups, and the rule is encoded rather than aspirational: the `restore` verb (`plexus-ms/ci-cd`, `scripts/restore.sh` — deferred, not yet shipped), restores hand-runnably with no platform present, the scheduled restore test exercises it, and its first run against a new backup path *is* the first-use verification.
 A backup without a hand-runnable restore is write-only storage; a restore test that silently stops running alerts exactly like a backup that silently stops running.
 
 ```mermaid
@@ -432,7 +432,7 @@ flowchart TB
 
 *Figure 2 (informative) — one tenant VM, assembled: provisioning and the deploy verb write disjoint files, ingress reads the same inventory record that assigns the host port, and backups discover their targets from labels — §§ 7.1–7.4 in one picture.*
 
-### § 7.4 Scheduling & the dead-man's-switch
+### § 7.4 Scheduling & the dead-man's-switch (interim)
 
 > - A workflow orchestrator MUST NOT be stood up as platform infrastructure.
 > - Every scheduled job MUST ping a per-job check on success, and a missed ping MUST raise an alert.
@@ -456,7 +456,7 @@ A full patching and lifecycle policy is deliberately deferred until patch drift 
 
 An app release has no version number to reconcile: a release *is* a deploy keyed by git SHA.
 This section defines the branch model built on that fact, the release train that scales it to a multi-app monorepo, and the deploy and CI machinery it composes with.
-(The `plexus-ms` library versions by different physics — semver in a registry — and its trunk-based model is the [Manual](manual.md)'s subject.)
+(The `plexus-ms` packages version by different physics — semver in a registry — and their trunk-based model is the [Manual](manual.md)'s subject.)
 
 ### § 8.1 Environment branches
 
@@ -470,7 +470,7 @@ Since a release is a deploy keyed by SHA, there are no version numbers to reconc
 Release tooling built for registries (changesets) has nothing to version in an app repo, which is why it is excluded outright.
 The hotfix back-merge keeps the branches converging.
 
-Which host an environment *is*, is inventory, not convention: `main`→prod and `develop`→staging name deploy targets, and the binding — which VM, which `apps[]` record, which domain — lives in the tenant's `infra/` inventory (§ 7.1), where the CI mount reads it.
+Which host an environment *is*, is inventory, not convention: `main`→prod and `develop`→staging name deploy targets, and the binding — which VM, which `apps[]` record, which domain — lives in the tenant's `platform/` inventory (§ 7.1), where the CI mount reads it.
 
 ### § 8.2 The release train
 
@@ -486,7 +486,7 @@ The deploy verb needs no change for this: it was per-app all along (§ 8.4), and
 Promotion is the whole train: `develop → main` asserts *everything on `develop` is prod-ready*, and selective promotion would put on prod a repo state that never existed on staging — destroying the one guarantee environment branches exist to give.
 
 Two boundaries of the train:
-`infra/` rides no train — it is not an app and the deploy verb never touches it; applying it is a playbook run (§ 7), its own mount, on its own occasions.
+`platform/` rides no train — it is not an app and the deploy verb never touches it; applying it is a playbook run (§ 7), its own mount, on its own occasions.
 And the escape valve is a repo split, not a process patch: if two products in one tenant *persistently* need independent release cadences, move one into its own repo (still inside the tenant's org and access boundary, still on the same contract — § 3.6) — granularity problems are solved by moving a product off the train, never by making promotion partial.
 
 ### § 8.3 Failed deploys & recovery
@@ -500,7 +500,7 @@ A red staging deploy directly falsifies `develop`'s prod-readiness, hence the pr
 
 ### § 8.4 Deploy semantics
 
-This section is informative: it describes what the shared deploy verb (`plexus-ms/itops`, `scripts/deploy.sh`) does, so the contract requirements riding on it (§ 5.5, § 6.2) make sense.
+This section is informative: it describes what the shared deploy verb (`plexus-ms/ci-cd`, `scripts/deploy.sh`) does, so the contract requirements riding on it (§ 5.5, § 6.2) make sense.
 The verb's own authoring rules are the [Manual](manual.md)'s subject.
 
 ```
@@ -539,7 +539,7 @@ And `compose up -d` re-creates containers in place, so every deploy buys its sim
 > - A tenant MUST NOT operate its own CI control plane.
 > - The forge SHOULD be GitHub; a tenant SHOULD NOT self-host a forge.
 
-One reusable workflow in `plexus-ms/itops` runs check → test, then builds the image hermetically (§ 5.7) and pushes it, tagged with the git SHA.
+One reusable workflow in `plexus-ms/ci-cd` runs check → test, then builds the image hermetically (§ 5.7) and pushes it, tagged with the git SHA.
 Every stage that touches the app runs through its contract verbs (§ 5.1); the image push is the workflow's own step.
 There is no setup stage: verbs prepare what they need (§ 5.1), so the check job is literally checkout → toolchain → verbs.
 That indirection is what keeps one workflow tenant- and stack-neutral: it knows verb names, never incantations.
@@ -557,20 +557,20 @@ Not-self-hosting avoids *operating* tier-0, not *depending* on it; code and CI c
 > - A consumer config SHOULD extend the shared `@plexus-ms/*` config and keep local additions in its own file.
 
 An encoded decision that does not propagate rots in place.
-Anything that can live behind a stable interface propagates as a **versioned dependency**: the `@plexus-ms/*` packages (extended in one line), the reusable CI workflow and deploy verb (referenced by `@vN` tag), the `plexus.itops` Ansible collection (installed from the same tag), the shared update-bot preset.
+Anything that can live behind a stable interface propagates as a **versioned dependency**: the `@plexus-ms/*` packages (extended in one line), the reusable CI workflow and deploy verb (referenced by the `ci-cd` repo's `@vN` tag), the `plexus.platform` Ansible collection (installed from the `platform` repo's own tag), the shared update-bot preset.
 Fix once → bump version → the update bot opens a PR in every consumer repo.
 
 Consumers customize by overriding at the edges — inheritance with a local override slot: a consumer's `biome.json` extends the shared one and adds local rules, so base updates never clobber local changes, because they live in different files.
 Take the dependency, override at the edge, never fork the base.
 
-### § 9.1 The update bot
+### § 9.1 The update bot (interim)
 
 > - Every tenant repo MUST run an automated update bot that watches its pins and opens update PRs.
-> - The update bot SHOULD be Renovate, extending the shared preset (`plexus-ms/renovate-config`).
-> - Tenants MUST pin the `plexus.itops` collection by tag in `infra/requirements.yml`.
+> - The update bot SHOULD be Renovate, extending the shared preset (`plexus-ms/renovate-config` — deferred, not yet shipped; until then a tenant configures Renovate directly).
+> - Tenants MUST pin the `plexus.platform` collection by tag in `platform/requirements.yml`.
 > - For `@plexus-ms/*` packages, CI-green patch/minor auto-merge MAY be enabled and is the recommended default.
 > - For CI-workflow and verb tag bumps, auto-merge MAY be enabled; a tenant whose CI holds sensitive credentials SHOULD review these PRs instead.
-> - Update PRs for the `plexus.itops` Ansible collection SHOULD NOT be auto-merged; a human reads the diff before anything new runs as root.
+> - Update PRs for the `plexus.platform` Ansible collection SHOULD NOT be auto-merged; a human reads the diff before anything new runs as root.
 
 A pin no machinery watches is invisible staleness — hence the bot itself is mandatory while the concrete bot is only suggested; this section is written against Renovate, which extends the shared preset in one line.
 

@@ -1,5 +1,5 @@
 [tools]
-hk = "1"
+hk = "latest" # Git hooks
 
 [hooks]
 postinstall = "hk install --mise"

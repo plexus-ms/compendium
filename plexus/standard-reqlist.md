@@ -24,7 +24,7 @@ order: 2
 ## § 2 The supply chain and upstream guarantees
 
 - The `plexus-ms` repos are **public and GPLv3-licensed**; every change is reviewable, and nothing breaks on the day the upstream goes unmaintained — published versions keep resolving, and the repos remain forkable.
-- `@plexus-ms/*` packages are published to the public NPM registry; published versions are immutable and carry provenance attestations linking each version to its source commit and build.
+- `@plexus-ms/*` packages are published to the public NPM registry using OIDC-based trusted publishing; published versions are immutable and carry provenance attestations linking each version to its source commit and build.
 - A breaking change to a package is released as a semver major, with a migration note in the changelog.
 - Tenant substance — business logic, secrets, anything tenant-specific — never appears in a public package.
 
@@ -113,7 +113,7 @@ order: 2
 - An unflagged key is optional and non-secret; a `secret` key MUST have an empty value position — a default secret in git is a leak, not a default.
 - Parsers MUST ignore full-line comments.
 - Once the canonical parser ships from `ci-cd` (deferred — see the Manual's roadmap), every consumer of the schema MUST parse it through that parser; where this grammar is silent, that parser's behavior is normative. Until it ships, the grammar above is the sole normative definition.
-- Secret values MUST NOT be committed; they are resolved from the tenant's vault at provisioning time (§ 7.2).
+- Secret values MUST NOT be committed; they are resolved from the tenant's vault when a platform playbook runs (§ 7.2).
 
 ### § 5.4 One HTTP port
 
@@ -159,6 +159,9 @@ order: 2
 
 ## § 7 The operations platform
 
+- The tenant MUST mount the platform as two playbooks: a provision playbook (base host setup — packages, hardening, container engine, ingress-server install) and a deploy playbook (ingress routes, app configuration, secrets, container bring-up).
+- A role MUST belong wholly to one playbook; the deploy playbook MUST be re-runnable at any time against a provisioned host.
+
 ### § 7.1 Ingress
 
 - Each app's host port MUST be assigned in the tenant's inventory (`apps[].port`), in the same record that binds its domain.
@@ -170,7 +173,7 @@ order: 2
 
 - Secret values MUST live only in the tenant's vault; git holds only references.
 - The vault SHOULD be 1Password.
-- Secrets MUST be resolved at provisioning time, never at deploy time.
+- Secrets MUST be resolved when a platform playbook runs, never by the deploy verb.
 - `secrets.env` on the host MUST be owned by the deploy user, mode 0600, never world-readable.
 - The playbook MUST re-create the affected containers whenever `secrets.env` changed; rotation MUST NOT be left to ride along on whenever the next deploy happens to run.
 - Once the compose-up verb ships from `ci-cd` (deferred — see the Manual's roadmap), the compose-up invocation MUST be encoded exactly once, as that verb, called by both the deploy verb's up step and the rotation handler.

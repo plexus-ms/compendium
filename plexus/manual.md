@@ -10,25 +10,30 @@ order: 3
 Plexus is a comprehensive, opinionated, federated IT initiative: 
 A neutral collection of guidelines, tools, and approaches, spanning software development to operations. 
 
-This is the operating manual of the `plexus-ms` organization itself: how the repos that publish the shared methodology are structured, released, and governed.
+This document, the Plexus Manual, or simply "the manual", is the operating instruction of the `plexus-ms` organization itself: 
+how the repos that publish the shared methodology are structured, released, and governed.
 It binds the maintainers, not the tenants — a consumer never needs it, and a contributor starts here.
-The tenant-facing contract is [PLX, the Plexus Standard](standard.md); the reasoning behind the whole design is the [Manifesto](manifesto.md).
+The versioning of the manual follows the standard's versioning scheme.
 
 Unlike the standard, this document carries no BCP 14 keywords: its rules are written in plain prose, and they are still rules.
-Where a maintainer obligation backs a guarantee tenants rely on, the standard states the guarantee (§ 2 PLX) and this manual records the mechanics that honor it.
+
+## Excerpt from § 2 PLX
+
+> - The `plexus-ms` repos are **public and GPLv3-licensed**.
+> - `@plexus-ms/*` packages are published to the public NPM registry using OIDC-based trusted publishing.
+> - A breaking change to a package is released as a semver major, with a migration note in the changelog.
+> - Tenant substance — business logic, secrets, anything tenant-specific — never appears in a public package.
 
 ## The repos
 
 | Repo | Offering |
 |---|---|
 | **`packages`** — dev side, focused on web technologies | The published `@plexus-ms/*` packages for the web / Node / TypeScript world: shared tool configs (biome, tsconfig), the `std` utilities, and — over time — the reusable application plumbing (framework glue, common auth concerns, repeatable non-domain features) that keeps each app's domain core small. |
-| **`platform`** — ops side, the operations platform (§ 7 PLX) | The `plexus.platform` Ansible collection that provisions tenant hosts (base hardening, docker, caddy, per-app deploy, alloy), plus reusable Terraform modules. |
+| **`platform`** — ops side, the operations platform (§ 7 PLX) | The `plexus.platform` Ansible collection that provisions tenant hosts (base hardening, docker, caddy install, ingress routing, per-app deploy, alloy), plus reusable Terraform modules. |
 | **`ci-cd`** — ops side, the CI/CD flows (§ 8 PLX) | The portable bash verbs (`scripts/deploy.sh`) and the thin reusable workflow wrappers that mount them on the forge. |
 | **`preset-repo-web`** — uniting both sides | A copier template that composes dev and ops into a ready tenant monorepo — `apps/` consuming the packages, `platform/` binding the Ansible collection — and keeps generated repos re-syncable via `copier update`. |
 | **`preset-app-nextjs`** — the app template | A copier template for a Next.js app inside a tenant monorepo: contract-verb scripts, Dockerfile, `compose.yaml` with the `web` service and contract labels. |
 | **`compendium`** — the doctrine | The three documents (Manifesto, Standard, Manual), the generated requirements list, and the supporting reference docs. |
-
-`platform` and `ci-cd` were one repo (`itops`) until mid-2026; the split follows the standard's own section boundary (§ 7 vs § 8 PLX).
 
 The org doubles as home of `plexus`, the public dogfooding tenant — which is bound by the standard like any other tenant, not by this manual.
 The border between dev side and ops side is blurry, and that is fine: CI is dev-side checks on an ops-side mount, and the app contract (§ 5 PLX) is the seam made explicit.
@@ -46,7 +51,7 @@ Procedures are layered as shared logic cores with thin mounts, and the boundary 
   Logic never lives in the YAML.
   GitHub's workflow format is not an open standard — the runner is self-hostable but GitHub remains the scheduler — so the wrapper is forge-specific and disposable, while the verb is portable and permanent.
   Leaving GitHub would mean rewriting the mounts, never the verbs.
-- **Ansible roles** — the same split applied to the platform layer: the roles are the shared logic core, and each tenant's `platform/` keeps only the binding — `platform.yml` (a roles list), inventory, group_vars, the committed `op://`-pointer env files.
+- **Ansible roles** — the same split applied to the platform layer: the roles are the shared logic core, and each tenant's `platform/` keeps only the binding — `provision.yml` and `deploy.yml` (role lists, split by change cadence — § 7 PLX), inventory, group_vars, the committed `op://`-pointer env files.
   A tenant playbook is to the roles what a workflow wrapper is to a verb: a mount, not logic.
 
 Two definition-of-done gates for any new or reworked primitive, from the [Manifesto](manifesto.md)'s litmus tests: a competent second reader understands it top to bottom in half an hour, and if it vanished tonight the job would still be doable by hand from the artifacts in git.
@@ -106,7 +111,7 @@ Scaffolding is the last resort, chosen per artifact in three tiers:
 
 One bootstrap shortcut is permitted and bounded: static config (tsconfig/biome) can be pulled by git-dep/`degit` into the template on day one, replaced by proper publishing once stable — but never for `@plexus-ms/std`.
 
-## compendium: the doctrine
+## compendium: the doctrine and documentation
 
 Three documents with three registers, one per audience:
 
@@ -121,6 +126,8 @@ The standard's structural conventions are self-policing, and the machinery lives
   Run it via `mise reqlist`; a pre-commit hook regenerates and stages the list whenever the standard changes.
   The generated list is never hand-edited.
 - Section numbers are append-only within a major version (PLX preamble): new sections go at the end of their level, insertions wait for a major revision.
+
+All documentation goes into this repo. No scattered README.md files anywhere else in any other repo.
 
 **Graduating the draft is a bar, not a feeling.** `v1.0` of the standard requires: every roadmap deferral below resolved or explicitly re-deferred, the reqlist generating clean (generation and keyword lint both green), and at least one tenant besides `plexus` itself conformant in production.
 

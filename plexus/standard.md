@@ -77,7 +77,7 @@ Whoever controls `plexus-ms` ships code and knowledge-shaped-as-code that reache
 The mitigations are structural, and stated here as guarantees the tenant can rely on:
 
 > - The `plexus-ms` repos are **public and GPLv3-licensed**; every change is reviewable, and nothing breaks on the day the upstream goes unmaintained — published versions keep resolving, and the repos remain forkable.
-> - `@plexus-ms/*` packages are published to the public NPM registry; published versions are immutable and carry provenance attestations linking each version to its source commit and build.
+> - `@plexus-ms/*` packages are published to the public NPM registry using OIDC-based trusted publishing; published versions are immutable and carry provenance attestations linking each version to its source commit and build.
 > - A breaking change to a package is released as a semver major, with a migration note in the changelog.
 > - Tenant substance — business logic, secrets, anything tenant-specific — never appears in a public package.
 
@@ -266,7 +266,7 @@ The platform reads runtime truth from the host (`docker ps`, labels), never from
 > - An unflagged key is optional and non-secret; a `secret` key MUST have an empty value position — a default secret in git is a leak, not a default.
 > - Parsers MUST ignore full-line comments.
 > - Once the canonical parser ships from `ci-cd` (deferred — see the Manual's roadmap), every consumer of the schema MUST parse it through that parser; where this grammar is silent, that parser's behavior is normative. Until it ships, the grammar above is the sole normative definition.
-> - Secret values MUST NOT be committed; they are resolved from the tenant's vault at provisioning time (§ 7.2).
+> - Secret values MUST NOT be committed; they are resolved from the tenant's vault when a platform playbook runs (§ 7.2).
 
 The base format is not invented: it is plain dotenv, the same syntax `docker compose --env-file` and every language's dotenv library already parse; the only Plexus addition is the two-word flag vocabulary.
 The result is stack-neutral, greppable (`grep secret env.schema`), and checkable — the platform diffs the schema against the env it provides.
@@ -356,6 +356,11 @@ Extending the backup vocabulary means adding one handler upstream — after whic
 A CI/CD system needs state (what exists), events (something changed), and procedures (make it so).
 Plexus puts state in git and in tools it doesn't author, takes events from systems someone else operates, and runs only stateless procedures — the platform duties of this section are all mounts and conventions over that model.
 
+> - The tenant MUST mount the platform as two playbooks: a provision playbook (base host setup — packages, hardening, container engine, ingress-server install) and a deploy playbook (ingress routes, app configuration, secrets, container bring-up).
+> - A role MUST belong wholly to one playbook; the deploy playbook MUST be re-runnable at any time against a provisioned host.
+
+The split is by change cadence, not by component: the provision playbook is for fresh hosts and deep-reaching changes, the deploy playbook is the everyday pass — and where one component spans both cadences (the ingress server), it is split into two roles rather than sliced with tags.
+
 ### § 7.1 Ingress
 
 > - Each app's host port MUST be assigned in the tenant's inventory (`apps[].port`), in the same record that binds its domain.
@@ -365,7 +370,7 @@ Plexus puts state in git and in tools it doesn't author, takes events from syste
 
 A reverse proxy per VM terminates TLS and maps domains to app ports.
 Because domain→port→app is one line in `platform/`, per-VM port uniqueness is checkable in a single file instead of being coordination state scattered across app repos.
-From that one record, provisioning renders the ingress config *and* injects the port into the app's compose interpolation (§ 5.4): it writes the value to `<app_dir>/platform.env` on the host, and the deploy verb hands that file to compose alongside its own `.env` — the verb itself stays port-unaware.
+From that one record, the deploy playbook renders the ingress config *and* injects the port into the app's compose interpolation (§ 5.4): it writes the value to `<app_dir>/platform.env` on the host, and the deploy verb hands that file to compose alongside its own `.env` — the verb itself stays port-unaware.
 
 The `/healthz` fence exists because the endpoint probes hard dependencies (§ 5.5): routing it publicly would publish a database-status oracle.
 A tenant that points an external uptime monitor at it does so as an owned deviation (§ 3.4), knowing what it reveals.
@@ -374,18 +379,18 @@ A tenant that points an external uptime monitor at it does so as an owned deviat
 
 > - Secret values MUST live only in the tenant's vault; git holds only references.
 > - The vault SHOULD be 1Password.
-> - Secrets MUST be resolved at provisioning time, never at deploy time.
+> - Secrets MUST be resolved when a platform playbook runs, never by the deploy verb.
 > - `secrets.env` on the host MUST be owned by the deploy user, mode 0600, never world-readable.
 > - The playbook MUST re-create the affected containers whenever `secrets.env` changed; rotation MUST NOT be left to ride along on whenever the next deploy happens to run.
 > - Once the compose-up verb ships from `ci-cd` (deferred — see the Manual's roadmap), the compose-up invocation MUST be encoded exactly once, as that verb, called by both the deploy verb's up step and the rotation handler.
 
-Two flows, both resolved when the playbook runs:
+Two flows, both resolved when a platform playbook runs:
 
-- **Platform secrets** (deploy SSH key, registry credentials): the tenant's committed `platform/secrets.env` is a dotenv file of `op://` pointers — it holds no values, so it is safe in git — and the playbook wrapper (`ansible-playbookw`) runs `op run -- ansible-playbook platform.yml`, which resolves the pointers into env vars the playbook reads.
+- **Platform secrets** (deploy SSH key, registry credentials): the tenant's committed `platform/secrets.env` is a dotenv file of `op://` pointers — it holds no values, so it is safe in git — and the playbook wrapper (`ansible-playbookw`) runs `op run -- ansible-playbook <playbook>`, which resolves the pointers into env vars either playbook reads.
 - **App runtime secrets:** each key marked `# secret` in an app's `env.schema` (§ 5.3) is declared in the tenant's inventory (`apps[].secrets`), resolved from the vault, and written to `<app_dir>/secrets.env` on the host; the app's compose file loads it via `env_file`.
 
 The deploy verb never touches secrets.
-Three env files sit in the app directory, and each has exactly one writer: provisioning owns `secrets.env` (secret values) and `platform.env` (non-secret platform bindings such as the host port — § 7.1), the deploy verb owns `.env` (the image ref) — no file has two writers.
+Three env files sit in the app directory, and each has exactly one writer: the deploy playbook owns `secrets.env` (secret values) and `platform.env` (non-secret platform bindings such as the host port — § 7.1), the deploy verb owns `.env` (the image ref) — no file has two writers.
 
 Rotation is complete only when the running process holds the new value: environment is injected at container *creation*, so rewriting `secrets.env` on its own rotates a file, not a credential.
 The full loop — change the vault item → re-run the playbook → re-create the affected containers — closes inside the playbook: the role that writes `secrets.env` notifies a handler, and compose re-creates exactly the services whose environment differs.
@@ -408,7 +413,7 @@ A backup without a hand-runnable restore is write-only storage; a restore test t
 
 ```mermaid
 flowchart TB
-  provisioning["provisioning mount (§ 7.1–7.2)<br>op run --env-file=op.env -- ansible-playbook site.yml<br>reads inventory (apps[]) + vault"]
+  provisioning["platform mount (§ 7.1–7.2)<br>op run -- ansible-playbook provision.yml / deploy.yml<br>reads inventory (apps[]) + vault"]
   deploy["deploy mount (§ 8.4–8.5)<br>push → CI: verbs + image build → deploy verb<br>over ssh: pull · migrate · up · poll /healthz · rollback"]
   subgraph vm["tenant VM (one tenant per VM — § 3.5)"]
     caddy["Caddy (§ 7.1)<br>TLS · domain → host port (both from inventory)<br>refuses public /healthz"]
@@ -430,7 +435,7 @@ flowchart TB
   backup -. "discovers by label" .-> data
 ```
 
-*Figure 2 (informative) — one tenant VM, assembled: provisioning and the deploy verb write disjoint files, ingress reads the same inventory record that assigns the host port, and backups discover their targets from labels — §§ 7.1–7.4 in one picture.*
+*Figure 2 (informative) — one tenant VM, assembled: the platform playbooks and the deploy verb write disjoint files, ingress reads the same inventory record that assigns the host port, and backups discover their targets from labels — §§ 7.1–7.4 in one picture.*
 
 ### § 7.4 Scheduling & the dead-man's-switch (interim)
 
@@ -486,7 +491,7 @@ The deploy verb needs no change for this: it was per-app all along (§ 8.4), and
 Promotion is the whole train: `develop → main` asserts *everything on `develop` is prod-ready*, and selective promotion would put on prod a repo state that never existed on staging — destroying the one guarantee environment branches exist to give.
 
 Two boundaries of the train:
-`platform/` rides no train — it is not an app and the deploy verb never touches it; applying it is a playbook run (§ 7), its own mount, on its own occasions.
+`platform/` rides no train — it is not an app and the deploy verb never touches it; applying it is a playbook run (`provision.yml` or `deploy.yml`, § 7), its own mount, on its own occasions.
 And the escape valve is a repo split, not a process patch: if two products in one tenant *persistently* need independent release cadences, move one into its own repo (still inside the tenant's org and access boundary, still on the same contract — § 3.6) — granularity problems are solved by moving a product off the train, never by making promotion partial.
 
 ### § 8.3 Failed deploys & recovery

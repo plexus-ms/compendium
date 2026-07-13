@@ -70,7 +70,7 @@ How a release runs:
 
 - **Two phases.** Changesets accumulate on `main`; `changesets/action` opens a "version packages" PR that bumps versions and writes changelogs; merging it publishes.
   The only manual step is recording a changeset with each publishable change — versioning and publishing run in CI, never locally.
-  PRs run lint/typecheck/test/build plus a `changeset status` guard that fails when a publishable change ships without a changeset.
+  PRs run the contract verbs (lint/check/test — the same names and arrangement the preset ships: mise bootstraps, turbo owns the graph) plus a `changeset status` guard that fails when a publishable change ships without a changeset; an empty changeset records a no-release change.
 - **Token-less via OIDC.** Publishing authenticates through GitHub OIDC *trusted publishing* (`id-token: write`), not a stored npm token — which also makes provenance automatic.
   *Bootstrap caveat:* a package cannot be registered as a trusted publisher until it exists, so each package's **first** publish is a one-time manual `npm publish` — token-authenticated and therefore *without* provenance; the attestation chain starts at the second release, and CI takes over after.
 - **Tags and GitHub Releases are automatic** — `changeset publish` tags each `@plexus-ms/<pkg>@x.y.z`, the action pushes them and cuts a Release from the changelog.
@@ -135,6 +135,7 @@ More maintainers follow the same lazy rule as everything else — when a real se
 - **The canonical `env.schema` parser and the compose-up verb** — the two single-encoding obligations (§ 5.3, § 7.2 PLX) that will live in `ci-cd`; until they ship, the schema grammar in § 5.3 PLX is the sole normative definition, and the standard marks the dependent requirements as deferred.
 - **Backup handlers, the `restore` verb, and the scheduled restore test** — § 7.3 PLX is written and marked deferred; ships together with the backup stack (the `plexus.backup` label vocabulary is valid only once a handler exists).
 - **The shared Renovate preset (`plexus-ms/renovate-config`)** — § 9.1 PLX suggests it; until it ships, a tenant configures Renovate directly.
+- **A `preset-repo-library` template** — the packages repo currently hand-maintains the monorepo arrangement the presets ship to tenants; extract a library-monorepo template when a second package monorepo appears, never speculatively from the first.
 - **An orchestrator (e.g. vanilla Kestra)** — only on the § 7.4 PLX triggers: multi-host dependent workflows, approvals, unmanageable schedule count, replay needs.
 - **Observability (metrics, logs, dashboards, phone alerting)** — becomes part of the standard's defaults later.
   The answer to "when is it time to scale?" is data, not vibes — the usual gap is measurement, not orchestration — and the same stack provides the "what's running where" view grouped by `plexus.tenant`.

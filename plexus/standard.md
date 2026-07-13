@@ -369,6 +369,7 @@ The split is by change cadence, not by component: the provision playbook is for 
 > - The proxy SHOULD refuse external requests for `/healthz`.
 
 A reverse proxy per VM terminates TLS and maps domains to app ports.
+Each tenant's deploy playbook writes its routes into its own file — a per-tenant fragment imported by the proxy's root config — so tenants co-hosted on one VM never touch each other's routes.
 Because domain→port→app is one line in `platform/`, per-VM port uniqueness is checkable in a single file instead of being coordination state scattered across app repos.
 From that one record, the deploy playbook renders the ingress config *and* injects the port into the app's compose interpolation (§ 5.4): it writes the value to `<app_dir>/platform.env` on the host — the per-app directory the deploy playbook lays out as `<deploy root>/<tenant>/<app>` (e.g. `/opt/stacks/plexus/website`) — and the deploy verb hands that file to compose alongside its own `.env` — the verb itself stays port-unaware.
 

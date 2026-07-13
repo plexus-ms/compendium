@@ -79,7 +79,7 @@ How a release runs:
 **Package-design rules.**
 A `@plexus-ms/*` package is tenant-neutral methodology, never substance — this is the standard's guardrail (§ 2 PLX), and it binds every publish.
 Code utilities start in `@plexus-ms/std` — the standard *library* ("the standard" alone always names PLX itself, never this package) is the default home for any small shared concern — and a concern graduates to its own package once it has its own audience or its own release cadence: a consumer shouldn't take updates because an unrelated helper changed.
-Tool configs (`biome-config`, `tsconfig`) are separate packages by construction: they exist to be one-line `extends` targets.
+Tool configs are the one deliberate exception to per-concern packages: they bundle into `@plexus-ms/config` as subpath exports (`@plexus-ms/config/biome`, `/tsconfig`, …) — each still a one-line `extends` target, but sharing one package because they share one audience and one release cadence (and each separate package costs a manual bootstrap publish). A config splits out only if it ever grows its own cadence.
 Packages follow semver, enforced by changesets — a breaking change is a major bump, and its changeset carries a migration note so the changelog doubles as the upgrade guide (again backing § 2 PLX).
 
 ## platform & ci-cd: versioning the ops artifacts

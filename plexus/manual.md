@@ -45,9 +45,9 @@ Every `plexus-ms` repo follows the same toolchain conventions the standard sets 
 
 Procedures are layered as shared logic cores with thin mounts, and the boundary is load-bearing:
 
-- **Verbs** — portable bash scripts (`ci-cd` `scripts/`) that contain *all* the logic and stay hand-runnable: `git clone && ./scripts/deploy.sh deploy@host tenant app image` works with no forge at all. This is what passes the degradation test.
+- **Verbs** — portable bash scripts (`ci-cd` `scripts/`) that contain *all* the logic and stay hand-runnable: `git clone && ./scripts/deploy.sh deploy@host tenant app image` works with no forge at all. This is what passes the degradation test. Change detection is a verb too — `./scripts/changed-apps.sh <from-sha> [<to-sha>]` prints the apps whose sources changed since a ref, dependents included (§ 8.2 PLX), reading only git and the workspace graph.
   Bash's native failure modes (unset variables expanding to nothing, pipelines failing silently) are second-reader traps, so a safety baseline applies to every verb: strict mode (`set -euo pipefail` or equivalent) and shellcheck-clean, enforced mechanically at the repo boundary — hook or check, never the honor system.
-- **Workflow wrappers** — thin reusable GitHub workflows that merely mount a verb on the forge's events: checkout, secrets plumbing, one invocation.
+- **Workflow wrappers** — thin reusable GitHub workflows that merely mount a verb on the forge's events: checkout, secrets plumbing, one invocation. `changes.yml` mounts `changed-apps` and emits a matrix; `pipeline.yml` composes `ci.yml` + `deploy.yml` for one app so the tenant can fan out per changed app.
   Logic never lives in the YAML.
   GitHub's workflow format is not an open standard — the runner is self-hostable but GitHub remains the scheduler — so the wrapper is forge-specific and disposable, while the verb is portable and permanent.
   Leaving GitHub would mean rewriting the mounts, never the verbs.

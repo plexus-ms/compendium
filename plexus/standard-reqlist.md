@@ -67,7 +67,7 @@ order: 2
 - The platform repo MUST NOT hold the source of an app the tenant builds itself; it MAY hold third-party apps the tenant merely operates (§ 5.2).
 - App repos SHOULD use the monorepo pattern: one repo holding `apps/` and `packages/` for one web ecosystem; a tenant SHOULD start with a single web monorepo and add a further app repo only for a product that persistently needs its own release cadence (§ 8.2).
 - The platform repo SHOULD be named `platform` and the default web monorepo `web`; further app repos are named after their product.
-- App repos SHOULD be generated from `plexus-ms/preset-repo-web`, apps within them from `plexus-ms/preset-app-nextjs`, and the platform repo from `plexus-ms/preset-platform` (deferred — see the Manual's roadmap).
+- App repos SHOULD be generated from `plexus-ms/preset-repo-web`, apps within them from `plexus-ms/preset-app-nextjs`, and the platform repo from `plexus-ms/preset-platform`.
 
 ## § 4 The toolchain
 
@@ -105,7 +105,7 @@ order: 2
 - Every app MUST provide a `compose.yaml` declaring the app service and any app-owned infrastructure.
 - Every service in it MUST carry the label `plexus.tenant=<slug>` (§ 3.2).
 - Every app MUST have exactly one source repo (§ 1.3): an app repo for software the tenant builds, or the platform repo — at `apps/<app-name>/` — for third-party software the tenant merely operates.
-- `compose.yaml` and `env.schema` MUST reach the app's host directory (§ 7.1) through the deploy verb, taken from the invoking checkout of the source repo at deploy time; the platform playbook MUST NOT copy them (deferred — see the Manual's roadmap).
+- `compose.yaml` and `env.schema` MUST reach the app's host directory (§ 7.1) through the deploy verb, taken from the invoking checkout of the source repo at deploy time; the platform playbook MUST NOT copy them.
 
 ### § 5.3 The env schema
 
@@ -133,7 +133,7 @@ order: 2
 - The probe MUST include hard dependencies the app cannot serve without (its own database, with a short bounded timeout) and MUST NOT include soft or third-party dependencies the app survives degraded.
 - The endpoint MUST be cheap, side-effect-free, and unauthenticated.
 - The response SHOULD carry nothing beyond its status code: no version strings, no dependency names, no timings.
-- A third-party app (§ 5.2) whose image cannot serve `/healthz` MUST declare its readiness path as the label `plexus.healthz=<path>` on its app service in `compose.yaml`, with the same semantics, and record the deviation in its `PLEXUS.md` (deferred — see the Manual's roadmap).
+- A third-party app (§ 5.2) whose image cannot serve `/healthz` MUST declare its readiness path as the label `plexus.healthz=<path>` on its app service in `compose.yaml`, with the same semantics, mirror it as `apps[].healthz` in the inventory so the proxy can fence it (§ 7.1), and record the deviation in its `PLEXUS.md`.
 
 ### § 5.6 Logs
 
@@ -186,7 +186,7 @@ order: 2
 - `secrets.env` on the host MUST be owned by the deploy user, mode 0600, never world-readable.
 - The playbook MUST re-create the affected containers whenever `secrets.env` changed; rotation MUST NOT be left to ride along on whenever the next deploy happens to run.
 - Once the compose-up verb ships from `ci-cd` (deferred — see the Manual's roadmap), the compose-up invocation MUST be encoded exactly once, as that verb, called by both the deploy verb's up step and the rotation handler.
-- Before pulling, the deploy verb MUST check on the host that every key `env.schema` flags `required` is present by name in `platform.env` or `secrets.env`, reading key names only, and MUST fail the deploy on a missing key (deferred — see the Manual's roadmap).
+- Before pulling, the deploy verb MUST check on the host that every key `env.schema` flags `required` is present by name in `platform.env` or `secrets.env`, reading key names only, and MUST fail the deploy on a missing key.
 
 ### § 7.3 Backups (deferred)
 

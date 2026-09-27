@@ -181,7 +181,7 @@ Sharing ingress, networking, or secrets across tenants is a red flag: if the eco
 > - The platform repo MUST NOT hold the source of an app the tenant builds itself; it MAY hold third-party apps the tenant merely operates (§ 5.2).
 > - App repos SHOULD use the monorepo pattern: one repo holding `apps/` and `packages/` for one web ecosystem; a tenant SHOULD start with a single web monorepo and add a further app repo only for a product that persistently needs its own release cadence (§ 8.2).
 > - The platform repo SHOULD be named `platform` and the default web monorepo `web`; further app repos are named after their product.
-> - App repos SHOULD be generated from `plexus-ms/preset-repo-web`, apps within them from `plexus-ms/preset-app-nextjs`, and the platform repo from `plexus-ms/preset-platform` (deferred — see the Manual's roadmap).
+> - App repos SHOULD be generated from `plexus-ms/preset-repo-web`, apps within them from `plexus-ms/preset-app-nextjs`, and the platform repo from `plexus-ms/preset-platform`.
 
 Org membership governs code access; a person in tenant A's org is simply not in tenant B's.
 Inside the org, the layout follows the three cardinalities of § 1.3: one trust domain, N release trains, one platform repo.
@@ -266,7 +266,7 @@ Toolchain pinning follows § 4 — so setup is `git clone && mise :dev` everywhe
 > - Every app MUST provide a `compose.yaml` declaring the app service and any app-owned infrastructure.
 > - Every service in it MUST carry the label `plexus.tenant=<slug>` (§ 3.2).
 > - Every app MUST have exactly one source repo (§ 1.3): an app repo for software the tenant builds, or the platform repo — at `apps/<app-name>/` — for third-party software the tenant merely operates.
-> - `compose.yaml` and `env.schema` MUST reach the app's host directory (§ 7.1) through the deploy verb, taken from the invoking checkout of the source repo at deploy time; the platform playbook MUST NOT copy them (deferred — see the Manual's roadmap).
+> - `compose.yaml` and `env.schema` MUST reach the app's host directory (§ 7.1) through the deploy verb, taken from the invoking checkout of the source repo at deploy time; the platform playbook MUST NOT copy them.
 
 App-owned infrastructure means services that live and die with the app — a database container is the § 6.2 profile's case.
 The platform reads runtime truth from the host (`docker ps`, labels), never from a bookkeeping database, which is why the labels matter.
@@ -316,10 +316,11 @@ Platform-injected keys do not appear in `env.schema` — the schema declares wha
 > - The probe MUST include hard dependencies the app cannot serve without (its own database, with a short bounded timeout) and MUST NOT include soft or third-party dependencies the app survives degraded.
 > - The endpoint MUST be cheap, side-effect-free, and unauthenticated.
 > - The response SHOULD carry nothing beyond its status code: no version strings, no dependency names, no timings.
-> - A third-party app (§ 5.2) whose image cannot serve `/healthz` MUST declare its readiness path as the label `plexus.healthz=<path>` on its app service in `compose.yaml`, with the same semantics, and record the deviation in its `PLEXUS.md` (deferred — see the Manual's roadmap).
+> - A third-party app (§ 5.2) whose image cannot serve `/healthz` MUST declare its readiness path as the label `plexus.healthz=<path>` on its app service in `compose.yaml`, with the same semantics, mirror it as `apps[].healthz` in the inventory so the proxy can fence it (§ 7.1), and record the deviation in its `PLEXUS.md`.
 
 The semantics are pinned because the deploy verb's rollback decision rides on this endpoint (§ 8.4), polling it bare over loopback.
-The label exists only for images the tenant does not build; absent the label, the verb polls `/healthz`, and the proxy fences the declared path just the same.
+The label exists only for images the tenant does not build; absent the label, the verb polls `/healthz`.
+The verb reads the label from the running container, but the proxy has no compose file to read, which is why the path is the one fact declared twice — once in the label, once in the inventory record.
 Unauthenticated is not the same as private: ingress maps the public domain onto the same single port, so left alone `/healthz` would ride into the open as a free oracle for "is this app's database down" — the platform fences the path at the proxy (§ 7.1), and the empty response is belt and braces.
 Plexus deliberately does not split liveness from readiness: that distinction pays for itself only where a reconciler restarts processes on liveness, and the standard has no reconciler — one endpoint, one meaning.
 Transient dependency blips are the poller's problem, and handled there (§ 8.4).
@@ -418,7 +419,7 @@ A tenant that points an external uptime monitor at it does so as an owned deviat
 > - `secrets.env` on the host MUST be owned by the deploy user, mode 0600, never world-readable.
 > - The playbook MUST re-create the affected containers whenever `secrets.env` changed; rotation MUST NOT be left to ride along on whenever the next deploy happens to run.
 > - Once the compose-up verb ships from `ci-cd` (deferred — see the Manual's roadmap), the compose-up invocation MUST be encoded exactly once, as that verb, called by both the deploy verb's up step and the rotation handler.
-> - Before pulling, the deploy verb MUST check on the host that every key `env.schema` flags `required` is present by name in `platform.env` or `secrets.env`, reading key names only, and MUST fail the deploy on a missing key (deferred — see the Manual's roadmap).
+> - Before pulling, the deploy verb MUST check on the host that every key `env.schema` flags `required` is present by name in `platform.env` or `secrets.env`, reading key names only, and MUST fail the deploy on a missing key.
 
 Two flows, both resolved when a platform playbook runs:
 
@@ -533,7 +534,7 @@ Promotion is the whole train: `develop → main` asserts *everything on `develop
 
 Two boundaries of the train:
 The platform repo rides no train — its ops side is not an app and the deploy verb never touches it; applying it is a playbook run (`provision.yml` or `deploy.yml`, § 7), its own mount, on its own occasions.
-Third-party apps hosted in the platform repo (§ 5.2) are the exception that proves it: they *are* apps, so the deploy verb does touch them — mounted on the platform repo's `main` and fanned out by the same `changed-apps` verb over its `apps/` (deferred — see the Manual's roadmap).
+Third-party apps hosted in the platform repo (§ 5.2) are the exception that proves it: they *are* apps, so the deploy verb does touch them — mounted on the platform repo's `main` and fanned out by the same `changed-apps` verb over its `apps/`, which without a workspace graph reduces to a plain path diff.
 And the escape valve is a repo split, not a process patch: if two products in one tenant *persistently* need independent release cadences, move one into its own repo (still inside the tenant's org and access boundary, still on the same contract — § 3.6) — granularity problems are solved by moving a product off the train, never by making promotion partial.
 
 ### § 8.3 Failed deploys & recovery

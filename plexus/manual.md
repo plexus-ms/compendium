@@ -31,11 +31,13 @@ Unlike the standard, this document carries no BCP 14 keywords: its rules are wri
 | **`packages`** — dev side, focused on web technologies | The published `@plexus-ms/*` packages for the web / Node / TypeScript world: shared tool configs (biome, tsconfig), the `std` utilities, and — over time — the reusable application plumbing (framework glue, common auth concerns, repeatable non-domain features) that keeps each app's domain core small. |
 | **`platform`** — ops side, the operations platform (§ 7 PLX) | The `plexus.platform` Ansible collection that provisions tenant hosts (base hardening, docker, caddy install, ingress routing, per-app deploy, alloy), plus reusable Terraform modules. |
 | **`ci-cd`** — ops side, the CI/CD flows (§ 8 PLX) | The portable bash verbs (`scripts/deploy.sh`) and the thin reusable workflow wrappers that mount them on the forge. |
-| **`preset-repo-web`** — uniting both sides | A copier template that composes dev and ops into a ready tenant monorepo — `apps/` consuming the packages, `platform/` binding the Ansible collection — and keeps generated repos re-syncable via `copier update`. |
-| **`preset-app-nextjs`** — the app template | A copier template for a Next.js app inside a tenant monorepo: contract-verb scripts, Dockerfile, `compose.yaml` with the `web` service and contract labels. |
+| **`preset-repo-web`** — dev side, the app-repo template | A copier template that generates a tenant app repo (§ 3.6 PLX) — a web monorepo with `apps/` consuming the packages — and keeps generated repos re-syncable via `copier update`. |
+| **`preset-app-nextjs`** — the app template | A copier template for a Next.js app inside a tenant app repo: contract-verb scripts, Dockerfile, `compose.yaml` with the `web` service and contract labels. |
+| **`preset-platform`** — ops side, the platform-repo template (deferred) | A copier template for a tenant's platform repo (§ 3.6 PLX): the two playbooks, inventory, the `op://`-pointer env files, binding the Ansible collection. Not yet shipped — see the roadmap; until then the dogfood tenant's platform repo is the reference arrangement. |
 | **`compendium`** — the doctrine | The three documents (Manifesto, Standard, Manual), the generated requirements list, and the supporting reference docs. |
 
-The org doubles as home of `plexus`, the public dogfooding tenant — which is bound by the standard like any other tenant, not by this manual.
+The dogfood tenant `plexus` lives in its own org, `plexus-ms-tenant` — a `platform` repo and a `web` monorepo, laid out per § 3.6 PLX — and is bound by the standard like any other tenant, not by this manual.
+It sits deliberately outside `plexus-ms`: the maintainers' org ships methodology, the tenant's org holds substance, and the two never share an access boundary.
 The border between dev side and ops side is blurry, and that is fine: CI is dev-side checks on an ops-side mount, and the app contract (§ 5 PLX) is the seam made explicit.
 What matters is never which side a primitive lives on, but that it is tenant-neutral and composable.
 
@@ -45,13 +47,15 @@ Every `plexus-ms` repo follows the same toolchain conventions the standard sets 
 
 Procedures are layered as shared logic cores with thin mounts, and the boundary is load-bearing:
 
-- **Verbs** — portable bash scripts (`ci-cd` `scripts/`) that contain *all* the logic and stay hand-runnable: `git clone && ./scripts/deploy.sh deploy@host tenant app image` works with no forge at all. This is what passes the degradation test. Change detection is a verb too — `./scripts/changed-apps.sh <from-sha> [<to-sha>]` prints the apps whose sources changed since a ref, dependents included (§ 8.2 PLX), reading only git and the workspace graph.
+- **Verbs** — portable bash scripts (`ci-cd` `scripts/`) that contain *all* the logic and stay hand-runnable: `git clone && ./scripts/deploy.sh deploy@host tenant app image` works with no forge at all. This is what passes the degradation test.
+  The deploy verb also carries the app's `compose.yaml` and `env.schema` from the invoking checkout to the host (§ 5.2 PLX); that is inside the fence, since both are read from git and stored nowhere else.
+  Change detection is a verb too — `./scripts/changed-apps.sh <from-sha> [<to-sha>]` prints the apps whose sources changed since a ref, dependents included (§ 8.2 PLX), reading only git and the workspace graph.
   Bash's native failure modes (unset variables expanding to nothing, pipelines failing silently) are second-reader traps, so a safety baseline applies to every verb: strict mode (`set -euo pipefail` or equivalent) and shellcheck-clean, enforced mechanically at the repo boundary — hook or check, never the honor system.
 - **Workflow wrappers** — thin reusable GitHub workflows that merely mount a verb on the forge's events: checkout, secrets plumbing, one invocation. `changes.yml` mounts `changed-apps` and emits a matrix; `pipeline.yml` composes `ci.yml` + `deploy.yml` for one app so the tenant can fan out per changed app.
   Logic never lives in the YAML.
   GitHub's workflow format is not an open standard — the runner is self-hostable but GitHub remains the scheduler — so the wrapper is forge-specific and disposable, while the verb is portable and permanent.
   Leaving GitHub would mean rewriting the mounts, never the verbs.
-- **Ansible roles** — the same split applied to the platform layer: the roles are the shared logic core, and each tenant's `platform/` keeps only the binding — `provision.yml` and `deploy.yml` (role lists, split by change cadence — § 7 PLX), inventory, group_vars, the committed `op://`-pointer env files.
+- **Ansible roles** — the same split applied to the platform layer: the roles are the shared logic core, and each tenant's platform repo keeps only the binding — `provision.yml` and `deploy.yml` (role lists, split by change cadence — § 7 PLX), inventory, group_vars, the committed `op://`-pointer env files.
   A tenant playbook is to the roles what a workflow wrapper is to a verb: a mount, not logic.
 
 Two definition-of-done gates for any new or reworked primitive, from the [Manifesto](manifesto.md)'s litmus tests: a competent second reader understands it top to bottom in half an hour, and if it vanished tonight the job would still be doable by hand from the artifacts in git.
@@ -101,7 +105,8 @@ Tenants pin the collection by tag (§ 9.1 PLX); the tag-mutability trade-off thi
 
 ## the presets: the templates
 
-`copier copy gh:plexus-ms/preset-repo-web <tenant>` generates a tenant monorepo, and `copier copy gh:plexus-ms/preset-app-nextjs <tenant>/apps/<app>` adds an app to it; `copier update` re-applies template changes as a three-way merge against local edits, surfacing conflicts explicitly — template as living dependency, not `cp`.
+`copier copy gh:plexus-ms/preset-repo-web <tenant>/web` generates a tenant's web monorepo (an app repo — § 3.6 PLX), and `copier copy gh:plexus-ms/preset-app-nextjs <tenant>/web/apps/<app>` adds an app to it; the platform repo's template, `preset-platform`, is deferred (roadmap below).
+`copier update` re-applies template changes as a three-way merge against local edits, surfacing conflicts explicitly — template as living dependency, not `cp`.
 
 Since the standard defers the concrete toolchain arrangement to the preset (§ 4.2 PLX), the template is an *arrangement authority*, not a convenience: it needs real versioning discipline — it ships on the release train like the other ops artifacts, with `copier update` treated as the structural counterpart of a dependency bump.
 
@@ -145,6 +150,8 @@ More maintainers follow the same lazy rule as everything else — when a real se
 
 - **Staleness/drift check against PLEXUS.md.** – Not until v1.0 of PLX, indicated by a compendium repo tag.
 - **The canonical `env.schema` parser and the compose-up verb** — the two single-encoding obligations (§ 5.3, § 7.2 PLX) that will live in `ci-cd`; until they ship, the schema grammar in § 5.3 PLX is the sole normative definition, and the standard marks the dependent requirements as deferred.
+- **The platform repo's own machinery** — the pieces the one-platform-repo layout (§ 3.6 PLX) rides on, each marked deferred where the standard requires it: the deploy verb placing `compose.yaml` and `env.schema` on the host and checking required keys by name (§ 5.2, § 7.2 PLX), the `plexus.healthz` label for third-party images (§ 5.5 PLX), the platform-repo mount that deploys third-party apps from its `main` (§ 8.2 PLX), and the `preset-platform` template.
+  Until they ship, the deploy playbook keeps copying compose files from a co-located checkout, and the dogfood tenant's platform repo is the reference arrangement.
 - **Backup handlers, the `restore` verb, and the scheduled restore test** — § 7.3 PLX is written and marked deferred; ships together with the backup stack (the `plexus.backup` label vocabulary is valid only once a handler exists).
 - **The shared Renovate preset (`plexus-ms/renovate-config`)** — § 9.1 PLX suggests it; until it ships, a tenant configures Renovate directly.
 - **A `preset-repo-library` template** — the packages repo currently hand-maintains the monorepo arrangement the presets ship to tenants; extract a library-monorepo template when a second package monorepo appears, never speculatively from the first.

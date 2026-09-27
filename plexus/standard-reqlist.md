@@ -44,8 +44,8 @@ order: 2
 ### § 3.3 The `PLEXUS.md` marker
 
 - Every conforming repo MUST carry a `PLEXUS.md` marker at its root.
-- The repo marker MUST carry YAML frontmatter with `plx` (the PLX version targeted) and `profile` = `repository`).
-- Every conforming app MUST carry a `PLEXUS.md` marker at its root. In a tenant monorepo, this will be at `apps/<app-name>/PLEXUS.md`.
+- The repo marker MUST carry YAML frontmatter with `plx` (the PLX version targeted) and `profile` being `repository` for an app repo or `platform` for the tenant's platform repo (§ 3.6).
+- Every conforming app MUST carry a `PLEXUS.md` marker at its root: `apps/<app-name>/PLEXUS.md` in its source repo, whether that is an app repo or the platform repo (§ 5.2).
 - The app marker MUST carry YAML frontmatter with `plx` (the PLX version targeted) and `profile` being one of the profiles listed in § 6.
 - A repo or app whose `PLEXUS.md` is missing or unparsable is non-conformant.
 
@@ -63,8 +63,11 @@ order: 2
 ### § 3.6 Forge layout
 
 - Tenant repos SHOULD be partitioned by separate forge orgs.
-- A tenant SHOULD use the monorepo pattern: one `<org>/<tenant>` repo holding both the dev side (`apps/`, `packages/`) and the ops side (`platform/`: inventory, host definitions, deployment configs).
-- Tenant monorepos SHOULD be generated from `plexus-ms/preset-repo-web`; apps within them from `plexus-ms/preset-app-nextjs`.
+- A tenant MUST hold its ops side — inventory, host definitions, playbooks, deployment configs (§ 7) — in exactly one repo, the platform repo; every other tenant repo is an app repo.
+- The platform repo MUST NOT hold the source of an app the tenant builds itself; it MAY hold third-party apps the tenant merely operates (§ 5.2).
+- App repos SHOULD use the monorepo pattern: one repo holding `apps/` and `packages/` for one web ecosystem; a tenant SHOULD start with a single web monorepo and add a further app repo only for a product that persistently needs its own release cadence (§ 8.2).
+- The platform repo SHOULD be named `platform` and the default web monorepo `web`; further app repos are named after their product.
+- App repos SHOULD be generated from `plexus-ms/preset-repo-web`, apps within them from `plexus-ms/preset-app-nextjs`, and the platform repo from `plexus-ms/preset-platform` (deferred — see the Manual's roadmap).
 
 ## § 4 The toolchain
 
@@ -79,7 +82,7 @@ order: 2
 ### § 4.2 The JS/TS toolchain
 
 - Every Plexus JS/TS repo MUST use the toolchain of this section.
-- JS/TS tenant repos MUST use the monorepo pattern: pnpm workspace plus Turborepo.
+- JS/TS app repos MUST use the monorepo pattern: pnpm workspace plus Turborepo.
 - Turborepo owns the task graph: leaf tasks are `package.json` scripts, `turbo.json` states the task rules (`build`, `typecheck`, and `test` depend on `^build`), and the workspace edges are read from each `package.json` — the graph MUST NOT be re-encoded in mise tasks or CI configuration.
 - Leaf projects MUST NOT carry a `mise.toml`; the root verbs delegate to turbo.
 - mise MUST install only node for the JS/TS toolchain; the package manager arrives through node itself — a `postinstall` hook enables corepack, which installs the pnpm version pinned in the root `package.json` `packageManager` field, the single pnpm pin (Turborepo requires the field anyway).
@@ -101,6 +104,8 @@ order: 2
 
 - Every app MUST provide a `compose.yaml` declaring the app service and any app-owned infrastructure.
 - Every service in it MUST carry the label `plexus.tenant=<slug>` (§ 3.2).
+- Every app MUST have exactly one source repo (§ 1.3): an app repo for software the tenant builds, or the platform repo — at `apps/<app-name>/` — for third-party software the tenant merely operates.
+- `compose.yaml` and `env.schema` MUST reach the app's host directory (§ 7.1) through the deploy verb, taken from the invoking checkout of the source repo at deploy time; the platform playbook MUST NOT copy them (deferred — see the Manual's roadmap).
 
 ### § 5.3 The env schema
 
@@ -114,6 +119,7 @@ order: 2
 - Parsers MUST ignore full-line comments.
 - Once the canonical parser ships from `ci-cd` (deferred — see the Manual's roadmap), every consumer of the schema MUST parse it through that parser; where this grammar is silent, that parser's behavior is normative. Until it ships, the grammar above is the sole normative definition.
 - Secret values MUST NOT be committed; they are resolved from the tenant's vault when a platform playbook runs (§ 7.2).
+- Values for an app's variables MUST be provided by the platform (§ 7.1, § 7.2), never committed in the source repo beyond the defaults the schema itself carries.
 
 ### § 5.4 One HTTP port
 
@@ -127,6 +133,7 @@ order: 2
 - The probe MUST include hard dependencies the app cannot serve without (its own database, with a short bounded timeout) and MUST NOT include soft or third-party dependencies the app survives degraded.
 - The endpoint MUST be cheap, side-effect-free, and unauthenticated.
 - The response SHOULD carry nothing beyond its status code: no version strings, no dependency names, no timings.
+- A third-party app (§ 5.2) whose image cannot serve `/healthz` MUST declare its readiness path as the label `plexus.healthz=<path>` on its app service in `compose.yaml`, with the same semantics, and record the deviation in its `PLEXUS.md` (deferred — see the Manual's roadmap).
 
 ### § 5.6 Logs
 
@@ -159,12 +166,14 @@ order: 2
 
 ## § 7 The operations platform
 
-- The tenant MUST mount the platform as two playbooks: a provision playbook (base host setup — packages, hardening, container engine, ingress-server install) and a deploy playbook (ingress routes, app configuration, secrets, container bring-up).
+- The tenant MUST mount the platform, in its platform repo (§ 3.6), as two playbooks: a provision playbook (base host setup — packages, hardening, container engine, ingress-server install) and a deploy playbook (ingress routes, app configuration, secrets, container bring-up).
 - A role MUST belong wholly to one playbook; the deploy playbook MUST be re-runnable at any time against a provisioned host.
 
 ### § 7.1 Ingress
 
-- Each app's host port MUST be assigned in the tenant's inventory (`apps[].port`), in the same record that binds its domain.
+- Each app's host port MUST be assigned in the tenant's inventory (`apps[].port`), in the same record that binds its domain and names its source repo (`apps[].repo`).
+- App names MUST be unique per tenant, across all of its repos.
+- Non-secret values the platform provides to an app MUST be declared in the same record (`apps[].env`) and written to `platform.env`; secret values follow § 7.2.
 - The reverse proxy SHOULD be Caddy.
 - The playbook SHOULD fail on a duplicate host port per VM.
 - The proxy SHOULD refuse external requests for `/healthz`.
@@ -177,10 +186,11 @@ order: 2
 - `secrets.env` on the host MUST be owned by the deploy user, mode 0600, never world-readable.
 - The playbook MUST re-create the affected containers whenever `secrets.env` changed; rotation MUST NOT be left to ride along on whenever the next deploy happens to run.
 - Once the compose-up verb ships from `ci-cd` (deferred — see the Manual's roadmap), the compose-up invocation MUST be encoded exactly once, as that verb, called by both the deploy verb's up step and the rotation handler.
+- Before pulling, the deploy verb MUST check on the host that every key `env.schema` flags `required` is present by name in `platform.env` or `secrets.env`, reading key names only, and MUST fail the deploy on a missing key (deferred — see the Manual's roadmap).
 
 ### § 7.3 Backups (deferred)
 
-- Backup schedule and retention MUST live as code in the tenant's `platform/`.
+- Backup schedule and retention MUST live as code in the tenant's platform repo.
 - The backup job MUST discover what to dump by reading the `plexus.backup` labels (§ 6.2).
 - A new backup path MUST pass one end-to-end restore before it is relied upon, and MUST be re-verified after any material change to the path.
 - A scheduled restore test SHOULD run at least monthly: restore the latest snapshot of each labelled data service into a scratch container, run a sanity check, and ping its own dead-man's-switch check (§ 7.4), separate from the backup job's.
@@ -199,7 +209,8 @@ order: 2
 
 ### § 8.1 Environment branches
 
-- Tenant monorepos MUST use environment branches: `main`→prod, `develop`→staging.
+- App repos MUST use environment branches: `main`→prod, `develop`→staging.
+- The platform repo SHOULD have a single `main`; environments are inventory groups, never branches.
 - Apps MUST NOT use changesets.
 - A hotfix branches from `main` and merges to `main`; it MUST be back-merged `main → develop` immediately.
 - Staging and prod MAY share a VM or take one each — both sit inside one tenant's trust domain; § 3.5 partitions tenants, not environments.
@@ -227,11 +238,12 @@ order: 2
 
 - Every tenant repo MUST run an automated update bot that watches its pins and opens update PRs.
 - The update bot SHOULD be Renovate, extending the shared preset (`plexus-ms/renovate-config` — deferred, not yet shipped; until then a tenant configures Renovate directly).
-- Tenants MUST pin the `plexus.platform` collection by tag in `platform/requirements.yml`.
+- Tenants MUST pin the `plexus.platform` collection by tag in the platform repo's `requirements.yml`.
 - For `@plexus-ms/*` packages, CI-green patch/minor auto-merge MAY be enabled and is the recommended default.
 - For CI-workflow and verb tag bumps, auto-merge MAY be enabled; a tenant whose CI holds sensitive credentials SHOULD review these PRs instead.
 - Update PRs for the `plexus.platform` Ansible collection SHOULD NOT be auto-merged; a human reads the diff before anything new runs as root.
 
 ### § 9.2 Dependency mechanics
 
-- A shared thing that crosses a tenant boundary MUST be consumed as a published, versioned package; a shared thing inside one tenant is a workspace dependency.
+- A shared thing that crosses a repo boundary MUST be consumed as a published, versioned artifact; a shared thing inside one repo is a workspace dependency.
+- Within a tenant, such an artifact MAY be published to the tenant's private registry.

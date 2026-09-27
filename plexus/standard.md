@@ -45,8 +45,13 @@ The design intent behind the split is lock-in resistance: proprietary services s
 
 The standard's vocabulary, defined once:
 
-- **Tenant** (§ 3) — one trust domain in the federation: its own forge org, monorepo, VM(s), secrets vault, backups.
+- **Tenant** (§ 3) — one trust domain in the federation: its own forge org, repos, VM(s), secrets vault, backups.
   Nominally a distinct legal person or organization, but the boundary that matters is *access*, not legal personality — `plexus` itself is a tenant without being a distinct legal person.
+- **Repo** — one release train (§ 8.2) and one toolchain contract (§ 4) inside a tenant.
+  A tenant has one or more repos: exactly one **platform repo** holding the ops side (§ 3.6, § 7), and any number of **app repos** holding the dev side.
+  One trust domain, N release trains, one platform repo.
+- **App** — one deployable unit satisfying the app contract (§ 5).
+  Its **source repo** — the repo holding its `compose.yaml`, `env.schema`, and `PLEXUS.md` — is an app repo for software the tenant builds, or the platform repo for third-party software the tenant merely operates (§ 5.2).
 - **Primitive** — any named guideline, tool, or approach the initiative ships or prescribes: a verb, a mount, an Ansible role, a published package, the copier template, a label scheme, a file layout, an endpoint path.
   Decided once, reused, versioned and published, or otherwise propagated (§ 9).
 - **Verb** — a stateless, hand-runnable procedure that does one operational thing (deploy, backup, migrate, …), authored in a portable manner.
@@ -96,12 +101,12 @@ flowchart TB
   packages -- "npm versions" --> boundary
   preset -- "copier update" --> boundary
   ops -- "git tags" --> boundary
-  boundary --> acme["TENANT: fooCorp<br>forge org · monorepo(s)<br>host(s) · vault · backups"]
-  boundary --> initech["TENANT: barCorp<br>forge org · monorepo(s)<br>host(s) · vault · backups"]
+  boundary --> acme["TENANT: fooCorp<br>forge org · platform repo · app repos<br>host(s) · vault · backups"]
+  boundary --> initech["TENANT: barCorp<br>forge org · platform repo · app repos<br>host(s) · vault · backups"]
   boundary --> plexus["TENANT: plexus<br>dogfood; runs<br>plexus-ms.org"]
 ```
 
-*Figure 1 — the federation at a glance: one tenant-neutral upstream, versioned methodology flowing hub-and-spoke to every tenant, substance staying inside each tenant's own trust domain. Each tenant monorepo(s) hold both sides — dev meets ops at the app contract (§ 5).*
+*Figure 1 — the federation at a glance: one tenant-neutral upstream, versioned methodology flowing hub-and-spoke to every tenant, substance staying inside each tenant's own trust domain. Each tenant's repos hold both sides — app repos the dev side, the platform repo the ops side — and dev meets ops at the app contract (§ 5).*
 
 
 ## § 3 The tenant
@@ -128,8 +133,8 @@ The label makes the boundary visible exactly where it otherwise blurs: staring a
 ### § 3.3 The `PLEXUS.md` marker
 
 > - Every conforming repo MUST carry a `PLEXUS.md` marker at its root.
-> - The repo marker MUST carry YAML frontmatter with `plx` (the PLX version targeted) and `profile` = `repository`).
-> - Every conforming app MUST carry a `PLEXUS.md` marker at its root. In a tenant monorepo, this will be at `apps/<app-name>/PLEXUS.md`.
+> - The repo marker MUST carry YAML frontmatter with `plx` (the PLX version targeted) and `profile` being `repository` for an app repo or `platform` for the tenant's platform repo (§ 3.6).
+> - Every conforming app MUST carry a `PLEXUS.md` marker at its root: `apps/<app-name>/PLEXUS.md` in its source repo, whether that is an app repo or the platform repo (§ 5.2).
 > - The app marker MUST carry YAML frontmatter with `plx` (the PLX version targeted) and `profile` being one of the profiles listed in § 6.
 > - A repo or app whose `PLEXUS.md` is missing or unparsable is non-conformant.
 
@@ -138,7 +143,7 @@ Because staleness detection parses it mechanically, the format is specified:
 ```markdown
 ---
 plx: v1.0             # PLX version this repo targets — REQUIRED
-profile: stateful-app # stateless-app | stateful-app | repository — REQUIRED
+profile: stateful-app # stateless-app | stateful-app | repository | platform — REQUIRED
 ---
 
 - Free-form prose. 
@@ -147,7 +152,7 @@ profile: stateful-app # stateless-app | stateful-app | repository — REQUIRED
 ```
 
 Machine checks read only the YAML frontmatter; the body is for humans.
-`plx` is compared against the current standard version to flag drift; `profile` selects the § 6 profile for an app, or marks the tenant monorepo itself.
+`plx` is compared against the current standard version to flag drift; `profile` selects the § 6 profile for an app, or marks a repo as an app repo or as the tenant's platform repo.
 The marker is the one artifact the standard cannot degrade gracefully without, because it is how staleness stays visible.
 
 ### § 3.4 Conformance
@@ -172,12 +177,21 @@ Sharing ingress, networking, or secrets across tenants is a red flag: if the eco
 ### § 3.6 Forge layout
 
 > - Tenant repos SHOULD be partitioned by separate forge orgs.
-> - A tenant SHOULD use the monorepo pattern: one `<org>/<tenant>` repo holding both the dev side (`apps/`, `packages/`) and the ops side (`platform/`: inventory, host definitions, deployment configs).
-> - Tenant monorepos SHOULD be generated from `plexus-ms/preset-repo-web`; apps within them from `plexus-ms/preset-app-nextjs`.
+> - A tenant MUST hold its ops side — inventory, host definitions, playbooks, deployment configs (§ 7) — in exactly one repo, the platform repo; every other tenant repo is an app repo.
+> - The platform repo MUST NOT hold the source of an app the tenant builds itself; it MAY hold third-party apps the tenant merely operates (§ 5.2).
+> - App repos SHOULD use the monorepo pattern: one repo holding `apps/` and `packages/` for one web ecosystem; a tenant SHOULD start with a single web monorepo and add a further app repo only for a product that persistently needs its own release cadence (§ 8.2).
+> - The platform repo SHOULD be named `platform` and the default web monorepo `web`; further app repos are named after their product.
+> - App repos SHOULD be generated from `plexus-ms/preset-repo-web`, apps within them from `plexus-ms/preset-app-nextjs`, and the platform repo from `plexus-ms/preset-platform` (deferred — see the Manual's roadmap).
 
 Org membership governs code access; a person in tenant A's org is simply not in tenant B's.
-The monorepo's benefits are direct: apps and the platform that runs them version together, cross-cutting changes land as one atomic commit, and it is safe because a monorepo is one access boundary (§ 9.2).
-With several apps in one repo, deploys are per-app and promotion is repo-wide (the release train — § 8.2); a product that persistently needs its own release cadence is the one reason to give it its own repo within the tenant's org (§ 8.2).
+Inside the org, the layout follows the three cardinalities of § 1.3: one trust domain, N release trains, one platform repo.
+The ops side gets a repo of its own because everything about it is repo-level and unlike an app's: it rides no release train (§ 8.2), it is applied by playbook runs on its own occasions (§ 7), its dependency bumps are human-reviewed because they run as root (§ 9.1), and it holds the root playbooks and the vault pointers, so its access list is naturally the shortest in the org.
+Co-locating it in one arbitrary app repo would be an asymmetry every second reader has to be told about.
+
+Within an app repo, the monorepo's benefits remain direct: apps and the packages they share version together, cross-cutting changes land as one atomic commit, and it is safe because a repo is one access boundary (§ 9.2).
+With several apps in one repo, deploys are per-app and promotion is repo-wide (the release train — § 8.2); a product that persistently needs its own release cadence is the one reason to give it its own repo within the tenant's org.
+Adding an app to the tenant therefore touches two repos: the app itself lands in its source repo, and its domain, port, and env values land as one inventory record in the platform repo (§ 7.1).
+That is the design working, not friction: the ops-side act of binding an app to a host is explicit and reviewed.
 
 
 ## § 4 The toolchain
@@ -207,7 +221,7 @@ A Python or Go app takes the same contract with different incantations behind th
 ### § 4.2 The JS/TS toolchain
 
 > - Every Plexus JS/TS repo MUST use the toolchain of this section.
-> - JS/TS tenant repos MUST use the monorepo pattern: pnpm workspace plus Turborepo.
+> - JS/TS app repos MUST use the monorepo pattern: pnpm workspace plus Turborepo.
 > - Turborepo owns the task graph: leaf tasks are `package.json` scripts, `turbo.json` states the task rules (`build`, `typecheck`, and `test` depend on `^build`), and the workspace edges are read from each `package.json` — the graph MUST NOT be re-encoded in mise tasks or CI configuration.
 > - Leaf projects MUST NOT carry a `mise.toml`; the root verbs delegate to turbo.
 > - mise MUST install only node for the JS/TS toolchain; the package manager arrives through node itself — a `postinstall` hook enables corepack, which installs the pnpm version pinned in the root `package.json` `packageManager` field, the single pnpm pin (Turborepo requires the field anyway).
@@ -251,9 +265,21 @@ Toolchain pinning follows § 4 — so setup is `git clone && mise :dev` everywhe
 
 > - Every app MUST provide a `compose.yaml` declaring the app service and any app-owned infrastructure.
 > - Every service in it MUST carry the label `plexus.tenant=<slug>` (§ 3.2).
+> - Every app MUST have exactly one source repo (§ 1.3): an app repo for software the tenant builds, or the platform repo — at `apps/<app-name>/` — for third-party software the tenant merely operates.
+> - `compose.yaml` and `env.schema` MUST reach the app's host directory (§ 7.1) through the deploy verb, taken from the invoking checkout of the source repo at deploy time; the platform playbook MUST NOT copy them (deferred — see the Manual's roadmap).
 
 App-owned infrastructure means services that live and die with the app — a database container is the § 6.2 profile's case.
 The platform reads runtime truth from the host (`docker ps`, labels), never from a bookkeeping database, which is why the labels matter.
+
+A tenant's platform is its own sovereign Vercel or Railway, and the ownership split follows that analogy exactly.
+Such a platform owns env values, domains, routing, and secrets; it does not own the app's run shape, which stays in the app's repo as a Dockerfile or a `railway.toml`.
+`compose.yaml` is the run shape: the migrate command, a worker service added in the same commit as the job queue, a new data service, the container port, the backup labels.
+Every one of those facts changes with the code, so the file versions with the code, and dev runs the identical file locally.
+Because the deploy verb runs from a checkout of the source repo — an app repo's CI, or the platform repo for a third-party app — it has the file, and shipping it to the host before `pull` means the compose file on the host always matches the image tag being deployed.
+
+Third-party software fits without a second mechanism: a third-party app is an app whose source repo is the platform repo.
+Its `compose.yaml`, `env.schema`, and `PLEXUS.md` live at `apps/<app-name>/` there, its image is someone else's, and the same deploy verb is mounted on the platform repo instead of an app repo's CI (§ 8.2).
+Same verb, two mounts.
 
 ### § 5.3 The env schema
 
@@ -267,9 +293,11 @@ The platform reads runtime truth from the host (`docker ps`, labels), never from
 > - Parsers MUST ignore full-line comments.
 > - Once the canonical parser ships from `ci-cd` (deferred — see the Manual's roadmap), every consumer of the schema MUST parse it through that parser; where this grammar is silent, that parser's behavior is normative. Until it ships, the grammar above is the sole normative definition.
 > - Secret values MUST NOT be committed; they are resolved from the tenant's vault when a platform playbook runs (§ 7.2).
+> - Values for an app's variables MUST be provided by the platform (§ 7.1, § 7.2), never committed in the source repo beyond the defaults the schema itself carries.
 
 The base format is not invented: it is plain dotenv, the same syntax `docker compose --env-file` and every language's dotenv library already parse; the only Plexus addition is the two-word flag vocabulary.
-The result is stack-neutral, greppable (`grep secret env.schema`), and checkable — the platform diffs the schema against the env it provides.
+The result is stack-neutral, greppable (`grep secret env.schema`), and checkable — the schema and the env the platform provides meet in the host's app directory, where the check runs (§ 7.2).
+The split mirrors any hosted platform: the app declares *what* it reads, the platform declares the *values* — in git, in the inventory record, instead of in a web UI.
 The single canonical parser, once shipped, is what keeps the micro-format from forking: an ambiguity is a parser bug to fix once, never a dialect to negotiate.
 
 ### § 5.4 One HTTP port
@@ -288,8 +316,10 @@ Platform-injected keys do not appear in `env.schema` — the schema declares wha
 > - The probe MUST include hard dependencies the app cannot serve without (its own database, with a short bounded timeout) and MUST NOT include soft or third-party dependencies the app survives degraded.
 > - The endpoint MUST be cheap, side-effect-free, and unauthenticated.
 > - The response SHOULD carry nothing beyond its status code: no version strings, no dependency names, no timings.
+> - A third-party app (§ 5.2) whose image cannot serve `/healthz` MUST declare its readiness path as the label `plexus.healthz=<path>` on its app service in `compose.yaml`, with the same semantics, and record the deviation in its `PLEXUS.md` (deferred — see the Manual's roadmap).
 
 The semantics are pinned because the deploy verb's rollback decision rides on this endpoint (§ 8.4), polling it bare over loopback.
+The label exists only for images the tenant does not build; absent the label, the verb polls `/healthz`, and the proxy fences the declared path just the same.
 Unauthenticated is not the same as private: ingress maps the public domain onto the same single port, so left alone `/healthz` would ride into the open as a free oracle for "is this app's database down" — the platform fences the path at the proxy (§ 7.1), and the empty response is belt and braces.
 Plexus deliberately does not split liveness from readiness: that distinction pays for itself only where a reconciler restarts processes on liveness, and the standard has no reconciler — one endpoint, one meaning.
 Transient dependency blips are the poller's problem, and handled there (§ 8.4).
@@ -356,21 +386,24 @@ Extending the backup vocabulary means adding one handler upstream — after whic
 A CI/CD system needs state (what exists), events (something changed), and procedures (make it so).
 Plexus puts state in git and in tools it doesn't author, takes events from systems someone else operates, and runs only stateless procedures — the platform duties of this section are all mounts and conventions over that model.
 
-> - The tenant MUST mount the platform as two playbooks: a provision playbook (base host setup — packages, hardening, container engine, ingress-server install) and a deploy playbook (ingress routes, app configuration, secrets, container bring-up).
+> - The tenant MUST mount the platform, in its platform repo (§ 3.6), as two playbooks: a provision playbook (base host setup — packages, hardening, container engine, ingress-server install) and a deploy playbook (ingress routes, app configuration, secrets, container bring-up).
 > - A role MUST belong wholly to one playbook; the deploy playbook MUST be re-runnable at any time against a provisioned host.
 
 The split is by change cadence, not by component: the provision playbook is for fresh hosts and deep-reaching changes, the deploy playbook is the everyday pass — and where one component spans both cadences (the ingress server), it is split into two roles rather than sliced with tags.
 
 ### § 7.1 Ingress
 
-> - Each app's host port MUST be assigned in the tenant's inventory (`apps[].port`), in the same record that binds its domain.
+> - Each app's host port MUST be assigned in the tenant's inventory (`apps[].port`), in the same record that binds its domain and names its source repo (`apps[].repo`).
+> - App names MUST be unique per tenant, across all of its repos.
+> - Non-secret values the platform provides to an app MUST be declared in the same record (`apps[].env`) and written to `platform.env`; secret values follow § 7.2.
 > - The reverse proxy SHOULD be Caddy.
 > - The playbook SHOULD fail on a duplicate host port per VM.
 > - The proxy SHOULD refuse external requests for `/healthz`.
 
 A reverse proxy per VM terminates TLS and maps domains to app ports.
 Each tenant's deploy playbook writes its routes into its own file — a per-tenant fragment imported by the proxy's root config — so tenants co-hosted on one VM never touch each other's routes.
-Because domain→port→app is one line in `platform/`, per-VM port uniqueness is checkable in a single file instead of being coordination state scattered across app repos.
+Because domain→port→app is one line in the platform repo's inventory, per-VM port uniqueness is checkable in a single file instead of being coordination state scattered across app repos.
+The app name is the join key across repos: the inventory record, the compose project, and the host directory all key on it, which is why it is unique per tenant rather than per repo.
 From that one record, the deploy playbook renders the ingress config *and* injects the port into the app's compose interpolation (§ 5.4): it writes the value to `<app_dir>/platform.env` on the host — the per-app directory the deploy playbook lays out as `<deploy root>/<tenant>/<app>` (e.g. `/opt/stacks/plexus/website`) — and the deploy verb hands that file to compose alongside its own `.env` — the verb itself stays port-unaware.
 The same file pins the compose project name to `<tenant>-<app>`: container and network names all derive from the project name, and its directory-basename default would collide the moment two co-hosted tenants deploy an app with the same name.
 
@@ -385,14 +418,17 @@ A tenant that points an external uptime monitor at it does so as an owned deviat
 > - `secrets.env` on the host MUST be owned by the deploy user, mode 0600, never world-readable.
 > - The playbook MUST re-create the affected containers whenever `secrets.env` changed; rotation MUST NOT be left to ride along on whenever the next deploy happens to run.
 > - Once the compose-up verb ships from `ci-cd` (deferred — see the Manual's roadmap), the compose-up invocation MUST be encoded exactly once, as that verb, called by both the deploy verb's up step and the rotation handler.
+> - Before pulling, the deploy verb MUST check on the host that every key `env.schema` flags `required` is present by name in `platform.env` or `secrets.env`, reading key names only, and MUST fail the deploy on a missing key (deferred — see the Manual's roadmap).
 
 Two flows, both resolved when a platform playbook runs:
 
-- **Platform secrets** (deploy SSH key, registry credentials): the tenant's committed `platform/secrets.env` is a dotenv file of `op://` pointers — it holds no values, so it is safe in git — and the playbook wrapper (`ansible-playbookw`) runs `op run -- ansible-playbook <playbook>`, which resolves the pointers into env vars either playbook reads.
+- **Platform secrets** (deploy SSH key, registry credentials): the platform repo's committed `secrets.env` is a dotenv file of `op://` pointers — it holds no values, so it is safe in git — and the playbook wrapper (`ansible-playbookw`) runs `op run -- ansible-playbook <playbook>`, which resolves the pointers into env vars either playbook reads.
 - **App runtime secrets:** each key marked `# secret` in an app's `env.schema` (§ 5.3) is declared in the tenant's inventory (`apps[].secrets`), resolved from the vault, and written to `<app_dir>/secrets.env` on the host; the app's compose file loads it via `env_file`.
 
 The deploy verb never touches secrets.
-Three env files sit in the app directory, and each has exactly one writer: the deploy playbook owns `secrets.env` (secret values) and `platform.env` (non-secret platform bindings such as the host port — § 7.1), the deploy verb owns `.env` (the image ref) — no file has two writers.
+Five files sit in the app directory, and each has exactly one writer: the deploy playbook owns `secrets.env` (secret values) and `platform.env` (non-secret platform bindings and values — § 7.1), the deploy verb owns `.env` (the image ref) and places `compose.yaml` and `env.schema` from the source repo (§ 5.2) — no file has two writers.
+The app directory is where the two halves of the seam meet: the source repo brings the run shape and the schema, the platform brings the values, and the schema check runs there because only there are both present.
+Reading key names is the one deliberate nuance to "never touches secrets": the verb learns that a key exists, never what it holds.
 
 Rotation is complete only when the running process holds the new value: environment is injected at container *creation*, so rewriting `secrets.env` on its own rotates a file, not a credential.
 The full loop — change the vault item → re-run the playbook → re-create the affected containers — closes inside the playbook: the role that writes `secrets.env` notifies a handler, and compose re-creates exactly the services whose environment differs.
@@ -401,7 +437,7 @@ A redeploy also picks up the current `secrets.env` as a side effect of re-creati
 
 ### § 7.3 Backups (deferred)
 
-> - Backup schedule and retention MUST live as code in the tenant's `platform/`.
+> - Backup schedule and retention MUST live as code in the tenant's platform repo.
 > - The backup job MUST discover what to dump by reading the `plexus.backup` labels (§ 6.2).
 > - A new backup path MUST pass one end-to-end restore before it is relied upon, and MUST be re-verified after any material change to the path.
 > - A scheduled restore test SHOULD run at least monthly: restore the latest snapshot of each labelled data service into a scratch container, run a sanity check, and ping its own dead-man's-switch check (§ 7.4), separate from the backup job's.
@@ -419,8 +455,8 @@ flowchart TB
   deploy["deploy mount (§ 8.4–8.5)<br>push → CI: verbs + image build → deploy verb<br>over ssh: pull · migrate · up · poll /healthz · rollback"]
   subgraph vm["tenant VM (one tenant per VM — § 3.5)"]
     caddy["Caddy (§ 7.1)<br>TLS · domain → host port (both from inventory)<br>refuses public /healthz"]
-    subgraph appdir["app directory — compose.yaml from git, plus three env files, each with exactly one writer (§ 7.2)"]
-      compose["compose.yaml — from git (§ 5.2)"]
+    subgraph appdir["app directory — five files, each with exactly one writer (§ 7.2)"]
+      compose["compose.yaml + env.schema — from the source repo (§ 5.2)"]
       dotenv[".env"]
       platformenv["platform.env"]
       secretsenv["secrets.env (0600)"]
@@ -432,6 +468,7 @@ flowchart TB
   provisioning -- "writes: host port" --> platformenv
   provisioning -- "writes: vault secrets" --> secretsenv
   deploy -- "writes: image tag" --> dotenv
+  deploy -- "places from the source repo" --> compose
   caddy -- "127.0.0.1:${PLEXUS_APP_PORT}" --> app
   app --> data
   backup -. "discovers by label" .-> data
@@ -467,7 +504,8 @@ This section defines the branch model built on that fact, the release train that
 
 ### § 8.1 Environment branches
 
-> - Tenant monorepos MUST use environment branches: `main`→prod, `develop`→staging.
+> - App repos MUST use environment branches: `main`→prod, `develop`→staging.
+> - The platform repo SHOULD have a single `main`; environments are inventory groups, never branches.
 > - Apps MUST NOT use changesets.
 > - A hotfix branches from `main` and merges to `main`; it MUST be back-merged `main → develop` immediately.
 > - Staging and prod MAY share a VM or take one each — both sit inside one tenant's trust domain; § 3.5 partitions tenants, not environments.
@@ -477,7 +515,8 @@ Since a release is a deploy keyed by SHA, there are no version numbers to reconc
 Release tooling built for registries (changesets) has nothing to version in an app repo, which is why it is excluded outright.
 The hotfix back-merge keeps the branches converging.
 
-Which host an environment *is*, is inventory, not convention: `main`→prod and `develop`→staging name deploy targets, and the binding — which VM, which `apps[]` record, which domain — lives in the tenant's `platform/` inventory (§ 7.1), where the CI mount reads it.
+Which host an environment *is*, is inventory, not convention: `main`→prod and `develop`→staging name deploy targets, and the binding — which VM, which `apps[]` record, which domain — lives in the platform repo's inventory (§ 7.1), where the CI mount reads it.
+The platform repo itself needs no environment branches because it rides no train (§ 8.2): staging and prod are two inventory groups in one file, and a playbook run targets one of them.
 
 ### § 8.2 The release train
 
@@ -493,7 +532,8 @@ The deploy verb needs no change for this: it was per-app all along (§ 8.4), and
 Promotion is the whole train: `develop → main` asserts *everything on `develop` is prod-ready*, and selective promotion would put on prod a repo state that never existed on staging — destroying the one guarantee environment branches exist to give.
 
 Two boundaries of the train:
-`platform/` rides no train — it is not an app and the deploy verb never touches it; applying it is a playbook run (`provision.yml` or `deploy.yml`, § 7), its own mount, on its own occasions.
+The platform repo rides no train — its ops side is not an app and the deploy verb never touches it; applying it is a playbook run (`provision.yml` or `deploy.yml`, § 7), its own mount, on its own occasions.
+Third-party apps hosted in the platform repo (§ 5.2) are the exception that proves it: they *are* apps, so the deploy verb does touch them — mounted on the platform repo's `main` and fanned out by the same `changed-apps` verb over its `apps/` (deferred — see the Manual's roadmap).
 And the escape valve is a repo split, not a process patch: if two products in one tenant *persistently* need independent release cadences, move one into its own repo (still inside the tenant's org and access boundary, still on the same contract — § 3.6) — granularity problems are solved by moving a product off the train, never by making promotion partial.
 
 ### § 8.3 Failed deploys & recovery
@@ -512,7 +552,9 @@ The verb's own authoring rules are the [Manual](manual.md)'s subject.
 
 ```
 deploy(host, tenant, app, image_tag):
-  ssh → docker compose pull
+  ssh → place compose.yaml + env.schema from the invoking checkout (§ 5.2)
+      → check required keys by name against platform.env + secrets.env (§ 7.2)
+      → docker compose pull
       → docker compose run --rm migrate   # only if compose.yaml declares it (§ 6.2);
                                           # same image, idempotent, roll-forward-only
       → docker compose up -d
@@ -574,7 +616,7 @@ Take the dependency, override at the edge, never fork the base.
 
 > - Every tenant repo MUST run an automated update bot that watches its pins and opens update PRs.
 > - The update bot SHOULD be Renovate, extending the shared preset (`plexus-ms/renovate-config` — deferred, not yet shipped; until then a tenant configures Renovate directly).
-> - Tenants MUST pin the `plexus.platform` collection by tag in `platform/requirements.yml`.
+> - Tenants MUST pin the `plexus.platform` collection by tag in the platform repo's `requirements.yml`.
 > - For `@plexus-ms/*` packages, CI-green patch/minor auto-merge MAY be enabled and is the recommended default.
 > - For CI-workflow and verb tag bumps, auto-merge MAY be enabled; a tenant whose CI holds sensitive credentials SHOULD review these PRs instead.
 > - Update PRs for the `plexus.platform` Ansible collection SHOULD NOT be auto-merged; a human reads the diff before anything new runs as root.
@@ -586,8 +628,11 @@ The default posture is deliberately not trust-maximal: unattended propagation is
 
 ### § 9.2 Dependency mechanics
 
-> - A shared thing that crosses a tenant boundary MUST be consumed as a published, versioned package; a shared thing inside one tenant is a workspace dependency.
+> - A shared thing that crosses a repo boundary MUST be consumed as a published, versioned artifact; a shared thing inside one repo is a workspace dependency.
+> - Within a tenant, such an artifact MAY be published to the tenant's private registry.
 
-A monorepo has one access boundary, so it cannot span tenants without dissolving the federation — that single fact generates the rule.
-Within a tenant: monorepo plus pnpm workspaces — instant edits, atomic cross-package commits, no publish overhead, safe because it is one access boundary.
-Across tenants: published, versioned packages (§ 2) — the only mechanism that crosses org boundaries, buying decoupled upgrade timing (a consumer pins `^2` and upgrades when *it* chooses) and update-bot propagation (the bot needs a version to detect).
+A repo has one access boundary and one release train, so nothing can be shared across repos by reference without dissolving one or the other — that single fact generates the rule.
+Within a repo: pnpm workspaces — instant edits, atomic cross-package commits, no publish overhead, safe because it is one access boundary.
+Across repos: published, versioned packages (§ 2) — the only mechanism that crosses a boundary, buying decoupled upgrade timing (a consumer pins `^2` and upgrades when *it* chooses) and update-bot propagation (the bot needs a version to detect).
+Two repos of one tenant are no exception: a private package in the tenant's own registry crosses their boundary the same way, and a shared thing that hurts to publish is a signal the repo split was wrong, never a reason to reach across (§ 8.2).
+Across tenants, only upstream methodology travels (§ 3.1).

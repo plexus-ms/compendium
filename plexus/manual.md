@@ -33,7 +33,7 @@ Unlike the standard, this document carries no BCP 14 keywords: its rules are wri
 | **`ci-cd`** — ops side, the CI/CD flows (§ 8 PLX) | The portable bash verbs (`scripts/deploy.sh`) and the thin reusable workflow wrappers that mount them on the forge. |
 | **`preset-repo-web`** — dev side, the app-repo template | A copier template that generates a tenant app repo (§ 3.6 PLX) — a web monorepo with `apps/` consuming the packages — and keeps generated repos re-syncable via `copier update`. |
 | **`preset-app-nextjs`** — the app template | A copier template for a Next.js app inside a tenant app repo: contract-verb scripts, Dockerfile, `compose.yaml` with the `web` service and contract labels. |
-| **`preset-platform`** — ops side, the platform-repo template | A copier template for a tenant's platform repo (§ 3.6 PLX): the two playbooks, inventory, the `op://`-pointer env files, binding the Ansible collection, plus the `apps/` directory and workflow that deploy third-party apps from `main`. |
+| **`preset-repo-platform`** — ops side, the platform-repo template | A copier template for a tenant's platform repo (§ 3.6 PLX): the two playbooks, inventory, the `op://`-pointer env files, binding the Ansible collection, plus the `apps/` directory and workflow that deploy third-party apps from `main`. |
 | **`compendium`** — the doctrine | The three documents (Manifesto, Standard, Manual), the generated requirements list, and the supporting reference docs. |
 
 The dogfood tenant `plexus` lives in its own org, `plexus-ms-tenant` — a `platform` repo and a `web` monorepo, laid out per § 3.6 PLX — and is bound by the standard like any other tenant, not by this manual.
@@ -93,7 +93,7 @@ Packages follow semver, enforced by changesets — a breaking change is a major 
 
 ## the release train: versioning the ops artifacts
 
-The release repos — `platform`, `ci-cd`, `preset-repo-web`, `preset-app-nextjs`, `preset-platform` — version in lockstep: one release train, one plain-semver tag (`0.22.0`, no `v` prefix), stamped on every train repo whether or not it changed.
+The release repos — `platform`, `ci-cd`, `preset-repo-web`, `preset-app-nextjs`, `preset-repo-platform` — version in lockstep: one release train, one plain-semver tag (`0.22.0`, no `v` prefix), stamped on every train repo whether or not it changed.
 The train is the tested set: the only combination ever validated is the one the dogfood tenant runs together, so independent per-repo version lines named compatibility cells nobody tests — a fiction the lockstep number retires.
 Because an unchanged repo still gets the tag, every cross-repo pin — the preset's platform pin, a tenant's workflow refs — can cite the train version and be right by construction; the umbrella `ship` task writes that bookkeeping (pins, the galaxy version), tags, pushes, and copier-updates consumers in one pass.
 Minor bumps are routine trains; a major bump signals tenant-breaking changes (expect migration steps on `copier update`); patch is reserved for hotfix trains.
@@ -105,7 +105,7 @@ Tenants pin the collection by tag (§ 9.1 PLX); the tag-mutability trade-off thi
 
 ## the presets: the templates
 
-`copier copy gh:plexus-ms/preset-repo-web <tenant>/web` generates a tenant's web monorepo (an app repo — § 3.6 PLX), and `copier copy gh:plexus-ms/preset-app-nextjs <tenant>/web/apps/<app>` adds an app to it; `copier copy gh:plexus-ms/preset-platform <tenant>/platform` generates the platform repo.
+`copier copy gh:plexus-ms/preset-repo-web <tenant>/web` generates a tenant's web monorepo (an app repo — § 3.6 PLX), and `copier copy gh:plexus-ms/preset-app-nextjs <tenant>/web/apps/<app>` adds an app to it; `copier copy gh:plexus-ms/preset-repo-platform <tenant>/platform` generates the platform repo.
 `copier update` re-applies template changes as a three-way merge against local edits, surfacing conflicts explicitly — template as living dependency, not `cp`.
 
 Since the standard defers the concrete toolchain arrangement to the preset (§ 4.2 PLX), the template is an *arrangement authority*, not a convenience: it needs real versioning discipline — it ships on the release train like the other ops artifacts, with `copier update` treated as the structural counterpart of a dependency bump.

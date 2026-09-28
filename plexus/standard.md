@@ -553,21 +553,23 @@ The verb's own authoring rules are the [Manual](manual.md)'s subject.
 
 ```
 deploy(host, tenant, app, image_tag):
-  ssh → place compose.yaml + env.schema from the invoking checkout (§ 5.2)
+  ssh → stage compose.yaml + env.schema from the invoking checkout (§ 5.2)
       → check required keys by name against platform.env + secrets.env (§ 7.2)
-      → docker compose pull
+      → docker compose pull                # against the staged compose file
       → docker compose run --rm migrate   # only if compose.yaml declares it (§ 6.2);
                                           # same image, idempotent, roll-forward-only
+      → swap the staged run shape into place, keeping the previous one
       → docker compose up -d
       → poll /healthz
-      → on failure: re-up previous tag, alert
+      → on failure: restore the previous run shape, re-up previous tag, alert
 ```
 
-A migrate failure aborts before `up`, so the previous release keeps serving — the failing job is the alert.
+A failure anywhere before the swap — a missing required key, a pull, a migrate — leaves the host exactly as it was, so the previous release keeps serving from its own compose file — the failing job is the alert.
 
 It reads everything from git (compose, env schema) and from the host (`docker ps` is runtime truth) and stores nothing.
 "Which version is live" is the running container's image tag, queryable from reality.
-Rollback needs no memory across runs — the verb reads the currently-running tag from `docker ps` *before* it pulls anything, and the image behind that tag is still in the host's cache and the registry.
+Rollback needs no memory across runs — the verb reads the currently-running tag from `docker ps` *before* it pulls anything, keeps the previous compose file until the run ends, and the image behind that tag is still in the host's cache.
+The rollback path never pulls: it must work while the registry is down or a tag has been pruned, so it re-launches the cached image under the compose file it was serving from.
 
 The healthcheck poll is deadline-based, not one-shot: the verb retries `/healthz` until it answers 200 or a deadline expires (reference: ~60 s).
 A transient blip inside the window is absorbed; only sustained not-ready fails the deploy.

@@ -67,7 +67,7 @@ order: 2
 - The platform repo MUST NOT hold the source of an app the tenant builds itself; it MAY hold third-party apps the tenant merely operates (§ 5.2).
 - App repos SHOULD use the monorepo pattern: one repo holding `apps/` and `packages/` for one web ecosystem; a tenant SHOULD start with a single web monorepo and add a further app repo only for a product that persistently needs its own release cadence (§ 8.2).
 - The platform repo SHOULD be named `platform` and the default web monorepo `web`; further app repos are named after their product.
-- App repos SHOULD be generated from `plexus-ms/preset-repo-web`, apps within them from `plexus-ms/preset-app-nextjs`, and the platform repo from `plexus-ms/preset-platform`.
+- App repos SHOULD be generated from `plexus-ms/preset-repo-web`, apps within them from `plexus-ms/preset-app-nextjs`, and the platform repo from `plexus-ms/preset-repo-platform`.
 
 ## § 4 The toolchain
 

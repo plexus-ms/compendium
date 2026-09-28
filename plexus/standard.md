@@ -404,8 +404,10 @@ The configure playbook is deliberately not called a deploy: deploying is the ver
 > - The reverse proxy SHOULD be Caddy.
 > - The playbook SHOULD fail on a duplicate loopback port per VM.
 > - The proxy SHOULD refuse external requests for `/healthz`.
+> - An app MAY be served under a path prefix (`apps[].path`) of a host it shares with other apps of the same tenant; the proxy MUST strip the prefix before the request reaches the app, and a host MUST serve at most one app per prefix and at most one at its root.
 
 A reverse proxy per VM terminates TLS and maps domains to app ports.
+Apps sharing a host are told apart by path prefix, and the prefix is stripped on the way in, so an app stays as deployable under any prefix as under any hostname (§ 5.4): it serves from its own root and learns the public URL it needs for links from its environment (`apps[].env`).
 Each tenant's configure playbook writes its routes into its own file — a per-tenant fragment imported by the proxy's root config — so tenants co-hosted on one VM never touch each other's routes.
 Because host→port→app is one line in the platform repo's inventory, per-VM port uniqueness is checkable in a single file instead of being coordination state scattered across app repos.
 The app name is the join key across repos: the inventory record, the compose project, and the host directory all key on it, which is why it is unique per tenant rather than per repo.

@@ -169,6 +169,7 @@ order: 2
 - The reverse proxy SHOULD be Caddy.
 - The playbook SHOULD fail on a duplicate loopback port per VM.
 - The proxy SHOULD refuse external requests for `/healthz`.
+- An app MAY be served under a path prefix (`apps[].path`) of a host it shares with other apps of the same tenant; the proxy MUST strip the prefix before the request reaches the app, and a host MUST serve at most one app per prefix and at most one at its root.
 
 ### § 7.2 Secrets
 

@@ -1,5 +1,5 @@
 ---
-title: The Plexus Manifesto
+title: The Plexus Manifesto!
 short_title: The Manifesto
 description: Why Plexus exists — the fog problem, and the foundational premises and principles Plexus is built upon.
 version: v0

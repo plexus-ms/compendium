@@ -51,7 +51,7 @@ The standard's vocabulary, defined once:
   A tenant has one or more repos: exactly one **platform repo** holding the ops side (§ 3.6, § 7), and any number of **app repos** holding the dev side.
   One trust domain, N release trains, one platform repo.
 - **App** — one deployable unit satisfying the app contract (§ 5).
-  Its **source repo** — the repo holding its `compose.yaml`, `env.schema`, and `PLEXUS.md` — is an app repo for software the tenant builds, or the platform repo for third-party software the tenant merely operates (§ 5.2).
+  Its **source repo** — the repo holding its `compose.yaml` and `PLEXUS.md` — is an app repo for software the tenant builds, or the platform repo for third-party software the tenant merely operates (§ 5.2).
 - **Primitive** — any named guideline, tool, or approach the initiative ships or prescribes: a verb, a mount, an Ansible role, a published package, the copier template, a label scheme, a file layout, an endpoint path.
   Decided once, reused, versioned and published, or otherwise propagated (§ 9).
 - **Verb** — a stateless, hand-runnable procedure that does one operational thing (deploy, backup, migrate, …), authored in a portable manner.
@@ -190,7 +190,7 @@ Co-locating it in one arbitrary app repo would be an asymmetry every second read
 
 Within an app repo, the monorepo's benefits remain direct: apps and the packages they share version together, cross-cutting changes land as one atomic commit, and it is safe because a repo is one access boundary (§ 9.2).
 With several apps in one repo, deploys are per-app and promotion is repo-wide (the release train — § 8.2); a product that persistently needs its own release cadence is the one reason to give it its own repo within the tenant's org.
-Adding an app to the tenant therefore touches two repos: the app itself lands in its source repo, and its domain, port, and env values land as one inventory record in the platform repo (§ 7.1).
+Adding an app to the tenant therefore touches two repos: the app itself lands in its source repo, and its host, loopback port, and env values land as one inventory record in the platform repo (§ 7.1).
 That is the design working, not friction: the ops-side act of binding an app to a host is explicit and reviewed.
 
 
@@ -266,7 +266,7 @@ Toolchain pinning follows § 4 — so setup is `git clone && mise :dev` everywhe
 > - Every app MUST provide a `compose.yaml` declaring the app service and any app-owned infrastructure.
 > - Every service in it MUST carry the label `plexus.tenant=<slug>` (§ 3.2).
 > - Every app MUST have exactly one source repo (§ 1.3): an app repo for software the tenant builds, or the platform repo — at `apps/<app-name>/` — for third-party software the tenant merely operates.
-> - `compose.yaml` and `env.schema` MUST reach the app's host directory (§ 7.1) through the deploy verb, taken from the invoking checkout of the source repo at deploy time; the platform playbook MUST NOT copy them.
+> - `compose.yaml` MUST reach the app's host directory (§ 7.1) through the deploy verb, rendered from the invoking checkout of the source repo at deploy time with the image ref pinned (§ 5.3); the platform playbooks MUST NOT copy it.
 
 App-owned infrastructure means services that live and die with the app — a database container is the § 6.2 profile's case.
 The platform reads runtime truth from the host (`docker ps`, labels), never from a bookkeeping database, which is why the labels matter.
@@ -275,40 +275,44 @@ A tenant's platform is its own sovereign Vercel or Railway, and the ownership sp
 Such a platform owns env values, domains, routing, and secrets; it does not own the app's run shape, which stays in the app's repo as a Dockerfile or a `railway.toml`.
 `compose.yaml` is the run shape: the migrate command, a worker service added in the same commit as the job queue, a new data service, the container port, the backup labels.
 Every one of those facts changes with the code, so the file versions with the code, and dev runs the identical file locally.
-Because the deploy verb runs from a checkout of the source repo — an app repo's CI, or the platform repo for a third-party app — it has the file, and shipping it to the host before `pull` means the compose file on the host always matches the image tag being deployed.
+Because the deploy verb runs from a checkout of the source repo — an app repo's CI, or the platform repo for a third-party app — it has the file, and rendering it onto the host before `pull` means the compose file on the host always names the image being deployed.
 
 Third-party software fits without a second mechanism: a third-party app is an app whose source repo is the platform repo.
-Its `compose.yaml`, `env.schema`, and `PLEXUS.md` live at `apps/<app-name>/` there, its image is someone else's, and the same deploy verb is mounted on the platform repo instead of an app repo's CI (§ 8.2).
+Its `compose.yaml` and `PLEXUS.md` live at `apps/<app-name>/` there, its image is someone else's and pinned in the file, and the same deploy verb is mounted on the platform repo instead of an app repo's CI (§ 8.2).
 Same verb, two mounts.
 
-### § 5.3 The env schema
+### § 5.3 The environment
 
-> - Every app MUST provide an `env.schema` file at the app root declaring every variable the app reads.
-> - One variable per line, `KEY=value` dotenv syntax; every variable the app reads MUST be listed.
-> - The value position MUST hold the default; an empty value means no default.
-> - Flags MUST be a trailing comment on the same line as the key — `# required`, `# secret` — whitespace-separated, combinable in either order.
-> - A trailing comment MUST hold flags and nothing else; a trailing comment containing anything outside the flag vocabulary is a schema error — rejected, never skipped. Prose belongs in full-line comments.
-> - A value containing a literal `#` MUST be quoted; an unquoted `#` starts a comment.
-> - An unflagged key is optional and non-secret; a `secret` key MUST have an empty value position — a default secret in git is a leak, not a default.
-> - Parsers MUST ignore full-line comments.
-> - Once the canonical parser ships from `ci-cd` (deferred — see the Manual's roadmap), every consumer of the schema MUST parse it through that parser; where this grammar is silent, that parser's behavior is normative. Until it ships, the grammar above is the sole normative definition.
-> - Secret values MUST NOT be committed; they are resolved from the tenant's vault when a platform playbook runs (§ 7.2).
-> - Values for an app's variables MUST be provided by the platform (§ 7.1, § 7.2), never committed in the source repo beyond the defaults the schema itself carries.
+> - Every value the platform provides to an app MUST reach it as an environment variable, through the two files of § 7.2: `.env` for non-secret values and `.env.secret` for secrets.
+> - `compose.yaml` MUST load both files via `env_file`, `.env.secret` marked optional, so the same file runs in development with a local `.env` alone.
+> - Deployment values and secrets MUST be declared in the app's inventory record (§ 7.1, § 7.2) and MUST NOT be committed in the source repo.
+> - The `PLEXUS_` prefix is reserved for platform-provided bindings; an app MUST NOT define keys of its own under it.
+> - `compose.yaml` MUST reference the app's own image as `${PLEXUS_DEPLOYMENT_IMAGE}`; the deploy verb pins the concrete ref in its place when it renders the file onto the host (§ 5.2, § 8.4).
 
-The base format is not invented: it is plain dotenv, the same syntax `docker compose --env-file` and every language's dotenv library already parse; the only Plexus addition is the two-word flag vocabulary.
-The result is stack-neutral, greppable (`grep secret env.schema`), and checkable — the schema and the env the platform provides meet in the host's app directory, where the check runs (§ 7.2).
-The split mirrors any hosted platform: the app declares *what* it reads, the platform declares the *values* — in git, in the inventory record, instead of in a web UI.
-The single canonical parser, once shipped, is what keeps the micro-format from forking: an ambiguity is a parser bug to fix once, never a dialect to negotiate.
+The seam is "the platform hands the app an environment", and nothing more is said about it.
+What the app reads is recorded in its code; what the platform provides is recorded in the inventory record, one per app.
+No file in between declares or validates the variables: whether an app checks its environment at startup is its interior, and a process that cannot start fails the readiness poll and is rolled back like any other bad release (§ 8.4).
+
+The reserved vocabulary is small, and each name has one provider:
+
+| Variable | Provided by | When | How it reaches compose |
+|---|---|---|---|
+| `COMPOSE_PROJECT_NAME` | configure playbook, `<tenant>-<app>` | playbook run | `.env`, read implicitly |
+| `PLEXUS_LOOPBACK_PORT` | configure playbook, from `apps[].loopback_port` | playbook run | `.env`, read implicitly |
+| `PLEXUS_DEPLOYMENT_IMAGE` | deploy verb, from CI | deploy | pinned into `compose.yaml` |
+
+The one asymmetry is ownership: the port has a file with an owner on the host, the image ref does not — it is the release itself, known only at deploy time.
+Pinning it into the compose file, the way a third-party app's image is pinned in git, makes the on-host file the complete run shape: a human, the rotation handler (§ 7.2), and the verb all run a bare `docker compose up -d`, and compose finds everything it needs in the directory.
+`${PLEXUS_DEPLOYMENT_IMAGE:?rendered by the deploy verb}` is the recommended spelling: standard compose interpolation, and anyone running the unrendered file gets that message instead of a silent empty image.
 
 ### § 5.4 One HTTP port
 
 > - The app MUST serve plain HTTP on exactly one container port, published to loopback only.
-> - The app MUST NOT hardcode a host port; `compose.yaml` publishes via interpolation — `127.0.0.1:${PLEXUS_APP_PORT}:<container-port>`.
-> - The app MUST NOT define `PLEXUS_*` keys of its own; the prefix is reserved for platform-injected bindings.
+> - The app MUST NOT hardcode a host port; `compose.yaml` publishes via interpolation — `127.0.0.1:${PLEXUS_LOOPBACK_PORT}:<container-port>`.
 
-The host side of the binding is not the app's to choose: the host port is assigned by the platform from the tenant's inventory (§ 7.1) and injected at deploy time.
-TLS, hostnames, and the domain→port binding are likewise the platform's job; domain and host port alike are deployment substance, so the app stays deployable under any hostname and next to any neighbour.
-Platform-injected keys do not appear in `env.schema` — the schema declares what the *app* reads, while `PLEXUS_APP_PORT` is read by compose interpolation; the platform's schema diff ignores `platform.env` keys accordingly.
+The host side of the binding is not the app's to choose: the loopback port is assigned by the platform from the tenant's inventory (§ 7.1) and written to the app directory by the configure playbook.
+TLS, hostnames, and the host→port binding are likewise the platform's job; public host and loopback port alike are deployment substance, so the app stays deployable under any hostname and next to any neighbour.
+The binding reaches compose through the platform's `.env` in the app directory (§ 7.2), which compose reads implicitly; the app never reads it.
 
 ### § 5.5 Healthcheck
 
@@ -354,7 +358,6 @@ For apps holding no state of their own: static and marketing sites, stateless AP
 
 > - `compose.yaml` MUST declare only stateless services — no data services, no `plexus.backup` labels, and no `migrate` service.
 > - A `seed` task MAY be omitted.
-> - The env schema MAY declare zero secrets.
 
 The deploy verb checks `compose.yaml` for a `migrate` service, finds none, and moves on — uniform handling, with no knowledge of the profile.
 A stateless app degrades gracefully by construction: the host is fully reconstructable from git plus the image registry, with no data to restore.
@@ -387,25 +390,26 @@ Extending the backup vocabulary means adding one handler upstream — after whic
 A CI/CD system needs state (what exists), events (something changed), and procedures (make it so).
 Plexus puts state in git and in tools it doesn't author, takes events from systems someone else operates, and runs only stateless procedures — the platform duties of this section are all mounts and conventions over that model.
 
-> - The tenant MUST mount the platform, in its platform repo (§ 3.6), as two playbooks: a provision playbook (base host setup — packages, hardening, container engine, ingress-server install) and a deploy playbook (ingress routes, app configuration, secrets, container bring-up).
-> - A role MUST belong wholly to one playbook; the deploy playbook MUST be re-runnable at any time against a provisioned host.
+> - The tenant MUST mount the platform, in its platform repo (§ 3.6), as two playbooks: a provision playbook (base host setup — packages, hardening, container engine, ingress-server install) and a configure playbook (ingress routes, app configuration, secrets, container re-creation).
+> - A role MUST belong wholly to one playbook; the configure playbook MUST be re-runnable at any time against a provisioned host.
 
-The split is by change cadence, not by component: the provision playbook is for fresh hosts and deep-reaching changes, the deploy playbook is the everyday pass — and where one component spans both cadences (the ingress server), it is split into two roles rather than sliced with tags.
+The split is by change cadence, not by component: the provision playbook is for fresh hosts and deep-reaching changes, the configure playbook is the everyday pass — and where one component spans both cadences (the ingress server), it is split into two roles rather than sliced with tags.
+The configure playbook is deliberately not called a deploy: deploying is the verb's act (§ 8.4), keyed by an image, while the playbook binds apps to a host and hands them their environment.
 
 ### § 7.1 Ingress
 
-> - Each app's host port MUST be assigned in the tenant's inventory (`apps[].port`), in the same record that binds its domain and names its source repo (`apps[].repo`).
+> - Each app's loopback port MUST be assigned in the tenant's inventory (`apps[].loopback_port`), in the same record that binds its public host (`apps[].host`) and names its source repo (`apps[].repo`).
 > - App names MUST be unique per tenant, across all of its repos.
-> - Non-secret values the platform provides to an app MUST be declared in the same record (`apps[].env`) and written to `platform.env`; secret values follow § 7.2.
+> - Non-secret values the platform provides to an app MUST be declared in the same record (`apps[].env`) and written to `.env`; secret values follow § 7.2.
 > - The reverse proxy SHOULD be Caddy.
-> - The playbook SHOULD fail on a duplicate host port per VM.
+> - The playbook SHOULD fail on a duplicate loopback port per VM.
 > - The proxy SHOULD refuse external requests for `/healthz`.
 
 A reverse proxy per VM terminates TLS and maps domains to app ports.
-Each tenant's deploy playbook writes its routes into its own file — a per-tenant fragment imported by the proxy's root config — so tenants co-hosted on one VM never touch each other's routes.
-Because domain→port→app is one line in the platform repo's inventory, per-VM port uniqueness is checkable in a single file instead of being coordination state scattered across app repos.
+Each tenant's configure playbook writes its routes into its own file — a per-tenant fragment imported by the proxy's root config — so tenants co-hosted on one VM never touch each other's routes.
+Because host→port→app is one line in the platform repo's inventory, per-VM port uniqueness is checkable in a single file instead of being coordination state scattered across app repos.
 The app name is the join key across repos: the inventory record, the compose project, and the host directory all key on it, which is why it is unique per tenant rather than per repo.
-From that one record, the deploy playbook renders the ingress config *and* injects the port into the app's compose interpolation (§ 5.4): it writes the value to `<app_dir>/platform.env` on the host — the per-app directory the deploy playbook lays out as `<deploy root>/<tenant>/<app>` (e.g. `/opt/stacks/plexus/website`) — and the deploy verb hands that file to compose alongside its own `.env` — the verb itself stays port-unaware.
+From that one record, the configure playbook renders the ingress config *and* injects the port into the app's compose interpolation (§ 5.4): it writes the value to `<app_dir>/.env` on the host — the per-app directory the playbook lays out as `<deploy root>/<tenant>/<app>` (e.g. `/opt/stacks/plexus/website`) — which compose reads implicitly, so the verb itself stays port-unaware.
 The same file pins the compose project name to `<tenant>-<app>`: container and network names all derive from the project name, and its directory-basename default would collide the moment two co-hosted tenants deploy an app with the same name.
 
 The `/healthz` fence exists because the endpoint probes hard dependencies (§ 5.5): routing it publicly would publish a database-status oracle.
@@ -416,25 +420,26 @@ A tenant that points an external uptime monitor at it does so as an owned deviat
 > - Secret values MUST live only in the tenant's vault; git holds only references.
 > - The vault SHOULD be 1Password.
 > - Secrets MUST be resolved when a platform playbook runs, never by the deploy verb.
-> - `secrets.env` on the host MUST be owned by the deploy user, mode 0600, never world-readable.
-> - The playbook MUST re-create the affected containers whenever `secrets.env` changed; rotation MUST NOT be left to ride along on whenever the next deploy happens to run.
-> - Once the compose-up verb ships from `ci-cd` (deferred — see the Manual's roadmap), the compose-up invocation MUST be encoded exactly once, as that verb, called by both the deploy verb's up step and the rotation handler.
-> - Before pulling, the deploy verb MUST check on the host that every key `env.schema` flags `required` is present by name in `platform.env` or `secrets.env`, reading key names only, and MUST fail the deploy on a missing key.
+> - `.env.secret` on the host MUST be owned by the deploy user, mode 0600, never world-readable.
+> - The playbook MUST re-create the affected containers whenever `.env` or `.env.secret` changed; rotation MUST NOT be left to ride along on whenever the next deploy happens to run.
 
 Two flows, both resolved when a platform playbook runs:
 
 - **Platform secrets** (deploy SSH key, registry credentials): the platform repo's committed `secrets.env` is a dotenv file of `op://` pointers — it holds no values, so it is safe in git — and the playbook wrapper (`ansible-playbookw`) runs `op run -- ansible-playbook <playbook>`, which resolves the pointers into env vars either playbook reads.
-- **App runtime secrets:** each key marked `# secret` in an app's `env.schema` (§ 5.3) is declared in the tenant's inventory (`apps[].secrets`), resolved from the vault, and written to `<app_dir>/secrets.env` on the host; the app's compose file loads it via `env_file`.
+- **App runtime secrets:** each entry of the app's inventory record `apps[].secrets` is the same kind of `op://` pointer, resolved from the vault by the configure playbook and written to `<app_dir>/.env.secret` on the host; the app's compose file loads it via `env_file` (§ 5.3).
 
+One pointer syntax serves both flows, so every vault reference a tenant holds is greppable in one repo, and the inventory record stays free of lookup expressions.
 The deploy verb never touches secrets.
-Five files sit in the app directory, and each has exactly one writer: the deploy playbook owns `secrets.env` (secret values) and `platform.env` (non-secret platform bindings and values — § 7.1), the deploy verb owns `.env` (the image ref) and places `compose.yaml` and `env.schema` from the source repo (§ 5.2) — no file has two writers.
-The app directory is where the two halves of the seam meet: the source repo brings the run shape and the schema, the platform brings the values, and the schema check runs there because only there are both present.
-Reading key names is the one deliberate nuance to "never touches secrets": the verb learns that a key exists, never what it holds.
+Three files sit in the app directory, and each has exactly one writer: the configure playbook owns `.env` (platform bindings and non-secret values — § 7.1) and `.env.secret` (secret values), and the deploy verb owns `compose.yaml`, rendered from the source repo (§ 5.2) — no file has two writers.
+The app directory is where the two halves of the seam meet: the source repo brings the run shape, the platform brings the environment, and compose joins them by reading the directory.
 
-Rotation is complete only when the running process holds the new value: environment is injected at container *creation*, so rewriting `secrets.env` on its own rotates a file, not a credential.
-The full loop — change the vault item → re-run the playbook → re-create the affected containers — closes inside the playbook: the role that writes `secrets.env` notifies a handler, and compose re-creates exactly the services whose environment differs.
-The single-encoding rule exists because an Ansible handler that open-codes its own `docker compose up -d` is a second copy of the env-file wiring, waiting to drift.
-A redeploy also picks up the current `secrets.env` as a side effect of re-creating containers — yet the verb itself still never reads, writes, or resolves a secret.
+`.env` is written in three sections — compose's own setting, the reserved `PLEXUS_` bindings, then the values from `apps[].env` — each under a header line naming its origin, so the first file an operator opens explains itself.
+Because the app's compose file lists `.env` under `env_file`, compose's own setting and the reserved bindings also appear inside the container; that is harmless by construction, since the prefix is reserved and nothing else reads them.
+
+Rotation is complete only when the running process holds the new value: environment is injected at container *creation*, so rewriting `.env.secret` on its own rotates a file, not a credential.
+The full loop — change the vault item → re-run the playbook → re-create the affected containers — closes inside the playbook: the role that writes the two files notifies a handler, and compose re-creates exactly the services whose environment differs.
+That handler is a bare `docker compose up -d`, the same invocation the verb and a human use: compose reads `.env` implicitly and the image is pinned in the file, so there is no env-file wiring to encode twice.
+A redeploy also picks up the current `.env.secret` as a side effect of re-creating containers — yet the verb itself still never reads, writes, or resolves a secret.
 
 ### § 7.3 Backups (deferred)
 
@@ -452,30 +457,28 @@ A backup without a hand-runnable restore is write-only storage; a restore test t
 
 ```mermaid
 flowchart TB
-  provisioning["platform mount (§ 7.1–7.2)<br>op run -- ansible-playbook provision.yml / deploy.yml<br>reads inventory (apps[]) + vault"]
+  provisioning["platform mount (§ 7.1–7.2)<br>op run -- ansible-playbook provision.yml / configure.yml<br>reads inventory (apps[]) + vault"]
   deploy["deploy mount (§ 8.4–8.5)<br>push → CI: verbs + image build → deploy verb<br>over ssh: pull · migrate · up · poll /healthz · rollback"]
   subgraph vm["tenant VM (one tenant per VM — § 3.5)"]
-    caddy["Caddy (§ 7.1)<br>TLS · domain → host port (both from inventory)<br>refuses public /healthz"]
-    subgraph appdir["app directory — five files, each with exactly one writer (§ 7.2)"]
-      compose["compose.yaml + env.schema — from the source repo (§ 5.2)"]
+    caddy["Caddy (§ 7.1)<br>TLS · host → loopback port (both from inventory)<br>refuses public /healthz"]
+    subgraph appdir["app directory — three files, each with exactly one writer (§ 7.2)"]
+      compose["compose.yaml — rendered from the source repo, image pinned (§ 5.2)"]
       dotenv[".env"]
-      platformenv["platform.env"]
-      secretsenv["secrets.env (0600)"]
+      secretsenv[".env.secret (0600)"]
     end
     app["app container<br>plexus.tenant=slug<br>GET /healthz (readiness) · logs → stdout/stderr"]
     data["data container<br>plexus.tenant=slug · plexus.backup=postgres"]
     backup["nightly unit (§ 7.3)<br>dump per plexus.backup label → restic → off-site repo<br>pings its dead-man's-switch check (§ 7.4)"]
   end
-  provisioning -- "writes: host port" --> platformenv
+  provisioning -- "writes: loopback port, values" --> dotenv
   provisioning -- "writes: vault secrets" --> secretsenv
-  deploy -- "writes: image tag" --> dotenv
-  deploy -- "places from the source repo" --> compose
-  caddy -- "127.0.0.1:${PLEXUS_APP_PORT}" --> app
+  deploy -- "renders, image pinned" --> compose
+  caddy -- "127.0.0.1:${PLEXUS_LOOPBACK_PORT}" --> app
   app --> data
   backup -. "discovers by label" .-> data
 ```
 
-*Figure 2 (informative) — one tenant VM, assembled: the platform playbooks and the deploy verb write disjoint files, ingress reads the same inventory record that assigns the host port, and backups discover their targets from labels — §§ 7.1–7.4 in one picture.*
+*Figure 2 (informative) — one tenant VM, assembled: the platform playbooks and the deploy verb write disjoint files, ingress reads the same inventory record that assigns the loopback port, and backups discover their targets from labels — §§ 7.1–7.4 in one picture.*
 
 ### § 7.4 Scheduling & the dead-man's-switch (interim)
 
@@ -552,23 +555,23 @@ This section is informative: it describes what the shared deploy verb (`plexus-m
 The verb's own authoring rules are the [Manual](manual.md)'s subject.
 
 ```
-deploy(host, tenant, app, image_tag):
-  ssh → stage compose.yaml + env.schema from the invoking checkout (§ 5.2)
-      → check required keys by name against platform.env + secrets.env (§ 7.2)
-      → docker compose pull                # against the staged compose file
-      → docker compose run --rm migrate   # only if compose.yaml declares it (§ 6.2);
-                                          # same image, idempotent, roll-forward-only
-      → swap the staged run shape into place, keeping the previous one
-      → docker compose up -d
-      → poll /healthz
-      → on failure: restore the previous run shape, re-up previous tag, alert
+deploy(host, tenant, app, image_ref):
+  render compose.yaml from the invoking checkout, pinning image_ref (§ 5.2, § 5.3)
+  → ssh → stage the rendered file next to the one currently serving
+        → docker compose pull                # against the staged file
+        → docker compose run --rm migrate   # only if the file declares it (§ 6.2);
+                                            # same image, idempotent, roll-forward-only
+        → swap the staged file into place, keeping the previous one
+        → docker compose up -d
+        → poll /healthz
+        → on failure: restore the previous file, docker compose up -d, alert
 ```
 
-A failure anywhere before the swap — a missing required key, a pull, a migrate — leaves the host exactly as it was, so the previous release keeps serving from its own compose file — the failing job is the alert.
+A failure anywhere before the swap — a pull, a migrate — leaves the host exactly as it was, so the previous release keeps serving from its own compose file — the failing job is the alert.
 
-It reads everything from git (compose, env schema) and from the host (`docker ps` is runtime truth) and stores nothing.
-"Which version is live" is the running container's image tag, queryable from reality.
-Rollback needs no memory across runs — the verb reads the currently-running tag from `docker ps` *before* it pulls anything, keeps the previous compose file until the run ends, and the image behind that tag is still in the host's cache.
+It reads everything from git (the compose file) and from the host (`docker ps` is runtime truth) and stores nothing.
+"Which version is live" is the running container's image, queryable from reality, and equally the image pinned in the compose file the host serves from.
+Rollback needs no memory across runs — the verb keeps the previous compose file until the run ends, and the image it pins is still in the host's cache.
 The rollback path never pulls: it must work while the registry is down or a tag has been pruned, so it re-launches the cached image under the compose file it was serving from.
 
 The healthcheck poll is deadline-based, not one-shot: the verb retries `/healthz` until it answers 200 or a deadline expires (reference: ~60 s).
@@ -583,7 +586,7 @@ Rollback's limit: it re-ups the previous image; it never reverses a migration �
 That is sound only because the contract makes it sound: § 6.2 requires every migration to be backward-compatible with the release currently in production.
 For the rare deploy that deliberately breaks that discipline, reverting is a restore from backup, not a re-up.
 
-Two more edges, named rather than implied: a *first* deploy has no previous tag — if the poll fails, the verb simply fails loudly; nothing was serving before, so nothing is lost, and bringing a new app up is the operator's supervised act.
+Two more edges, named rather than implied: a *first* deploy has no previous compose file — if the poll fails, the verb simply fails loudly; nothing was serving before, so nothing is lost, and bringing a new app up is the operator's supervised act.
 And `compose up -d` re-creates containers in place, so every deploy buys its simplicity with a few seconds of downtime — the accepted trade at this scale; zero-downtime choreography is a deferred decision with a trigger, not an ambient expectation.
 
 ### § 8.5 The CI pipeline

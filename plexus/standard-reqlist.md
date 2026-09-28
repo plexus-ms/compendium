@@ -105,27 +105,20 @@ order: 2
 - Every app MUST provide a `compose.yaml` declaring the app service and any app-owned infrastructure.
 - Every service in it MUST carry the label `plexus.tenant=<slug>` (§ 3.2).
 - Every app MUST have exactly one source repo (§ 1.3): an app repo for software the tenant builds, or the platform repo — at `apps/<app-name>/` — for third-party software the tenant merely operates.
-- `compose.yaml` and `env.schema` MUST reach the app's host directory (§ 7.1) through the deploy verb, taken from the invoking checkout of the source repo at deploy time; the platform playbook MUST NOT copy them.
+- `compose.yaml` MUST reach the app's host directory (§ 7.1) through the deploy verb, rendered from the invoking checkout of the source repo at deploy time with the image ref pinned (§ 5.3); the platform playbooks MUST NOT copy it.
 
-### § 5.3 The env schema
+### § 5.3 The environment
 
-- Every app MUST provide an `env.schema` file at the app root declaring every variable the app reads.
-- One variable per line, `KEY=value` dotenv syntax; every variable the app reads MUST be listed.
-- The value position MUST hold the default; an empty value means no default.
-- Flags MUST be a trailing comment on the same line as the key — `# required`, `# secret` — whitespace-separated, combinable in either order.
-- A trailing comment MUST hold flags and nothing else; a trailing comment containing anything outside the flag vocabulary is a schema error — rejected, never skipped. Prose belongs in full-line comments.
-- A value containing a literal `#` MUST be quoted; an unquoted `#` starts a comment.
-- An unflagged key is optional and non-secret; a `secret` key MUST have an empty value position — a default secret in git is a leak, not a default.
-- Parsers MUST ignore full-line comments.
-- Once the canonical parser ships from `ci-cd` (deferred — see the Manual's roadmap), every consumer of the schema MUST parse it through that parser; where this grammar is silent, that parser's behavior is normative. Until it ships, the grammar above is the sole normative definition.
-- Secret values MUST NOT be committed; they are resolved from the tenant's vault when a platform playbook runs (§ 7.2).
-- Values for an app's variables MUST be provided by the platform (§ 7.1, § 7.2), never committed in the source repo beyond the defaults the schema itself carries.
+- Every value the platform provides to an app MUST reach it as an environment variable, through the two files of § 7.2: `.env` for non-secret values and `.env.secret` for secrets.
+- `compose.yaml` MUST load both files via `env_file`, `.env.secret` marked optional, so the same file runs in development with a local `.env` alone.
+- Deployment values and secrets MUST be declared in the app's inventory record (§ 7.1, § 7.2) and MUST NOT be committed in the source repo.
+- The `PLEXUS_` prefix is reserved for platform-provided bindings; an app MUST NOT define keys of its own under it.
+- `compose.yaml` MUST reference the app's own image as `${PLEXUS_DEPLOYMENT_IMAGE}`; the deploy verb pins the concrete ref in its place when it renders the file onto the host (§ 5.2, § 8.4).
 
 ### § 5.4 One HTTP port
 
 - The app MUST serve plain HTTP on exactly one container port, published to loopback only.
-- The app MUST NOT hardcode a host port; `compose.yaml` publishes via interpolation — `127.0.0.1:${PLEXUS_APP_PORT}:<container-port>`.
-- The app MUST NOT define `PLEXUS_*` keys of its own; the prefix is reserved for platform-injected bindings.
+- The app MUST NOT hardcode a host port; `compose.yaml` publishes via interpolation — `127.0.0.1:${PLEXUS_LOOPBACK_PORT}:<container-port>`.
 
 ### § 5.5 Healthcheck
 
@@ -150,7 +143,6 @@ order: 2
 
 - `compose.yaml` MUST declare only stateless services — no data services, no `plexus.backup` labels, and no `migrate` service.
 - A `seed` task MAY be omitted.
-- The env schema MAY declare zero secrets.
 
 ### § 6.2 The stateful app
 
@@ -166,16 +158,16 @@ order: 2
 
 ## § 7 The operations platform
 
-- The tenant MUST mount the platform, in its platform repo (§ 3.6), as two playbooks: a provision playbook (base host setup — packages, hardening, container engine, ingress-server install) and a deploy playbook (ingress routes, app configuration, secrets, container bring-up).
-- A role MUST belong wholly to one playbook; the deploy playbook MUST be re-runnable at any time against a provisioned host.
+- The tenant MUST mount the platform, in its platform repo (§ 3.6), as two playbooks: a provision playbook (base host setup — packages, hardening, container engine, ingress-server install) and a configure playbook (ingress routes, app configuration, secrets, container re-creation).
+- A role MUST belong wholly to one playbook; the configure playbook MUST be re-runnable at any time against a provisioned host.
 
 ### § 7.1 Ingress
 
-- Each app's host port MUST be assigned in the tenant's inventory (`apps[].port`), in the same record that binds its domain and names its source repo (`apps[].repo`).
+- Each app's loopback port MUST be assigned in the tenant's inventory (`apps[].loopback_port`), in the same record that binds its public host (`apps[].host`) and names its source repo (`apps[].repo`).
 - App names MUST be unique per tenant, across all of its repos.
-- Non-secret values the platform provides to an app MUST be declared in the same record (`apps[].env`) and written to `platform.env`; secret values follow § 7.2.
+- Non-secret values the platform provides to an app MUST be declared in the same record (`apps[].env`) and written to `.env`; secret values follow § 7.2.
 - The reverse proxy SHOULD be Caddy.
-- The playbook SHOULD fail on a duplicate host port per VM.
+- The playbook SHOULD fail on a duplicate loopback port per VM.
 - The proxy SHOULD refuse external requests for `/healthz`.
 
 ### § 7.2 Secrets
@@ -183,10 +175,8 @@ order: 2
 - Secret values MUST live only in the tenant's vault; git holds only references.
 - The vault SHOULD be 1Password.
 - Secrets MUST be resolved when a platform playbook runs, never by the deploy verb.
-- `secrets.env` on the host MUST be owned by the deploy user, mode 0600, never world-readable.
-- The playbook MUST re-create the affected containers whenever `secrets.env` changed; rotation MUST NOT be left to ride along on whenever the next deploy happens to run.
-- Once the compose-up verb ships from `ci-cd` (deferred — see the Manual's roadmap), the compose-up invocation MUST be encoded exactly once, as that verb, called by both the deploy verb's up step and the rotation handler.
-- Before pulling, the deploy verb MUST check on the host that every key `env.schema` flags `required` is present by name in `platform.env` or `secrets.env`, reading key names only, and MUST fail the deploy on a missing key.
+- `.env.secret` on the host MUST be owned by the deploy user, mode 0600, never world-readable.
+- The playbook MUST re-create the affected containers whenever `.env` or `.env.secret` changed; rotation MUST NOT be left to ride along on whenever the next deploy happens to run.
 
 ### § 7.3 Backups (deferred)
 

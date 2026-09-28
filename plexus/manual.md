@@ -34,6 +34,7 @@ Unlike the standard, this document carries no BCP 14 keywords: its rules are wri
 | **`preset-repo-web`** — dev side, the app-repo template | A copier template that generates a tenant app repo (§ 3.6 PLX) — a web monorepo with `apps/` consuming the packages — and keeps generated repos re-syncable via `copier update`. |
 | **`preset-app-nextjs`** — the app template | A copier template for a Next.js app inside a tenant app repo: contract-verb scripts, Dockerfile, `compose.yaml` with the `web` service and contract labels. |
 | **`preset-repo-platform`** — ops side, the platform-repo template | A copier template for a tenant's platform repo (§ 3.6 PLX): the two playbooks, inventory, the `op://`-pointer env files, binding the Ansible collection, plus the `apps/` directory and workflow that deploy third-party apps from `main`. |
+| **`renovate-config`** — the update-bot preset (§ 9.1 PLX) | The shared Renovate preset (`default.json`) every tenant repo extends in one line: the § 9.1 PLX stratification of unattended merging, plus the manager fixes the Plexus pins need. |
 | **`compendium`** — the doctrine | The three documents (Manifesto, Standard, Manual), the generated requirements list, and the supporting reference docs. |
 
 The dogfood tenant `plexus` lives in its own org, `plexus-ms-tenant` — a `platform` repo and a `web` monorepo, laid out per § 3.6 PLX — and is bound by the standard like any other tenant, not by this manual.
@@ -98,7 +99,9 @@ Minor bumps are routine trains; a major bump signals tenant-breaking changes (ex
 Within the train, `ci-cd` still tags verbs and workflow wrappers together (a wrapper always checks out its verb at the same tag), and `platform` tags the Ansible collection and Terraform modules together; neither repo has CI of its own beyond its checks.
 The pre-train per-repo `vN` lines and the itops-era tags `v0.1`–`v0.6` live on frozen in history, kept for existing pins and never retargeted.
 `platform`'s `galaxy.yml` version mirrors the train tag exactly: SCM installs record that version, so a re-pointed tag alone won't reinstall — and since ansible-galaxy reinstalls on any *different* recorded version, the one-time regression from the pre-train 5.x galaxy line was safe.
-`packages` (npm semver via changesets) and `compendium` (untagged until the 1.0.0 train) ride outside the train.
+`packages` (npm semver via changesets), `compendium` (untagged until the 1.0.0 train), and `renovate-config` ride outside the train.
+Consumers read `renovate-config` from its default branch, as Renovate presets conventionally are, so a change to it reaches every tenant's next bot run without a train.
+That makes every edit a change to every tenant's merge policy at once, and it is reviewed as one: widening automerge there widens it everywhere.
 Tenants pin the collection by tag (§ 9.1 PLX); the tag-mutability trade-off this creates is named in the standard (§ 2 PLX) and accepted deliberately — revisit if attestation for tag-referenced artifacts becomes practical.
 
 ## the presets: the templates
@@ -148,7 +151,6 @@ More maintainers follow the same lazy rule as everything else — when a real se
 
 - **Staleness/drift check against PLEXUS.md.** – Not until v1.0 of PLX, indicated by a compendium repo tag.
 - **Backup handlers, the `restore` verb, and the scheduled restore test** — § 7.3 PLX is written and marked deferred; ships together with the backup stack (the `plexus.backup` label vocabulary is valid only once a handler exists).
-- **The shared Renovate preset (`plexus-ms/renovate-config`)** — § 9.1 PLX suggests it; until it ships, a tenant configures Renovate directly.
 - **A `preset-repo-library` template** — the packages repo currently hand-maintains the monorepo arrangement the presets ship to tenants; extract a library-monorepo template when a second package monorepo appears, never speculatively from the first.
 - **An orchestrator (e.g. vanilla Kestra)** — only on the § 7.4 PLX triggers: multi-host dependent workflows, approvals, unmanageable schedule count, replay needs.
 - **Observability (metrics, logs, dashboards, phone alerting)** — becomes part of the standard's defaults later.

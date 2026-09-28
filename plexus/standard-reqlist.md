@@ -228,7 +228,7 @@ order: 2
 ### § 9.1 The update bot (interim)
 
 - Every tenant repo MUST run an automated update bot that watches its pins and opens update PRs.
-- The update bot SHOULD be Renovate, extending the shared preset (`plexus-ms/renovate-config` — deferred, not yet shipped; until then a tenant configures Renovate directly).
+- The update bot SHOULD be Renovate, extending the shared preset `plexus-ms/renovate-config`.
 - Tenants MUST pin the `plexus.platform` collection by tag in the platform repo's `requirements.yml`.
 - For `@plexus-ms/*` packages, CI-green patch/minor auto-merge MAY be enabled and is the recommended default.
 - For CI-workflow and verb tag bumps, auto-merge MAY be enabled; a tenant whose CI holds sensitive credentials SHOULD review these PRs instead.

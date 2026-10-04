@@ -449,11 +449,11 @@ A redeploy also picks up the current `.env.secret` as a side effect of re-creati
 > - Backup schedule and retention MUST live as code in the tenant's platform repo.
 > - The backup job MUST discover what to dump by reading the `plexus.backup` labels (§ 6.2).
 > - A new backup path MUST pass one end-to-end restore before it is relied upon, and MUST be re-verified after any material change to the path.
-> - A scheduled restore test SHOULD run at least monthly: restore the latest snapshot of each labelled data service into a scratch container, run a sanity check, and ping its own dead-man's-switch check (§ 7.4), separate from the backup job's.
+> - A scheduled restore test SHOULD run at least monthly: restore the latest snapshot of each labelled data service into a scratch container, run a sanity check, and raise its own missed-job alert (§ 7.4), separate from the backup job's.
 
 Ansible installs a nightly unit per VM: `pg_dump`/`mongodump` per labelled data service, then restic to an off-site repository (e.g. a Hetzner Storage Box).
 Label-driven discovery means a newly deployed app is automatically backed up, with zero bookkeeping.
-A failed nightly unit never pings its check, and the missed ping alerts (§ 7.4).
+A nightly unit that fails or never runs raises an alert (§ 7.4).
 
 Untested backups are not backups, and the rule is encoded rather than aspirational: the `restore` verb (`plexus-ms/ci-cd`, `scripts/restore.sh` — deferred, not yet shipped), restores hand-runnably with no platform present, the scheduled restore test exercises it, and its first run against a new backup path *is* the first-use verification.
 A backup without a hand-runnable restore is write-only storage; a restore test that silently stops running alerts exactly like a backup that silently stops running.
@@ -471,7 +471,7 @@ flowchart TB
     end
     app["app container<br>plexus.tenant=slug<br>GET /healthz (readiness) · logs → stdout/stderr"]
     data["data container<br>plexus.tenant=slug · plexus.backup=postgres"]
-    backup["nightly unit (§ 7.3)<br>dump per plexus.backup label → restic → off-site repo<br>pings its dead-man's-switch check (§ 7.4)"]
+    backup["nightly unit (§ 7.3)<br>dump per plexus.backup label → restic → off-site repo<br>a missed run alerts (§ 7.4)"]
   end
   provisioning -- "writes: loopback port, values" --> dotenv
   provisioning -- "writes: vault secrets" --> secretsenv
@@ -486,12 +486,13 @@ flowchart TB
 ### § 7.4 Scheduling & the dead-man's-switch (interim)
 
 > - A workflow orchestrator MUST NOT be stood up as platform infrastructure.
-> - Every scheduled job MUST ping a per-job check on success, and a missed ping MUST raise an alert.
+> - A scheduled job that fails or does not run MUST raise an alert.
 > - A tenant that finds itself with an orchestrator that barely runs anything SHOULD migrate its jobs onto the mechanisms below or retire it.
 
 The jobs an orchestrator (Kestra, Airflow, …) would do are already covered: deploys by the forge's CI, backups by systemd timers (`Restart=on-failure`, journald logging), app-internal pipelines by a job queue *inside* the app (BullMQ / pg-boss), deployed as a worker container in the same compose file — product logic stays out of platform-level infrastructure.
 The dead-man's-switch answers "did a cron silently stop?" — the valuable fraction of an orchestrator at near-zero operating cost.
-Which monitor provides the checks and which channel carries the alert is deliberately left open for now (see the [Manual](manual.md)'s roadmap); the requirement stands regardless of the tool.
+The mechanism is the tenant's choice: a per-job check that each run pings on success, or a watcher on the job's output — a timer that alerts when the newest backup snapshot is older than it should be — both notice the job that silently stopped, which a failure notification alone does not.
+Which mechanism becomes the suggested default and which channel carries the alert is deliberately left open for now (see the [Manual](manual.md)'s roadmap); the requirement stands regardless of the tool.
 
 Revisit an orchestrator only when workflows span multiple hosts with inter-step dependencies, human-in-the-loop approvals appear, scheduled-job interrelations become hard to track, or backfill/replay matters; if reached, prefer a single vanilla shared instance over a fork.
 

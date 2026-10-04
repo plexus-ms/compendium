@@ -184,12 +184,12 @@ order: 2
 - Backup schedule and retention MUST live as code in the tenant's platform repo.
 - The backup job MUST discover what to dump by reading the `plexus.backup` labels (§ 6.2).
 - A new backup path MUST pass one end-to-end restore before it is relied upon, and MUST be re-verified after any material change to the path.
-- A scheduled restore test SHOULD run at least monthly: restore the latest snapshot of each labelled data service into a scratch container, run a sanity check, and ping its own dead-man's-switch check (§ 7.4), separate from the backup job's.
+- A scheduled restore test SHOULD run at least monthly: restore the latest snapshot of each labelled data service into a scratch container, run a sanity check, and raise its own missed-job alert (§ 7.4), separate from the backup job's.
 
 ### § 7.4 Scheduling & the dead-man's-switch (interim)
 
 - A workflow orchestrator MUST NOT be stood up as platform infrastructure.
-- Every scheduled job MUST ping a per-job check on success, and a missed ping MUST raise an alert.
+- A scheduled job that fails or does not run MUST raise an alert.
 - A tenant that finds itself with an orchestrator that barely runs anything SHOULD migrate its jobs onto the mechanisms below or retire it.
 
 ### § 7.5 Host lifecycle (interim)

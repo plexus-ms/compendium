@@ -157,7 +157,7 @@ More maintainers follow the same lazy rule as everything else — when a real se
   The answer to "when is it time to scale?" is data, not vibes — the usual gap is measurement, not orchestration — and the same stack provides the "what's running where" view grouped by `plexus.tenant`.
   Candidates: Grafana + Prometheus/node-exporter + Loki, or lighter (Beszel + Uptime Kuma).
   Until then, the only monitoring the standard requires is the § 7.4 PLX dead-man's-switch.
-- **A concrete dead-man's-switch service** — the requirement stands now (§ 7.4 PLX); which service — self-hosted (e.g. Uptime Kuma) or managed (e.g. Healthchecks.io) — becomes the suggested default is decided together with observability.
+- **A concrete dead-man's-switch mechanism** — the requirement stands now (§ 7.4 PLX: a missed scheduled job raises an alert); which mechanism — a ping service, self-hosted (e.g. Uptime Kuma) or managed (e.g. Healthchecks.io), or a staleness watcher on the job's output — becomes the suggested default is decided together with observability.
 - **An alerting channel (paging, chat, email)** — the standard requires alerts to exist (§ 8.4, § 7.4 PLX) but defers the channel; today a failed deploy alerts as the failing CI job, and the monitor notifies however it natively can.
   Who gets woken, and how, is decided together with observability.
 - **Host patching & lifecycle** — the interim posture is in the standard (§ 7.5 PLX: unattended security upgrades on, everything else supervised); the full policy is deferred until patch drift is visible — visibility first, then an honest policy.

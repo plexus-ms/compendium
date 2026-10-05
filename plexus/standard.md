@@ -498,7 +498,7 @@ Revisit an orchestrator only when workflows span multiple hosts with inter-step 
 
 ### § 7.5 Host lifecycle (interim)
 
-> - Tenant hosts SHOULD run the distribution's unattended security upgrades (the base role's default).
+> - Tenant hosts SHOULD run the distribution's unattended security upgrades (the default of the `configure_unattended_upgrades` role).
 
 Everything beyond that — kernel-update reboots, engine major bumps, host rebuilds — is a supervised operator act for now.
 A full patching and lifecycle policy is deliberately deferred until patch drift is observable (see the [Manual](manual.md)'s roadmap): visibility first, then an honest policy.

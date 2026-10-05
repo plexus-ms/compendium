@@ -194,7 +194,7 @@ order: 2
 
 ### § 7.5 Host lifecycle (interim)
 
-- Tenant hosts SHOULD run the distribution's unattended security upgrades (the base role's default).
+- Tenant hosts SHOULD run the distribution's unattended security upgrades (the default of the `configure_unattended_upgrades` role).
 
 ## § 8 Releases & deployment
 

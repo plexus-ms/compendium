@@ -159,7 +159,7 @@ order: 2
 ## § 7 The operations platform
 
 - The tenant MUST mount the platform, in its platform repo (§ 3.6), as two playbooks: a provision playbook (base host setup — packages, hardening, container engine, ingress-server install) and a configure playbook (ingress routes, app configuration, secrets, container re-creation).
-- A role MUST belong wholly to one playbook; the configure playbook MUST be re-runnable at any time against a provisioned host.
+- For any one host, a role MUST belong wholly to one playbook; the configure playbook MUST be re-runnable at any time against a provisioned host.
 
 ### § 7.1 Ingress
 

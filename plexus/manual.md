@@ -29,11 +29,11 @@ Unlike the standard, this document carries no BCP 14 keywords: its rules are wri
 | Repo | Offering |
 |---|---|
 | **`packages`** — dev side, focused on web technologies | The published `@plexus-ms/*` packages for the web / Node / TypeScript world: shared tool configs (biome, tsconfig), the `std` utilities, and — over time — the reusable application plumbing (framework glue, common auth concerns, repeatable non-domain features) that keeps each app's domain core small. |
-| **`platform`** — ops side, the operations platform (§ 7 PLX) | The `plexus.platform` Ansible collection that provisions tenant hosts (base hardening, docker, caddy install, ingress routing, per-app configuration, alloy), plus reusable Terraform modules. |
+| **`platform`** — ops side, the operations platform (§ 7 PLX) | The `plexus.platform` Ansible collection: the host baseline every host gets (packages, admins, sshd, unattended upgrades, firewall), the roles that make a host a tenant's app host (deploy user, docker, caddy install, ingress routing, per-app configuration, alloy), and the roles of the hosting layer for tenants on hardware of their own (Proxmox hypervisor, backup server, ingress VM); plus reusable Terraform modules. |
 | **`ci-cd`** — ops side, the CI/CD flows (§ 8 PLX) | The portable bash verbs (`scripts/deploy.sh`) and the thin reusable workflow wrappers that mount them on the forge. |
 | **`preset-repo-web`** — dev side, the app-repo template | A copier template that generates a tenant app repo (§ 3.6 PLX) — a web monorepo with `apps/` consuming the packages — and keeps generated repos re-syncable via `copier update`. |
 | **`preset-app-nextjs`** — the app template | A copier template for a Next.js app inside a tenant app repo: contract-verb scripts, Dockerfile, `compose.yaml` with the `web` service and contract labels. |
-| **`preset-repo-platform`** — ops side, the platform-repo template | A copier template for a tenant's platform repo (§ 3.6 PLX): the two playbooks, inventory, the `op://`-pointer env files, binding the Ansible collection, plus the `apps/` directory and workflow that deploy third-party apps from `main`. |
+| **`preset-repo-platform`** — ops side, the platform-repo template | A copier template for a tenant's platform repo (§ 3.6 PLX): the two playbooks, on request a third for the hosting layer (`hosting.yml`), inventory, the `op://`-pointer env files, binding the Ansible collection, plus the `apps/` directory and workflow that deploy third-party apps from `main`. |
 | **`renovate-config`** — the update-bot preset (§ 9.1 PLX) | The shared Renovate preset (`default.json`) every tenant repo extends in one line: the § 9.1 PLX stratification of unattended merging, plus the manager fixes the Plexus pins need. |
 | **`compendium`** — the doctrine | The three documents (Manifesto, Standard, Manual), the generated requirements list, and the supporting reference docs. |
 
@@ -58,6 +58,9 @@ Procedures are layered as shared logic cores with thin mounts, and the boundary 
   Leaving GitHub would mean rewriting the mounts, never the verbs.
 - **Ansible roles** — the same split applied to the platform layer: the roles are the shared logic core, and each tenant's platform repo keeps only the binding — `provision.yml` and `configure.yml` (role lists, split by change cadence — § 7 PLX), inventory, group_vars, the committed `op://`-pointer env files.
   A tenant playbook is to the roles what a workflow wrapper is to a verb: a mount, not logic.
+  Roles are named for what they do (`configure_sshd`, `install_docker`), each role's variables carry its name as prefix, and `plexus_*` is kept for the facts several roles share (tenant, deploy user, apps).
+  A role that needs something from another role's territory asks that role: a role that opens a port hands a fragment to `configure_firewall` instead of writing firewall files itself.
+  The roles are the one encoding of how a host is set up; a machine image carries only what has to exist before the first SSH login.
 
 Two definition-of-done gates for any new or reworked primitive, from the [Manifesto](manifesto.md)'s litmus tests: a competent second reader understands it top to bottom in half an hour, and if it vanished tonight the job would still be doable by hand from the artifacts in git.
 These are the definition of done, not aspirations.

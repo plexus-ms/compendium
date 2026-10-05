@@ -62,6 +62,8 @@ The standard's vocabulary, defined once:
   Mounts carry no logic.
 - **Methodology** and **substance** — the federation's sharing axis (§ 3.1): *methodology* is knowledge and code-shaped-as-knowledge, shared across all tenants; *substance* is data, secrets, access, hosts, and is never shared.
 - **Seam** — where the dev side and the ops side meet, made explicit as the app contract (§ 5).
+- **Hosting layer** — what makes a tenant's hosts exist, reachable, and restorable: bought from a provider, or built by the tenant on hardware of its own (a hypervisor, an ingress VM sharing one public address, a backup server).
+  The operations platform (§ 7) starts on top of it and is the same either way.
 
 ### § 1.4 Scope
 
@@ -391,10 +393,16 @@ A CI/CD system needs state (what exists), events (something changed), and proced
 Plexus puts state in git and in tools it doesn't author, takes events from systems someone else operates, and runs only stateless procedures — the platform duties of this section are all mounts and conventions over that model.
 
 > - The tenant MUST mount the platform, in its platform repo (§ 3.6), as two playbooks: a provision playbook (base host setup — packages, hardening, container engine, ingress-server install) and a configure playbook (ingress routes, app configuration, secrets, container re-creation).
-> - A role MUST belong wholly to one playbook; the configure playbook MUST be re-runnable at any time against a provisioned host.
+> - For any one host, a role MUST belong wholly to one playbook; the configure playbook MUST be re-runnable at any time against a provisioned host.
 
 The split is by change cadence, not by component: the provision playbook is for fresh hosts and deep-reaching changes, the configure playbook is the everyday pass — and where one component spans both cadences (the ingress server), it is split into two roles rather than sliced with tags.
 The configure playbook is deliberately not called a deploy: deploying is the verb's act (§ 8.4), keyed by an image, while the playbook binds apps to a host and hands them their environment.
+
+Both playbooks assume a host that exists: a Debian machine an operator can reach over SSH.
+How it comes to exist is the hosting layer (§ 1.3), and this section sets no requirements for it.
+A tenant on a provider's cloud has nothing to do there.
+A tenant on hardware of its own builds the layer from the same collection: the platform-repo preset generates a third playbook on request, `hosting.yml`, which mounts the roles for a hypervisor, a backup server for its guests, and an ingress VM.
+It runs before the other two and targets different hosts, which is why the host baseline roles appear in it as well as in the provision playbook.
 
 ### § 7.1 Ingress
 
@@ -457,6 +465,9 @@ A nightly unit that fails or never runs raises an alert (§ 7.4).
 
 Untested backups are not backups, and the rule is encoded rather than aspirational: the `restore` verb (`plexus-ms/ci-cd`, `scripts/restore.sh` — deferred, not yet shipped), restores hand-runnably with no platform present, the scheduled restore test exercises it, and its first run against a new backup path *is* the first-use verification.
 A backup without a hand-runnable restore is write-only storage; a restore test that silently stops running alerts exactly like a backup that silently stops running.
+
+Until the label-driven path ships, a tenant whose hosting layer backs up whole VMs — encrypted, copied off-site, and restored end to end on a schedule — meets what this section is for: schedule and retention live as code in the platform repo, and the restore is proven rather than assumed.
+The two paths are complements, not rivals: a VM backup restores a host, a per-service dump restores one app's data onto any host.
 
 ```mermaid
 flowchart TB

@@ -154,6 +154,7 @@ More maintainers follow the same lazy rule as everything else — when a real se
 
 - **Staleness/drift check against PLEXUS.md.** – Not until v1.0 of PLX, indicated by a compendium repo tag.
 - **Backup handlers, the `restore` verb, and the scheduled restore test** — § 7.3 PLX is written and marked deferred; ships together with the backup stack (the `plexus.backup` label vocabulary is valid only once a handler exists).
+- **The `failover` verb, the standby role, and fencing** — § 7.6 PLX is written as interim; the verb composes the existing ones (hosting layer, playbooks, `restore`, deploy) and ships after the backup stack; standby and fencing follow as a `plexus.platform` role.
 - **A `preset-repo-library` template** — the packages repo currently hand-maintains the monorepo arrangement the presets ship to tenants; extract a library-monorepo template when a second package monorepo appears, never speculatively from the first.
 - **An orchestrator (e.g. vanilla Kestra)** — only on the § 7.4 PLX triggers: multi-host dependent workflows, approvals, unmanageable schedule count, replay needs.
 - **Observability (metrics, logs, dashboards, phone alerting)** — becomes part of the standard's defaults later.

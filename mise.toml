@@ -1,12 +1,10 @@
 [tools]
-hk = "latest" # Git hooks
+hk = "latest"               # Git hooks
+shellcheck = "0.11.0"        # the check script's own static check
 
 [hooks]
 postinstall = "hk install --mise"
 
-[tasks.reqlist]
-description = "Regenerate standard-reqlist.md from standard.md"
-usage = '''
-flag "--check" help="Exit non-zero if standard-reqlist.md is stale instead of rewriting it"
-'''
-run = "./plexus/generate-reqlist.sh ${usage_check:+--check}"
+[tasks.check]
+description = "Lint the standard: no keyword outside a requirement, no requirement in the map or below standard maturity, module frontmatter well-formed"
+run = ["shellcheck plexus/requirements.sh", "./plexus/requirements.sh --check"]

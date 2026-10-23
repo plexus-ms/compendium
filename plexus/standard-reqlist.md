@@ -233,6 +233,7 @@ order: 2
 - For `@plexus-ms/*` packages, CI-green patch/minor auto-merge MAY be enabled and is the recommended default.
 - For CI-workflow and verb tag bumps, auto-merge MAY be enabled; a tenant whose CI holds sensitive credentials SHOULD review these PRs instead.
 - Update PRs for the `plexus.platform` Ansible collection SHOULD NOT be auto-merged; a human reads the diff before anything new runs as root.
+- For third-party dev tools that check or orchestrate but never become a runtime dependency of an app (turbo, typescript, `@types/*`), CI-green patch/minor auto-merge MAY be enabled, held back until a release has been public for a few days.
 
 ### § 9.2 Dependency mechanics
 

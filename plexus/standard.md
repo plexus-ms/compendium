@@ -641,11 +641,12 @@ Take the dependency, override at the edge, never fork the base.
 > - For `@plexus-ms/*` packages, CI-green patch/minor auto-merge MAY be enabled and is the recommended default.
 > - For CI-workflow and verb tag bumps, auto-merge MAY be enabled; a tenant whose CI holds sensitive credentials SHOULD review these PRs instead.
 > - Update PRs for the `plexus.platform` Ansible collection SHOULD NOT be auto-merged; a human reads the diff before anything new runs as root.
+> - For third-party dev tools that check or orchestrate but never become a runtime dependency of an app (turbo, typescript, `@types/*`), CI-green patch/minor auto-merge MAY be enabled, held back until a release has been public for a few days.
 
 A pin no machinery watches is invisible staleness — hence the bot itself is mandatory while the concrete bot is only suggested; this section is written against Renovate, which extends the shared preset in one line.
-The repo presets ship that line as `renovate.json`, so a generated repo runs the recommended stratification from its first bot run: `@plexus-ms/*` patch and minor updates merge on green CI, while the `ci-cd` workflow refs and the collection travel together as one "plexus release train" PR that is never auto-merged.
+The repo presets ship that line as `renovate.json`, so a generated repo runs the recommended stratification from its first bot run: `@plexus-ms/*` patch and minor updates merge on green CI, as do the dev tools' once a release is three days old, while the `ci-cd` workflow refs and the collection travel together as one "plexus release train" PR that is never auto-merged.
 
-How unattended the merge is, is stratified by blast radius, because one policy does not fit three risk classes: packages run inside an app with immutable, provenance-attested versions; workflow and verb tags run in tenant CI next to its secrets and reference a movable tag (§ 2); the Ansible collection runs with root on tenant hosts.
+How unattended the merge is, is stratified by blast radius, because one policy does not fit four risk classes: packages run inside an app with immutable, provenance-attested versions; third-party dev tools run in CI and the image build but never inside the running app, and the release-age wait gives the ecosystem time to pull a compromised version before the bot proposes it; workflow and verb tags run in tenant CI next to its secrets and reference a movable tag (§ 2); the Ansible collection runs with root on tenant hosts.
 The default posture is deliberately not trust-maximal: unattended propagation is granted per risk class, each tenant's bot config records the stratification it chose, and the risk appetite behind that choice is the tenant's own.
 A tenant choosing differently overrides the shared rules in its own `renovate.json`, which is where the deviation is recorded.
 

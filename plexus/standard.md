@@ -458,6 +458,9 @@ A redeploy also picks up the current `.env.secret` as a side effect of re-creati
 > - The backup job MUST discover what to dump by reading the `plexus.backup` labels (§ 6.2).
 > - A new backup path MUST pass one end-to-end restore before it is relied upon, and MUST be re-verified after any material change to the path.
 > - A scheduled restore test SHOULD run at least monthly: restore the latest snapshot of each labelled data service into a scratch container, run a sanity check, and raise its own missed-job alert (§ 7.4), separate from the backup job's.
+> - The `restore` verb MUST be able to restore a labelled data service onto any tenant host, including one provisioned minutes earlier.
+> - Access to the off-site repository MUST NOT be bound to a single host's identity: a freshly provisioned host MUST obtain it through the platform playbooks from the vault, never by a manual key exchange.
+> - A data service whose tolerable loss window (§ 7.6) is shorter than the dump interval SHOULD add continuous archiving (`plexus.backup=postgres-wal` — WAL shipping to the same off-site target), enabling point-in-time restore.
 
 Ansible installs a nightly unit per VM: `pg_dump`/`mongodump` per labelled data service, then restic to an off-site repository (e.g. a Hetzner Storage Box).
 Label-driven discovery means a newly deployed app is automatically backed up, with zero bookkeeping.
@@ -514,6 +517,21 @@ Revisit an orchestrator only when workflows span multiple hosts with inter-step 
 Everything beyond that — kernel-update reboots, engine major bumps, host rebuilds — is a supervised operator act for now.
 A full patching and lifecycle policy is deliberately deferred until patch drift is observable (see the [Manual](manual.md)'s roadmap): visibility first, then an honest policy.
 
+
+### § 7.6 Host failure & failover (interim)
+
+> - A tenant MUST state its recovery objectives per environment in its platform repo: RTO (time until it serves again) and RPO (data lost at most).
+> - Rebuilding an environment on a new host MUST be one hand-runnable verb, `failover`: host → provision → configure → restore (§ 7.3) → deploy (§ 8.4) → switch traffic → verify; its steps are the existing verbs, composed.
+> - The `failover` verb MUST be exercised on a schedule against a throw-away host and raise its own missed-job alert (§ 7.4).
+> - A tenant whose RTO is shorter than a rebuild SHOULD keep a warm standby in a second location: provisioned, images pulled, data services as streaming replicas — failover is then promote + switch traffic.
+> - Every failover, manual or automatic, MUST fence the old primary: power it off through the provider, and run jobs with side effects (mail, reminders, retention, backups) only where the data service is primary.
+> - Automatic failover MAY be layered on a warm standby; it MUST require repeated external health failures and MUST run on the tenant's infrastructure, never on an operator's workstation.
+
+A single VM per tenant is the default this standard describes (§ 3.5, § 8.1), and with it the host is a single point of failure: a provider can lose the host and fail to bring the VM back, and the same instance type can be sold out when a replacement is needed.
+Everything a rebuild needs already exists as code — the hosting layer, both playbooks, the deploy verb, the backups — so the gap is composition and rehearsal, not new machinery: `failover` strings the verbs together, and the scheduled run proves it the way the restore test proves backups.
+The RPO is set by the backup path, not by the failover: a nightly dump loses up to a day, continuous archiving minutes, a streaming replica seconds — the declared objectives pick the path.
+Fencing is the part that is easy to forget: a recovered old primary carries stale data and still runs its timers, so it must neither serve, mail, nor write into the shared backup repository.
+Traffic switching is the tenant's choice — DNS with a short TTL through the provider API, a provider load balancer with health checks, or a floating IP where both hosts share a location.
 
 ## § 8 Releases & deployment
 

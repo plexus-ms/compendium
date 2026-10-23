@@ -185,6 +185,9 @@ order: 2
 - The backup job MUST discover what to dump by reading the `plexus.backup` labels (§ 6.2).
 - A new backup path MUST pass one end-to-end restore before it is relied upon, and MUST be re-verified after any material change to the path.
 - A scheduled restore test SHOULD run at least monthly: restore the latest snapshot of each labelled data service into a scratch container, run a sanity check, and raise its own missed-job alert (§ 7.4), separate from the backup job's.
+- The `restore` verb MUST be able to restore a labelled data service onto any tenant host, including one provisioned minutes earlier.
+- Access to the off-site repository MUST NOT be bound to a single host's identity: a freshly provisioned host MUST obtain it through the platform playbooks from the vault, never by a manual key exchange.
+- A data service whose tolerable loss window (§ 7.6) is shorter than the dump interval SHOULD add continuous archiving (`plexus.backup=postgres-wal` — WAL shipping to the same off-site target), enabling point-in-time restore.
 
 ### § 7.4 Scheduling & the dead-man's-switch (interim)
 
@@ -195,6 +198,15 @@ order: 2
 ### § 7.5 Host lifecycle (interim)
 
 - Tenant hosts SHOULD run the distribution's unattended security upgrades (the default of the `configure_unattended_upgrades` role).
+
+### § 7.6 Host failure & failover (interim)
+
+- A tenant MUST state its recovery objectives per environment in its platform repo: RTO (time until it serves again) and RPO (data lost at most).
+- Rebuilding an environment on a new host MUST be one hand-runnable verb, `failover`: host → provision → configure → restore (§ 7.3) → deploy (§ 8.4) → switch traffic → verify; its steps are the existing verbs, composed.
+- The `failover` verb MUST be exercised on a schedule against a throw-away host and raise its own missed-job alert (§ 7.4).
+- A tenant whose RTO is shorter than a rebuild SHOULD keep a warm standby in a second location: provisioned, images pulled, data services as streaming replicas — failover is then promote + switch traffic.
+- Every failover, manual or automatic, MUST fence the old primary: power it off through the provider, and run jobs with side effects (mail, reminders, retention, backups) only where the data service is primary.
+- Automatic failover MAY be layered on a warm standby; it MUST require repeated external health failures and MUST run on the tenant's infrastructure, never on an operator's workstation.
 
 ## § 8 Releases & deployment
 

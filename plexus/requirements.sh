@@ -23,7 +23,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MAP="$SCRIPT_DIR/standard.md"
 MODULES="$SCRIPT_DIR/modules"
 
-# scan <mode> <file>: mode is "map", "module", or "extract".
+# scan <mode> <file>: mode is "map", "module", or "extract". modules/index.md is
+# the modules' table of contents, not a module, and is skipped.
 # Prints "✗ <file>: line N: ..." defects to stderr and exits 1 if any; in
 # extract mode prints the requirement lines of a standard module to stdout.
 scan() {
@@ -98,6 +99,7 @@ case "${1:---check}" in
     status=0
     scan map "$MAP" || status=1
     for page in "$MODULES"/*.md; do
+      [[ "$page" == */index.md ]] && continue
       scan module "$page" || status=1
     done
     # Module codes are unique across pages.
@@ -117,7 +119,7 @@ case "${1:---check}" in
     done
     if [[ $status -eq 0 ]]; then
       pages=("$MODULES"/*.md)
-      echo "✓ the map and ${#pages[@]} modules are well-formed"
+      echo "✓ the map and $(( ${#pages[@]} - 1 )) modules are well-formed"
     fi
     exit $status
     ;;

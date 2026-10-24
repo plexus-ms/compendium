@@ -25,7 +25,7 @@ A consumer lists the codes it follows in its `PLEXUS.md` marker (§ 1.4 PLX); th
 | – | [backups per service](backup.md) | approach | note | host | PLX-Platform, PLX-Stateful |
 | PLX-Scheduling | [scheduled jobs and the dead-man's-switch](scheduling.md) | approach | approach | host | PLX-Platform |
 | PLX-HostLifecycle | [host lifecycle](host-lifecycle.md) | approach | approach | host | PLX-Platform |
-| PLX-Hosting | [the hosting layer](hosting.md) | approach | approach | host | PLX-Tenancy |
+| PLX-Infrastructure | [the infrastructure layer](infrastructure.md) | approach | approach | host | PLX-Tenancy |
 | PLX-Updates | [propagation and the update bot](updates.md) | approach | standard | repo | PLX-Repo |
 | PLX-Packages | [releasing packages](packages.md) | approach | approach | repo | PLX-Repo, PLX-JS |
 

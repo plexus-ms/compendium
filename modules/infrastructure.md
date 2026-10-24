@@ -1,8 +1,8 @@
 ---
-title: PLX-Hosting – the hosting layer
-short_title: PLX-Hosting
+title: PLX-Infrastructure – the infrastructure layer
+short_title: PLX-Infrastructure
 description: Hosts on hardware of a tenant's own — a Proxmox hypervisor, guests created from stock Debian, a backup server for them, and an ingress VM sharing one public address — as roles in a third playbook of the platform repo.
-code: PLX-Hosting
+code: PLX-Infrastructure
 kind: approach
 maturity: approach
 binds: host
@@ -10,7 +10,7 @@ depends: [PLX-Tenancy]
 order: 26
 ---
 
-The **hosting layer** is what makes a tenant's hosts exist, reachable, and restorable: bought from a provider, or built by the tenant on hardware of its own.
+The **infrastructure layer** is what makes a tenant's hosts exist, reachable, and restorable: bought from a provider, or built by the tenant on hardware of its own.
 A tenant on a provider's cloud has nothing to do here; the operations platform ([PLX-Platform](platform.md)) starts on top of a host that exists either way.
 This module is the second case: the roles the `plexus.platform` collection ships for a hypervisor, its guests, a backup server for them, and an ingress VM, and the third playbook of the platform repo that mounts them.
 It is an approach at approach maturity: one tenant runs it, which is one short of the bar for requirements.
@@ -18,11 +18,11 @@ It is an approach at approach maturity: one tenant runs it, which is one short o
 
 ## § 1 The playbook
 
-`plexus-ms/preset-repo-platform` generates `hosting.yml` on request, off by default.
+`plexus-ms/preset-repo-platform` generates `infrastructure.yml` on request, off by default.
 It runs before the other two playbooks and targets different hosts, the inventory groups `proxmox`, `pbs`, `haproxy`, and `guests` for every VM on the hypervisor, the ingress VM included.
-Its plays are the host baseline on the hosting layer's own hosts (the same roles the provision playbook uses, which is why they appear in both), the hypervisor (`configure_proxmox`, `configure_guests`), the backup server (`configure_pbs`), the ingress VM (`configure_haproxy`), and what the hosting layer itself needs from every guest (the guest agent that lets a backup freeze the file systems, the overlay network the guest is reached over from then on).
+Its plays are the host baseline on the infrastructure layer's own hosts (the same roles the provision playbook uses, which is why they appear in both), the hypervisor (`configure_proxmox`, `configure_guests`), the backup server (`configure_pbs`), the ingress VM (`configure_haproxy`), and what the infrastructure layer itself needs from every guest (the guest agent that lets a backup freeze the file systems, the overlay network the guest is reached over from then on).
 
-A fresh hosting host is reached as root once and joins the overlay with a use-once setup key from the environment.
+A fresh infrastructure host is reached as root once and joins the overlay with a use-once setup key from the environment.
 A new guest takes two runs: the first creates it on the hypervisor, the second reaches it as its first admin on the address it was given and joins it to the overlay; a guest without a public address is reached through the ingress VM as jump host.
 During an outage run only the play that is needed, never the whole playbook against the hypervisor.
 

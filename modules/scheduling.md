@@ -37,4 +37,4 @@ The stance stands regardless of the tool.
 ## Maintaining
 
 The module is promoted to standard maturity when a dead-man's-switch mechanism ships as a role and two tenants run it; § 2 then becomes a requirement, and the orchestrator ban of § 1 with it.
-Until then the hosting layer's backup server and the host's local mail on failed units are what a tenant has, and they cover failure, not silence.
+Until then the infrastructure layer's backup server and the host's local mail on failed units are what a tenant has, and they cover failure, not silence.

@@ -25,16 +25,16 @@ The tenant that runs plexus-ms.org, in its own organisation `plexus-ms-tenant`, 
 | `web/apps/website` | PLX-App, PLX-Stateless, PLX-Deploy |
 
 The platform repo holds no third-party app.
-The host declares nothing itself; its backups ride along on the hosting tenant's path, recorded as a deviation in the platform marker.
+The host declares nothing itself; its backups ride along on the path of the tenant that runs the hypervisor, recorded as a deviation in the platform marker.
 
 
 ## A second tenant
 
-A company tenant on hardware of its own: a hypervisor with four guests, a backup server, and an ingress VM, run from its platform repo's `hosting.yml`.
+A company tenant on hardware of its own: a hypervisor with four guests, a backup server, and an ingress VM, run from its platform repo's `infrastructure.yml`.
 
 | Repo | Declares |
 |---|---|
-| `platform` | PLX-Repo, PLX-Tenancy, PLX-Platform, PLX-Ingress, PLX-Secrets, PLX-Scheduling, PLX-HostLifecycle, PLX-Hosting, PLX-Updates |
+| `platform` | PLX-Repo, PLX-Tenancy, PLX-Platform, PLX-Ingress, PLX-Secrets, PLX-Scheduling, PLX-HostLifecycle, PLX-Infrastructure, PLX-Updates |
 | `platform/apps/<identity provider>` | PLX-App, PLX-Stateful, PLX-Deploy, with the self-migrating image and the SQLite state recorded as deviations ([§ 2 PLX-Stateful](../modules/stateful.md)) |
 | `web` | PLX-Repo, PLX-JS, PLX-Train, PLX-CI, PLX-Updates |
 | `web/apps/<marketing site>` | PLX-App, PLX-Stateless, PLX-Deploy |
@@ -55,8 +55,8 @@ The `plexus-ms` organisation consumes the modules that bind its own repos: every
 |---|---|---|
 | PLX-Repo, PLX-App, PLX-Stateless, PLX-Stateful, PLX-Tenancy, PLX-JS, PLX-Train, PLX-CI, PLX-Platform, PLX-Ingress, PLX-Secrets, PLX-Updates | two tenants | standard |
 | PLX-Deploy, PLX-Scheduling, PLX-HostLifecycle | two tenants, no settled requirement yet | approach |
-| PLX-Hosting | one tenant | approach |
-| PLX-Host | one hosting layer on each side | approach |
+| PLX-Infrastructure | one tenant | approach |
+| PLX-Host | one infrastructure layer on each side | approach |
 | PLX-Packages | the maintainers' one package monorepo | approach |
 | backups per service | nothing shipped | note |
 

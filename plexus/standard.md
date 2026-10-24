@@ -8,43 +8,37 @@ order: 1
 ---
 
 Plexus is a coherent collection of opinionated guidelines and approaches in information technology.
-The ambition is that everything its maintainers know about IT is eventually encoded here: building software, operating it, and running an organisation's workplace IT.
+The ambition is that everything its maintainers know about IT is eventually encoded here, which mainly revolves around building software and operating it.
 
 This document, referred to as the Plexus Standard, PLX, or simply "the standard", is the map of that collection.
-It has one section per concern, in reading order from the organisation down to the metal and back up to the disciplines that apply to everything.
 Each section explains the concern and points at the **modules** that cover it; where no module exists yet, a stub says so.
-The map itself binds nothing.
-Requirements live only in modules, and a consumer follows exactly the modules it declares (§ 1.4).
+Requirements live only in the modules themselves.
 
 *Cite a map section by number and the short name PLX ("§ 4.1 PLX"); cite a module section by number and the module's code ("§ 2 PLX-App").
-Section numbers are append-only within a major version: new sections go at the end of their level, so a citation stays right until the next major train (§ 1.5).*
+Section numbers are append-only within a major version: new sections go at the end of their level, so a citation stays correct until the next major release.*
 
 
 ## § 1 General provisions
 
-### § 1.1 Reading the standard
+### § 1.1 Structure and normative language
 
-The standard is two layers.
+The standard has two layers.
 The **map** is this document: prose and pointers, no requirements, no normative keywords.
 A **module** is a page under `modules/` that covers one concern a consumer could adopt or reject on its own, and it is where requirements live.
 
 A module at standard maturity (§ 1.3) states its requirements as blockquoted bullets at the head of each numbered section, using the capitalised keywords of BCP 14 ([RFC 2119](https://www.rfc-editor.org/rfc/rfc2119), [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174)).
 Everything outside such a bullet is informative: the prose below a requirements block explains and motivates, but never binds.
-A keyword outside a bullet, or a bullet in a page that is not a standard module, is a defect in the compendium, caught mechanically by `mise check` (§ 1.8).
-
-The [Manifesto](manifesto.md) explains why Plexus exists and is the one document outside this tree; its evocative register is the reason it exists.
-The [reference stack](reference-stack.md) lists the module composition each train is actually tested against.
 
 ### § 1.2 Vocabulary
 
-The standard's vocabulary, defined once:
+The following terms are used throughout Plexus:
 
 - **Tenant** — one trust domain in the federation: its own forge org, repos, hosts, secrets vault, backups ([PLX-Tenancy](../modules/tenancy.md)).
-  The boundary that matters is *access*, not legal personality.
+  The boundary that matters is *access* and trust, not legal personality.
 - **Repo** — one release train and one toolchain contract inside a tenant ([PLX-Repo](../modules/repo.md)).
   A tenant has exactly one **platform repo** holding the ops side and any number of **app repos** holding the dev side.
 - **App** — one deployable unit satisfying the app contract ([PLX-App](../modules/app.md)).
-  Its **source repo** is an app repo for software the tenant builds, or the platform repo for third-party software the tenant merely operates.
+  It lives in an app repo for software the tenant builds, or the platform repo for third-party software the tenant merely operates.
 - **Primitive** — any named guideline, tool, or approach the initiative ships or prescribes: a verb, a mount, an Ansible role, a published package, a copier template, a label scheme, a file layout, an endpoint path.
   Decided once, reused, versioned and published, or otherwise propagated (§ 13).
 - **Verb** — a stateless, hand-runnable procedure that does one operational thing, authored portably.
@@ -53,8 +47,8 @@ The standard's vocabulary, defined once:
   Mounts carry no logic.
 - **Methodology** and **substance** — the federation's sharing axis: methodology is knowledge and code-shaped-as-knowledge, shared across all tenants; substance is data, secrets, access, hosts, and is never shared.
 - **Seam** — where one layer meets the next and the two sides are owned by different people or tools; a seam is made explicit as a contract.
-- **Hosting layer** — what makes a tenant's hosts exist, reachable, and restorable: bought from a provider, or built by the tenant on hardware of its own ([PLX-Hosting](../modules/hosting.md)).
-- **Module**, **contract**, **approach**, **note**, **maturity** — § 1.3.
+- **Infrastructure layer** — what makes a tenant's hosts exist, reachable, and restorable: bought from a provider, or built by the tenant on hardware of its own ([PLX-Infrastructure](../modules/infrastructure.md)).
+- **Module**, **contract**, **approach**, **note**, **maturity** — see § 1.3.
 - **Declaration** — a repo's or app's `PLEXUS.md` marker: the Plexus version it was brought up to and the modules it follows (§ 1.4).
 - **Train** — one release of Plexus, tagged identically on every release repo and the compendium, whose number is the Plexus version (§ 1.5).
 
@@ -63,7 +57,7 @@ The standard's vocabulary, defined once:
 A module has a kind and a maturity, and the two are independent axes.
 
 **Two kinds.**
-A **contract** sits at a seam and states what one layer asks of the next: the repo contract between a repo and whatever operates on it, the app contract between dev and ops, the profiles that sharpen it, the host contract between the hosting layer and the platform.
+A **contract** sits at a seam and states what one layer asks of the next: the repo contract between a repo and whatever operates on it, the app contract between dev and ops, the profiles that sharpen it, the host contract between the infrastructure layer and the platform.
 There are exactly as many contracts as seams, and a seam is always exactly one contract module.
 An **approach** is an opinionated way to provide or consume a contract; every module that is not a contract is one.
 
@@ -169,11 +163,11 @@ The repos that ship the methodology:
 | Repo | Offering |
 |---|---|
 | `packages` | The published `@plexus-ms/*` packages for the web/Node/TypeScript world: shared tool configs, the `std` utilities, and over time the reusable application plumbing that keeps each app's domain core small. |
-| `platform` | The `plexus.platform` Ansible collection: the host baseline, the roles that make a host a tenant's app host, the roles of the hosting layer; plus reusable Terraform modules. |
+| `platform` | The `plexus.platform` Ansible collection: the host baseline, the roles that make a host a tenant's app host, the roles of the infrastructure layer; plus reusable Terraform modules. |
 | `ci-cd` | The portable bash verbs (`deploy.sh`, `changed-apps.sh`) and the thin reusable workflow wrappers that mount them on the forge. |
 | `preset-repo-web` | The copier template for a tenant app repo: a web monorepo with `apps/` consuming the packages, re-syncable via `copier update`. |
 | `preset-app-nextjs` | The copier template for a Next.js app inside an app repo: contract-verb scripts, Dockerfile, `compose.yaml` with the contract labels. |
-| `preset-repo-platform` | The copier template for a tenant's platform repo: the two playbooks, on request a third for the hosting layer, inventory, the `op://`-pointer env files, the collection pin, the `apps/` directory and workflow for third-party apps. |
+| `preset-repo-platform` | The copier template for a tenant's platform repo: the two playbooks, on request a third for the infrastructure layer, inventory, the `op://`-pointer env files, the collection pin, the `apps/` directory and workflow for third-party apps. |
 | `renovate-config` | The shared Renovate preset every tenant repo extends in one line. |
 | `compendium` | This map, the modules, the manifesto, the reference stack, and the supporting reference docs. |
 
@@ -250,7 +244,7 @@ One trust domain, N release trains, one platform repo: the ops side in a repo of
 ### § 2.4 Arrangements between tenants
 
 Tenants sharing hardware are separated by a hypervisor and never inside one VM; the hypervisor side sees everything, so distinct legal persons sharing root access write the arrangement down.
-The common form is one tenant obtaining its hosting from another ([PLX-Hosting](../modules/hosting.md)).
+The common form is one tenant obtaining its infrastructure from another ([PLX-Infrastructure](../modules/infrastructure.md)).
 [§ 4 PLX-Tenancy](../modules/tenancy.md).
 
 ### § 2.5 Documentation and knowledge
@@ -445,7 +439,7 @@ Unattended security upgrades on, every other host change a supervised act, until
 [PLX-HostLifecycle](../modules/host-lifecycle.md), an approach at approach maturity.
 
 
-## § 8 Hosting
+## § 8 Infrastructure
 
 What is below the platform: the contract a host satisfies before its first playbook run, and the two ways a host comes to exist.
 
@@ -462,17 +456,17 @@ A tenant on a provider's cloud has nothing to do below the host contract; which 
 ### § 8.3 Virtualisation
 
 A Proxmox hypervisor on Debian, bound to the overlay, with a default-drop firewall and backup jobs for every guest; the hypervisor's control plane keeps guest state below the platform, the one named trade-off against state in git.
-[§ 2 PLX-Hosting](../modules/hosting.md).
+[§ 2 PLX-Infrastructure](../modules/infrastructure.md).
 
 ### § 8.4 Guests
 
 Created from the stock Debian cloud image with Proxmox's cloud-init, no template and no image of the tenant's own, the roles doing everything else on the first run.
-[§ 2 PLX-Hosting](../modules/hosting.md).
+[§ 2 PLX-Infrastructure](../modules/infrastructure.md).
 
 ### § 8.5 Network edge
 
 An ingress VM holding the one public address, routing 443 by SNI and 80 by Host header to the tenant VMs without terminating anything, NAT for their outbound traffic.
-[§ 3 PLX-Hosting](../modules/hosting.md).
+[§ 3 PLX-Infrastructure](../modules/infrastructure.md).
 
 ### § 8.6 Admin network
 
@@ -566,8 +560,8 @@ Designed and not yet shipped: [backups per service](../modules/backup.md) is a n
 
 ### § 11.2 Backups of whole machines
 
-The hosting layer's backup server takes every guest, encrypted, pruned and verified on its own schedule, with an off-site copy; what covers a tenant's data until § 11.1 ships.
-[§ 3 PLX-Hosting](../modules/hosting.md).
+The infrastructure layer's backup server takes every guest, encrypted, pruned and verified on its own schedule, with an off-site copy; what covers a tenant's data until § 11.1 ships.
+[§ 3 PLX-Infrastructure](../modules/infrastructure.md).
 
 ### § 11.3 Restore testing
 

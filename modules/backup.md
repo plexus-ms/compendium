@@ -27,7 +27,7 @@ A backup without a hand-runnable restore is write-only storage; a restore test t
 
 ## § 2 Meanwhile
 
-Until the label-driven path ships, a tenant whose hosting layer backs up whole VMs ([PLX-Hosting](hosting.md)), encrypted, copied off-site, and restored end to end on a schedule, meets what this page is for: schedule and retention live as code in the platform repo, and the restore is proven rather than assumed.
+Until the label-driven path ships, a tenant whose infrastructure layer backs up whole VMs ([PLX-Infrastructure](infrastructure.md)), encrypted, copied off-site, and restored end to end on a schedule, meets what this page is for: schedule and retention live as code in the platform repo, and the restore is proven rather than assumed.
 The two paths are complements, not rivals: a VM backup restores a host, a per-service dump restores one app's data onto any host.
 An app whose state is not a separate data service (an SQLite file inside the app's volume) is outside the label vocabulary either way and records its interim arrangement in its marker.
 

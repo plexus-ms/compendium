@@ -67,15 +67,15 @@ That is the design working, not friction: the ops-side act of binding an app to 
 > - Distinct legal persons sharing platform root access or further platform concerns MUST document the arrangement in writing: e.g. a one-page document defining the relationship, plus a data-processing agreement where applicable.
 
 At small scale, pooling workloads on one physical host is the correct economics, and virtualization draws the boundary.
-The common form is one tenant obtaining its hosting from another: the second tenant runs the hypervisor ([PLX-Hosting](hosting.md)), and the first tenant's VM is one of its guests.
+The common form is one tenant obtaining its infrastructure from another: the second tenant runs the hypervisor ([PLX-Infrastructure](infrastructure.md)), and the first tenant's VM is one of its guests.
 Be clear about what that buys and what it does not: virtualization solves performance and fault isolation, but it *centralizes* access rather than partitioning it.
 The hypervisor side sees everything, a hypervisor has unrestricted control over every VM, so the host is a critical attack vector, and it does nothing for legal controllership; hence the written arrangement.
-Where the guest's backups ride along on the hypervisor's backup path, or its local mail goes through the hosting tenant's relay, the guest tenant's platform marker records the deviation from § 4 with its reason.
+Where the guest's backups ride along on the hypervisor's backup path, or its local mail goes through the relay of the tenant that runs the hypervisor, the guest tenant's platform marker records the deviation from § 4 with its reason.
 Sharing ingress, networking, or secrets across tenants beyond that is a red flag: if the economics seem to force it, file an issue against the standard rather than normalizing the exception.
 
 
 ## Maintaining
 
-The module introduces no role for the hosting side of an arrangement; "the tenant that runs the hypervisor" is said in those words.
+The module introduces no role for the providing side of an arrangement; "the tenant that runs the hypervisor" is said in those words.
 A term like "operator" would name a relationship the standard has exactly one instance of, and the instance is covered by § 4 as written.
 The ambition of customer-1001 economics is measured here: whenever onboarding a tenant seems to force two tenants to share substance, that is a bug to file against this module, not an exception to normalize.

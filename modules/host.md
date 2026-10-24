@@ -10,8 +10,8 @@ depends: []
 order: 14
 ---
 
-The host contract sits at the seam between the hosting layer and the operations platform.
-Below it, something makes a machine exist, reachable, and restorable: a provider's cloud, or a tenant's own hardware run with [PLX-Hosting](hosting.md).
+The host contract sits at the seam between the infrastructure layer and the operations platform.
+Below it, something makes a machine exist, reachable, and restorable: a provider's cloud, or a tenant's own hardware run with [PLX-Infrastructure](infrastructure.md).
 Above it, the platform playbooks ([PLX-Platform](platform.md)) turn the machine into a tenant's app host.
 The contract is what the upper side assumes of the lower, and it is written informatively for now: it has one implementation on each side and no requirement has had to be argued yet.
 The maturity rule (§ 1.3 PLX) promotes it the day one does.
@@ -31,11 +31,11 @@ Everything else is the platform's job and belongs to no contract: the roles inst
 A machine image carries only what has to exist before the first SSH login.
 
 
-## § 2 What the hosting layer is told
+## § 2 What the infrastructure layer is told
 
-The platform asks nothing of how the host came to be, and the hosting layer asks only two things back: which guests to create and how to reach them.
+The platform asks nothing of how the host came to be, and the infrastructure layer asks only two things back: which guests to create and how to reach them.
 Both are inventory, in the tenant's platform repo.
-A host that stops meeting § 1, a release upgrade or a changed address, is a hosting-layer change first and a platform re-run second, in that order.
+A host that stops meeting § 1, a release upgrade or a changed address, is a infrastructure-layer change first and a platform re-run second, in that order.
 
 
 ## Maintaining

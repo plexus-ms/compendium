@@ -27,7 +27,7 @@ That visibility is an observability concern (§ 12 PLX), and the policy is writt
 ## § 2 Rebuilding a host
 
 The roles are the single encoding of a host's setup, so a rebuild is a fresh host plus the playbooks, never a restore of the old root.
-What has to survive a rebuild is the apps' data ([backups per service](backup.md), [PLX-Hosting](hosting.md) for whole-VM backups) and the inventory; the host itself is reconstructable from git.
+What has to survive a rebuild is the apps' data ([backups per service](backup.md), [PLX-Infrastructure](infrastructure.md) for whole-VM backups) and the inventory; the host itself is reconstructable from git.
 Delete something only after checking what still references it; a guest removed from a hypervisor without care drops out of its backup job as well.
 
 

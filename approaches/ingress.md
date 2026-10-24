@@ -19,14 +19,14 @@ This module is how a tenant tells the platform which app answers under which nam
 > - App names MUST be unique per tenant, across all of its repos.
 > - Non-secret values the platform provides to an app MUST be declared in the same record (`apps[].env`) and written to `.env`; secret values follow [PLX-Secrets](secrets.md).
 > - The playbook SHOULD fail on a duplicate loopback port per VM.
-> - An app MAY be served under a path prefix (`apps[].path`) of a host it shares with other apps of the same tenant; the proxy MUST strip the prefix before the request reaches the app, and a host MUST serve at most one app per prefix and at most one at its root.
+> - An app's path prefix, where it has one ([§ 4 PLX-App](../contracts/app.md)), MUST be bound in the same record (`apps[].path`); a host MUST serve at most one app per prefix and at most one at its root.
 
 Because host→port→app is one line in the platform repo's inventory, per-VM port uniqueness is checkable in a single file instead of being coordination state scattered across app repos.
 The app name is the join key across repos: the inventory record, the compose project, and the host directory all key on it, which is why it is unique per tenant rather than per repo.
 From that one record, the configure playbook renders the ingress config *and* injects the port into the app's compose interpolation: it writes the value to `<app_dir>/.env` on the host, the per-app directory the playbook lays out as `<deploy root>/<tenant>/<app>` (e.g. `/opt/stacks/plexus/website`), which compose reads implicitly, so the deploy verb stays port-unaware.
 The same file pins the compose project name to `<tenant>-<app>`: container and network names all derive from the project name, and its directory-basename default would collide the moment two co-hosted tenants deploy an app with the same name.
 
-Apps sharing a host are told apart by path prefix, and the prefix is stripped on the way in, so an app stays as deployable under any prefix as under any hostname: it serves from its own root and learns the public URL it needs for links from its environment (`apps[].env`).
+Apps sharing a host are told apart by path prefix, and stripping it on the way in is what the app contract promises the app (§ 4 PLX-App); the proxy config rendered from the record is where the promise is kept, and the public URL the app needs for links reaches it through `apps[].env`.
 
 
 ## § 2 The proxy

@@ -55,6 +55,7 @@ The compose setting pins the project name to `<tenant>-<app>`: container and net
 The `PLEXUS_` bindings carry the loopback port the inventory assigned, interpolated by compose ([§ 4 PLX-App](../contracts/app.md)), so the deploy verb stays port-unaware; because the app's compose file lists `.env` under `env_file`, the setting and the bindings also appear inside the container, harmless by construction since the prefix is reserved.
 Three files sit in the app directory, and each has exactly one writer: this playbook owns `.env`, the secrets role owns `.env.secret` ([PLX-Secrets](secrets.md)), and the deploy verb owns `compose.yaml`, rendered from the source repo.
 Pass `plexus_up=false` to write the directories without re-creating containers.
+A VM's record may also carry `plexus_deploy_target`, where the deploy verb reaches it; the `deploy-targets` verb reads it so that each third-party app of the platform repo deploys to the VM that runs it, with the repo's one `DEPLOY_HOST` variable as the fallback.
 
 
 ## Maintaining

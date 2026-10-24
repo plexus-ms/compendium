@@ -44,6 +44,8 @@ A guest destroyed on the hypervisor without purging drops out of the backup job 
 Proxmox Backup Server runs on a plain Debian host, the server package only.
 It listens on every address and cannot be bound to one, so the host firewall keeps it off the public interface and admits its port only on trusted interfaces; the hypervisor pushes guest backups to it, into one datastore with a namespace per tenant whose guests land there.
 Pruning, garbage collection, and verification run on the server's own schedule; the clients may only add.
+The role creates each of these resources when missing and updates it when the inventory's definition drifted from what the server holds, so a changed schedule or retention reaches the server on the next run.
+Two things are made by hand, once, because they must only ever exist in the vault and on the hosts that use them: a client's API token, generated on the server after the first run and stored in the vault, and the backup encryption key, created on the hypervisor and stored in the vault with a paper copy; the roles' defaults spell out both commands.
 Together with an off-site copy, this is the whole-machine backup path that covers a tenant's data until [backups per service](backup.md) ship.
 
 The ingress VM holds the one public IPv4 address, routes inbound TCP to the tenant VMs on an internal bridge, and is their gateway and NAT for outbound traffic.
@@ -55,6 +57,6 @@ A guest of another tenant on the same hypervisor is an arrangement between tenan
 
 ## Maintaining
 
-Known debts, to be paid in this module: the backup-server and notification resources are created and never updated by the roles; the backup token and encryption key are made by hand; the local-mail role mails on every failed unit; one deploy host serves all third-party apps of a platform repo.
+Known debts, to be paid in this module: the backup token and encryption key are made by hand, encoded as a procedure in the roles' defaults until a primitive can write to the vault; the local-mail role reports a failed unit at most once a day rather than per failure, and a digest is the next step if that is still noisy.
 The roles stay the single encoding of the hosts: no image, no template, no hand step before the first run.
 Field notes on Proxmox on Debian live in the compendium's miscellaneous section; what applies generally moves into the roles, what is one host's history stays in that tenant's repo.

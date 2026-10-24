@@ -13,9 +13,9 @@
 # prose throughout. Extraction is structural: no classification, no heuristics.
 #
 # Degradation test — hand-runnable with no extra machinery:
-#   ./plexus/requirements.sh                       # same as --check
-#   ./plexus/requirements.sh --check               # exit non-zero on any defect
-#   ./plexus/requirements.sh --extract contracts/app.md
+#   ./essentials/requirements.sh                       # same as --check
+#   ./essentials/requirements.sh --check               # exit non-zero on any defect
+#   ./essentials/requirements.sh --extract contracts/app.md
 #
 set -euo pipefail
 

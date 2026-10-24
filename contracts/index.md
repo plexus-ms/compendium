@@ -4,7 +4,7 @@ description: One page per seam — what the two sides owe each other, so that ei
 order: 2
 ---
 
-A contract is the module written at a seam, the place where two sides owned by different people or tools meet ([§ 1.3 PLX](../plexus/standard.md)).
+A contract is the module written at a seam, the place where two sides owned by different people or tools meet ([§ 1.3 PLX](../essentials/standard.md)).
 One seam, one contract; the profiles are parts of the app contract, and an app declares exactly one.
 A consumer lists the contracts it satisfies in its `PLEXUS.md` marker (§ 1.4 PLX) like any other module.
 

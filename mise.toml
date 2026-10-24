@@ -7,4 +7,4 @@ postinstall = "hk install --mise"
 
 [tasks.check]
 description = "Lint the standard: no keyword outside a requirement, no requirement in the map or below standard maturity, module frontmatter well-formed"
-run = ["shellcheck plexus/requirements.sh", "./plexus/requirements.sh --check"]
+run = ["shellcheck essentials/requirements.sh", "./essentials/requirements.sh --check"]

@@ -47,6 +47,8 @@ The following terms are used throughout Plexus:
   Mounts carry no logic.
 - **Methodology** and **substance** — the federation's sharing axis: methodology is knowledge and code-shaped-as-knowledge, shared across all tenants; substance is data, secrets, access, hosts, and is never shared.
 - **Seam** — where one layer meets the next and the two sides are owned by different people or tools; a seam is made explicit as a contract.
+- **Platform layer** — what makes an existing host a tenant's app host and keeps it so: the host baseline, the container engine and proxy, ingress, environment and secrets delivery, applied by the platform repo's playbooks ([PLX-Platform](../modules/platform.md)).
+  It is the operations side of a tenant, the layer between the infrastructure below and the apps above.
 - **Infrastructure layer** — what makes a tenant's hosts exist, reachable, and restorable: bought from a provider, or built by the tenant on hardware of its own ([PLX-Infrastructure](../modules/infrastructure.md)).
 - **Module**, **contract**, **approach**, **note**, **maturity** — see § 1.3.
 - **Declaration** — a repo's or app's `PLEXUS.md` marker: the Plexus version it was brought up to and the modules it follows (§ 1.4).

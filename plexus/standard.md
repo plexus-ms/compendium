@@ -35,7 +35,7 @@ The following terms are used throughout Plexus.
 
 Plexus revolves around tenants sharing methodology but never substance:
 
-- **Tenant** — one trust domain in the federation: its own forge org, repos, hosts, secrets vault, backups ([PLX-Tenancy](../approaches/tenancy.md)).
+- **Tenant** — one trust domain in the federation: its own forge org, repos, hosts, secrets vault, backups ([PLX-Tenancy](../contracts/tenancy.md)).
   The boundary that matters is access and trust, not necessarily legal personality.
 - **Methodology** and **substance** — the sharing axis: methodology is knowledge and code-shaped-as-knowledge, shared across all tenants; substance is data, secrets, access, hosts, and is never shared.
 - **Primitive** — any named methodology (guideline, tool, or approach) the initiative ships or prescribes: a verb, a mount, an Ansible role, a published package, a copier template, a label scheme, a file layout, an endpoint path.
@@ -80,7 +80,7 @@ A module's kind is the folder it lives in, `contracts/` or `approaches/`.
 
 **The seams.**
 A seam is named by its two sides, and the [contracts index](../contracts/index.md) keeps the table of seams with the approaches on each side.
-Today there are three, and one open question:
+Today there are four:
 
 - *Infrastructure to platform*: below, whatever makes a host exist, a provider, the tenant's own metal, or another tenant's hypervisor; above, the platform repo.
   [PLX-Host](../contracts/host.md).
@@ -88,7 +88,8 @@ Today there are three, and one open question:
   [PLX-App](../contracts/app.md), with the profiles [PLX-Stateless](../contracts/stateless.md) and [PLX-Stateful](../contracts/stateful.md) sharpening it, one per app.
 - *Repo to its operators*: on one side the authors of a repo; on the other whatever runs it without having written it, a CI job, a coding agent, a colleague on a fresh checkout.
   [PLX-Repo](../contracts/repo.md).
-- *Tenant to federation*, open: the tenant's side is [§ 1 PLX-Tenancy](../approaches/tenancy.md), the upstream's side is the prose of § 1.6; whether the two become one contract is undecided.
+- *Tenant to federation*: on one side a tenant, on the other the upstream whose primitives reach into it.
+  The tenant's obligations are [PLX-Tenancy](../contracts/tenancy.md); the upstream's are the guarantees of § 1.6, prose because they bind the maintainers and not a consumer.
 
 **Three rules follow.**
 
@@ -176,6 +177,7 @@ The mitigations are structural, and the tenant can rely on them:
 - Tenant substance, business logic, secrets, anything tenant-specific, never appears in a public package or a public repo.
 
 These are obligations of the maintainers, not of consumers, which is why they are prose here rather than requirements in a module.
+They are the upstream's side of the tenant-to-federation seam (§ 1.3), whose tenant side is [PLX-Tenancy](../contracts/tenancy.md).
 The tenant's decision on how unattended to let updates flow ([§ 2 PLX-Updates](../approaches/updates.md)) rests on them.
 
 One sharp edge is named rather than implied away: some pins reference git tags, which are movable.
@@ -253,23 +255,23 @@ How an organisation is cut into trust domains and named, where its code lives, h
 
 The tenant is the trust boundary: one organisation, one forge org, one platform repo, one vault, its own hosts and backups.
 What spans tenants is methodology; what never does is substance.
-[PLX-Tenancy](../approaches/tenancy.md) is the module, at standard maturity; its first section holds the one pair of requirements everything else rests on.
+[PLX-Tenancy](../contracts/tenancy.md) is the contract, at standard maturity; its first section holds the one pair of requirements everything else rests on.
 
 ### § 2.2 Naming
 
 One short slug per tenant threads through every layer: forge org, hostnames, inventory groups, vault name, and the `plexus.tenant` label on every deployed service, so that staring at a host one can tell whose service this is.
-[§ 2 PLX-Tenancy](../approaches/tenancy.md).
+[§ 2 PLX-Tenancy](../contracts/tenancy.md).
 
 ### § 2.3 Forge and repo layout
 
 One trust domain, N release trains, one platform repo: the ops side in a repo of its own, every other repo an app repo, app repos as monorepos by default, generated from the presets.
-[§ 3 PLX-Tenancy](../approaches/tenancy.md).
+[§ 3 PLX-Tenancy](../contracts/tenancy.md).
 
 ### § 2.4 Arrangements between tenants
 
 Tenants sharing hardware are separated by a hypervisor and never inside one VM; the hypervisor side sees everything, so distinct legal persons sharing root access write the arrangement down.
 The common form is one tenant obtaining its infrastructure from another ([PLX-Infrastructure](../approaches/infrastructure.md)).
-[§ 4 PLX-Tenancy](../approaches/tenancy.md).
+[§ 4 PLX-Tenancy](../contracts/tenancy.md).
 
 ### § 2.5 Documentation and knowledge
 
@@ -296,7 +298,7 @@ Each is consumed by a module below; none has a module of its own yet.
 ### § 3.1 Identity and access for people
 
 Not covered yet.
-The platform's host baseline gives each human admin a personal account with key-only SSH ([§ 2 PLX-Platform](../approaches/platform.md)); the forge org governs code access ([§ 3 PLX-Tenancy](../approaches/tenancy.md)); an identity provider for the organisation's people and apps is operated as a third-party app today and has no module.
+The platform's host baseline gives each human admin a personal account with key-only SSH ([§ 2 PLX-Platform](../approaches/platform.md)); the forge org governs code access ([§ 3 PLX-Tenancy](../contracts/tenancy.md)); an identity provider for the organisation's people and apps is operated as a third-party app today and has no module.
 
 ### § 3.2 Vault
 
@@ -512,7 +514,7 @@ Every subsection is a stub, filled in from the maintainers' experience as it is 
 ### § 9.1 Joiners, movers, leavers
 
 Not covered yet.
-The platform's admin and forge-org membership are the two places a person's access is encoded today ([§ 2 PLX-Platform](../approaches/platform.md), [§ 3 PLX-Tenancy](../approaches/tenancy.md)).
+The platform's admin and forge-org membership are the two places a person's access is encoded today ([§ 2 PLX-Platform](../approaches/platform.md), [§ 3 PLX-Tenancy](../contracts/tenancy.md)).
 
 ### § 9.2 Devices and their management
 
@@ -561,7 +563,7 @@ Immutable, provenance-attested packages, movable tags named as the accepted edge
 ### § 10.3 Network isolation
 
 Not covered beyond tenancy.
-Tenants are separated by hypervisor and never share a VM ([§ 4 PLX-Tenancy](../approaches/tenancy.md)); apps publish to loopback only and reach the world through the proxy ([§ 4 PLX-App](../contracts/app.md)); isolation between guests of one hypervisor is still to be written.
+Tenants are separated by hypervisor and never share a VM ([§ 4 PLX-Tenancy](../contracts/tenancy.md)); apps publish to loopback only and reach the world through the proxy ([§ 4 PLX-App](../contracts/app.md)); isolation between guests of one hypervisor is still to be written.
 
 ### § 10.4 Vulnerabilities
 

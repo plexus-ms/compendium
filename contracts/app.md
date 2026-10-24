@@ -37,7 +37,7 @@ An app's dependencies are satisfied by its own list or its repo's (§ 1.4 PLX), 
 ## § 2 compose.yaml
 
 > - Every app MUST provide a `compose.yaml` declaring the app service and any app-owned infrastructure.
-> - Every service in it MUST carry the label `plexus.tenant=<slug>` ([PLX-Tenancy](../approaches/tenancy.md)).
+> - Every service in it MUST carry the label `plexus.tenant=<slug>` ([PLX-Tenancy](tenancy.md)).
 > - Every app MUST have exactly one source repo: an app repo for software the tenant builds, or the platform repo, at `apps/<app-name>/`, for third-party software the tenant merely operates.
 > - `compose.yaml` MUST reach the app's host directory through the deploy verb, rendered from the invoking checkout of the source repo at deploy time with the image ref pinned (§ 3); the platform playbooks MUST NOT copy it.
 

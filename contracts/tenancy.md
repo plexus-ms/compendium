@@ -11,8 +11,9 @@ order: 15
 
 A **tenant** is one trust domain in the federation: its own forge org, repos, hosts, secrets vault, backups.
 Nominally a distinct legal person or organisation, but the boundary that matters is *access*, not legal personality; `plexus` itself is a tenant without being a distinct legal person.
-This module is the opinionated way to cut an organisation's IT along that boundary.
+This module is the contract at the seam between a tenant and the federation: what the upstream's primitives assume of a tenant, with what the tenant may assume of the upstream stated in § 1.6 PLX.
 It binds the organisation, and the tenant's platform repo declares it.
+The sections bind the tenant; the upstream's side stays prose in the map, since it binds the maintainers and not a consumer.
 
 What spans the tenants is separate trust domains sharing a *methodology*, not a *runtime*: federation under a common standard, not multi-tenancy.
 Nothing federates at runtime.
@@ -78,3 +79,6 @@ Sharing ingress, networking, or secrets across tenants beyond that is a red flag
 The module introduces no role for the providing side of an arrangement; "the tenant that runs the hypervisor" is said in those words.
 A term like "operator" would name a relationship the standard has exactly one instance of, and the instance is covered by § 4 as written.
 The ambition of customer-1001 economics is measured here: whenever onboarding a tenant seems to force two tenants to share substance, that is a bug to file against this module, not an exception to normalize.
+
+Approaches on the tenant's side: [PLX-Platform](../approaches/platform.md), [PLX-Infrastructure](../approaches/infrastructure.md).
+On the upstream's side: the presets, `ship`, and the guarantees of § 1.6 PLX.

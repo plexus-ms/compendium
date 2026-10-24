@@ -21,7 +21,7 @@ The `plexus-ms` packages version by different physics, semver in a registry, and
 > - The platform repo SHOULD have a single `main`; environments are inventory groups, never branches.
 > - Apps MUST NOT use changesets.
 > - A hotfix branches from `main` and merges to `main`; it MUST be back-merged `main → develop` immediately.
-> - Staging and prod MAY share a VM or take one each; both sit inside one tenant's trust domain, and [PLX-Tenancy](tenancy.md) partitions tenants, not environments.
+> - Staging and prod MAY share a VM or take one each; both sit inside one tenant's trust domain, and [PLX-Tenancy](../contracts/tenancy.md) partitions tenants, not environments.
 
 Branches map to deploy targets; "promote staging to prod" is merging `develop → main`.
 Since a release is a deploy keyed by SHA, there are no version numbers to reconcile between branches and therefore no back-merge tax; the reason environment branches are wrong for published packages does not apply here.

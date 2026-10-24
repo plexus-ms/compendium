@@ -16,7 +16,7 @@ Maturity follows from this page (§ 1.3 PLX): a module two tenants run can carry
 
 ## The dogfood tenant `plexus`
 
-The tenant that runs plexus-ms.org, in its own organisation `plexus-ms-tenant`, on one VM that is a guest of the second tenant's hypervisor under a written arrangement ([§ 4 PLX-Tenancy](../approaches/tenancy.md)).
+The tenant that runs plexus-ms.org, in its own organisation `plexus-ms-tenant`, on one VM that is a guest of the second tenant's hypervisor under a written arrangement ([§ 4 PLX-Tenancy](../contracts/tenancy.md)).
 
 | Repo | Declares |
 |---|---|

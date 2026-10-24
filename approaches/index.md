@@ -9,7 +9,6 @@ A consumer lists the approaches it follows in its `PLEXUS.md` marker (§ 1.4 PLX
 
 | Code | Page | Maturity | Binds | Depends on |
 |---|---|---|---|---|
-| PLX-Tenancy | [trust domains and tenants](tenancy.md) | standard | organisation | – |
 | PLX-JS | [the JS/TS toolchain](js.md) | standard | repo | PLX-Repo |
 | PLX-Train | [environment branches and the release train](train.md) | standard | repo | PLX-App |
 | PLX-CI | [the shared pipeline](ci.md) | standard | repo | PLX-Repo, PLX-App, PLX-Train, PLX-Deploy |

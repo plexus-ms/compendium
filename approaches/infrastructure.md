@@ -50,7 +50,7 @@ The ingress VM holds the one public IPv4 address, routes inbound TCP to the tena
 It terminates nothing: 443 is routed by TLS SNI and 80 by the Host header, so every tenant VM keeps its own Caddy and certificates ([PLX-Ingress](ingress.md)), and the PROXY protocol carries the real peer to them.
 A public port per VM forwards to its SSH for deploys.
 
-A guest of another tenant on the same hypervisor is an arrangement between tenants ([§ 4 PLX-Tenancy](tenancy.md)): the hypervisor side sees everything, so the arrangement is written down, and the guest tenant's marker records what rides along.
+A guest of another tenant on the same hypervisor is an arrangement between tenants ([§ 4 PLX-Tenancy](../contracts/tenancy.md)): the hypervisor side sees everything, so the arrangement is written down, and the guest tenant's marker records what rides along.
 
 
 ## Maintaining

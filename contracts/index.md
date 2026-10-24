@@ -10,10 +10,10 @@ A consumer lists the contracts it satisfies in its `PLEXUS.md` marker (§ 1.4 PL
 
 | Seam | Contract | Below, providing | Above, consuming |
 |---|---|---|---|
-| Infrastructure to platform | [PLX-Host](host.md) | [PLX-Infrastructure](../approaches/infrastructure.md), a provider's cloud, or another tenant's hypervisor ([§ 4 PLX-Tenancy](../approaches/tenancy.md)) | [PLX-Platform](../approaches/platform.md), [PLX-Deploy](../approaches/deploy.md) |
+| Infrastructure to platform | [PLX-Host](host.md) | [PLX-Infrastructure](../approaches/infrastructure.md), a provider's cloud, or another tenant's hypervisor ([§ 4 PLX-Tenancy](tenancy.md)) | [PLX-Platform](../approaches/platform.md), [PLX-Deploy](../approaches/deploy.md) |
 | Platform to app | [PLX-App](app.md), with one profile per app: [PLX-Stateless](stateless.md) or [PLX-Stateful](stateful.md) | [PLX-Ingress](../approaches/ingress.md), [PLX-Secrets](../approaches/secrets.md), [PLX-Deploy](../approaches/deploy.md), [backups per service](../approaches/backup.md) | [PLX-CI](../approaches/ci.md), [PLX-Train](../approaches/train.md), the app preset |
 | Repo to its operators | [PLX-Repo](repo.md) | the authors: [PLX-JS](../approaches/js.md), [PLX-Packages](../approaches/packages.md), [PLX-Updates](../approaches/updates.md) | [PLX-CI](../approaches/ci.md), the hooks, the staleness check (§ 13.4 PLX) |
-| Tenant to federation | open | the tenant: [§ 1 PLX-Tenancy](../approaches/tenancy.md) | the upstream: § 1.6 PLX |
+| Tenant to federation | [PLX-Tenancy](tenancy.md) | the tenant: [PLX-Platform](../approaches/platform.md), [PLX-Infrastructure](../approaches/infrastructure.md) | the upstream: the presets, `ship`, and the guarantees of § 1.6 PLX |
 
 For the repo seam, below and above are the authors and the operators: not layers, but two owners all the same.
 
@@ -24,5 +24,6 @@ For the repo seam, below and above are the authors and the operators: not layers
 | PLX-Stateless | [the stateless profile](stateless.md) | standard | app | PLX-App |
 | PLX-Stateful | [the stateful profile](stateful.md) | standard | app | PLX-App |
 | PLX-Host | [the host contract](host.md) | candidate | host | – |
+| PLX-Tenancy | [trust domains and tenants](tenancy.md) | standard | organisation | – |
 
 Section numbers inside a contract are append-only within a major train, like the map's; a section is cited by number and code, "§ 2 PLX-App".

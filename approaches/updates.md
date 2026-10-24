@@ -3,7 +3,6 @@ title: PLX-Updates – propagation and the update bot
 short_title: PLX-Updates
 description: An encoded decision that does not propagate rots in place — shared things cross repo boundaries as versioned artifacts, an update bot watches every pin, and how unattended a merge is follows the blast radius.
 code: PLX-Updates
-kind: approach
 maturity: standard
 binds: repo
 depends: [PLX-Repo]

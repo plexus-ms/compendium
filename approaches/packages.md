@@ -3,7 +3,6 @@ title: PLX-Packages – releasing packages
 short_title: PLX-Packages
 description: How a package monorepo publishes — trunk-based on main, versioned by changesets, published token-less through OIDC trusted publishing with provenance, and designed to carry methodology and never substance.
 code: PLX-Packages
-kind: approach
 maturity: candidate
 binds: repo
 depends: [PLX-Repo, PLX-JS]

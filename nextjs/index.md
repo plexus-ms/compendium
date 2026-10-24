@@ -1,7 +1,7 @@
 ---
 title: Next.js
 description: Guidelines and conventions for building Next.js applications in Plexus.
-order: 3
+order: 4
 ---
 
 Plexus apps in the web / Node / TypeScript world are built with Next.js. The documents in this section record the

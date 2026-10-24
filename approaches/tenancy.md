@@ -3,7 +3,6 @@ title: PLX-Tenancy – trust domains and tenants
 short_title: PLX-Tenancy
 description: How an organisation becomes a Plexus tenant — one trust domain sharing methodology and never substance, a slug threaded through every layer, one platform repo and N app repos, and written arrangements between tenants that share hardware.
 code: PLX-Tenancy
-kind: approach
 maturity: standard
 binds: organisation
 depends: []
@@ -43,14 +42,14 @@ The label makes the boundary visible exactly where it otherwise blurs: staring a
 
 > - Tenant repos SHOULD be partitioned by separate forge orgs.
 > - A tenant MUST hold its ops side (inventory, host definitions, playbooks, deployment configs) in exactly one repo, the platform repo; every other tenant repo is an app repo.
-> - The platform repo MUST NOT hold the source of an app the tenant builds itself; it MAY hold third-party apps the tenant merely operates ([§ 2 PLX-App](app.md)).
+> - The platform repo MUST NOT hold the source of an app the tenant builds itself; it MAY hold third-party apps the tenant merely operates ([§ 2 PLX-App](../contracts/app.md)).
 > - App repos SHOULD use the monorepo pattern: one repo holding `apps/` and `packages/` for one web ecosystem; a tenant SHOULD start with a single web monorepo and add a further app repo only for a product that persistently needs its own release cadence.
 > - The platform repo SHOULD be named `platform` and the default web monorepo `web`; further app repos are named after their product.
 > - App repos SHOULD be generated from `plexus-ms/preset-repo-web`, apps within them from `plexus-ms/preset-app-nextjs`, and the platform repo from `plexus-ms/preset-repo-platform`.
 
 Org membership governs code access; a person in tenant A's org is simply not in tenant B's.
 Inside the org, the layout follows three cardinalities: one trust domain, N release trains, one platform repo.
-A **repo** is one release train and one toolchain contract ([PLX-Repo](repo.md)) inside a tenant.
+A **repo** is one release train and one toolchain contract ([PLX-Repo](../contracts/repo.md)) inside a tenant.
 The ops side gets a repo of its own because everything about it is repo-level and unlike an app's: it rides no release train ([PLX-Train](train.md)), it is applied by playbook runs on its own occasions ([PLX-Platform](platform.md)), its dependency bumps are human-reviewed because they run as root ([PLX-Updates](updates.md)), and it holds the root playbooks and the vault pointers, so its access list is naturally the shortest in the org.
 Co-locating it in one arbitrary app repo would be an asymmetry every second reader has to be told about.
 

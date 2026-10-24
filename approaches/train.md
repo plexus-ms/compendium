@@ -3,7 +3,6 @@ title: PLX-Train – environment branches and the release train
 short_title: PLX-Train
 description: Releases keyed by git SHA — main to prod, develop to staging, the app as unit of deployment and the repo as unit of promotion, and what happens when a deploy is red.
 code: PLX-Train
-kind: approach
 maturity: standard
 binds: repo
 depends: [PLX-App]

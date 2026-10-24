@@ -3,7 +3,6 @@ title: PLX-Stateful – the stateful app profile
 short_title: PLX-Stateful
 description: The app contract sharpened for apps backed by data services of their own — backup labels, an idempotent one-shot migrate service, expand/contract migrations, a seed task.
 code: PLX-Stateful
-kind: contract
 maturity: standard
 binds: app
 depends: [PLX-App]
@@ -21,7 +20,7 @@ This profile is for apps backed by one or more data services of their own, the c
 > - Data services MUST carry the labels `plexus.tenant=<slug>` and `plexus.backup=<type>`; a `plexus.backup` value is valid exactly when the `plexus.platform` collection ships a backup handler for it.
 > - The app SHOULD default to one database container of its own: full isolation, dies with the app.
 
-The backup job discovers what to dump by reading the labels ([backups per service](backup.md), still a note), so a newly deployed app is covered with zero bookkeeping once the handlers ship.
+The backup job discovers what to dump by reading the labels ([backups per service](../approaches/backup.md), still a note), so a newly deployed app is covered with zero bookkeeping once the handlers ship.
 Extending the backup vocabulary means adding one handler upstream, after which every app using that data-service type is covered.
 
 
@@ -35,7 +34,7 @@ Extending the backup vocabulary means adding one handler upstream, after which e
 > - A genuinely breaking migration, one that cannot honor expand/contract, MUST be deployed as a deliberate act: fresh backup taken first, and the operator aware that reverting means restoring, not re-upping the previous tag.
 
 `migrate` is the one contract step the deploy pipeline invokes against production data, hence the precision.
-It runs as a container from the very image being deployed (`docker compose run --rm migrate`, [PLX-Deploy](deploy.md)): the image carries its own migration tooling, dev runs the identical step with the identical command, and the deploy host needs docker and nothing else.
+It runs as a container from the very image being deployed (`docker compose run --rm migrate`, [PLX-Deploy](../approaches/deploy.md)): the image carries its own migration tooling, dev runs the identical step with the identical command, and the deploy host needs docker and nothing else.
 The deploy flow has no down-migration step, and its rollback path re-launches the *previous* image against the *already-migrated* schema.
 That is sound only if additive changes (new tables, nullable columns, backfills) ship first and destructive ones (drops, renames, constraint tightening) ship only in a later release, once no deployed code depends on the old shape.
 Mainstream migration tools provide locking out of the box, so that requirement is usually just *don't disable it*.
@@ -53,4 +52,5 @@ Production data arrives by restore or by real use, never by seed.
 ## Maintaining
 
 The profile is written against the one migration path the deploy verb has.
-A change to how the verb runs `migrate` ([PLX-Deploy](deploy.md)) is a change to § 2 here, in the same train.
+A change to how the verb runs `migrate` ([PLX-Deploy](../approaches/deploy.md)) is a change to § 2 here, in the same train.
+The approaches on each side are those of [PLX-App](app.md).

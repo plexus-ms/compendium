@@ -3,7 +3,6 @@ title: PLX-Ingress – ingress
 short_title: PLX-Ingress
 description: One inventory record per app binds host, loopback port, and non-secret values; the configure playbook renders the proxy's routes and the app's .env from it, and fences /healthz at the edge.
 code: PLX-Ingress
-kind: approach
 maturity: standard
 binds: host
 depends: [PLX-Platform, PLX-App]
@@ -11,7 +10,7 @@ order: 21
 ---
 
 A reverse proxy per VM terminates TLS and maps domains to app ports.
-This module is how a tenant tells the platform which app answers under which name, and how that one fact reaches both the proxy and the app's compose interpolation ([§ 4 PLX-App](app.md)) without being stated twice.
+This module is how a tenant tells the platform which app answers under which name, and how that one fact reaches both the proxy and the app's compose interpolation ([§ 4 PLX-App](../contracts/app.md)) without being stated twice.
 
 
 ## § 1 The inventory record
@@ -34,7 +33,7 @@ Apps sharing a host are told apart by path prefix, and the prefix is stripped on
 
 > - The reverse proxy SHOULD be Caddy.
 > - The proxy SHOULD refuse external requests for `/healthz`.
-> - A third-party app's readiness path (`plexus.healthz`, [§ 5 PLX-App](app.md)) MUST be mirrored as `apps[].healthz` in the inventory so the proxy can fence it.
+> - A third-party app's readiness path (`plexus.healthz`, [§ 5 PLX-App](../contracts/app.md)) MUST be mirrored as `apps[].healthz` in the inventory so the proxy can fence it.
 
 Each tenant's configure playbook writes its routes into its own file, a per-tenant fragment imported by the proxy's root config, so tenants co-hosted on one VM never touch each other's routes.
 What sits in front of the VM is a host-level fact, set once in the root config: a layer-4 ingress that routes by SNI may announce the real peer with the PROXY protocol, and a CDN's forwarded client address is believed only from that CDN's published ranges, so the app sees the actual client, and nothing bypassing the proxy can forge it.

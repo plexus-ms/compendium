@@ -3,14 +3,13 @@ title: PLX-Deploy – deploy semantics
 short_title: PLX-Deploy
 description: What the shared deploy verb does — render the compose file with the image pinned, pull, migrate, swap, up, poll readiness, roll back on failure — and the fence around it.
 code: PLX-Deploy
-kind: approach
 maturity: candidate
 binds: app
 depends: [PLX-App, PLX-Host]
 order: 19
 ---
 
-This module describes what the shared deploy verb (`plexus-ms/ci-cd`, `scripts/deploy.sh`) does, so the contract requirements riding on it ([§ 5 PLX-App](app.md), [§ 2 PLX-Stateful](stateful.md)) make sense.
+This module describes what the shared deploy verb (`plexus-ms/ci-cd`, `scripts/deploy.sh`) does, so the contract requirements riding on it ([§ 5 PLX-App](../contracts/app.md), [§ 2 PLX-Stateful](../contracts/stateful.md)) make sense.
 It is an approach: one verb, shipped and consumed, whose behaviour is documented here rather than required.
 The contracts it serves are what carry requirements.
 

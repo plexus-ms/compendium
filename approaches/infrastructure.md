@@ -3,7 +3,6 @@ title: PLX-Infrastructure – the infrastructure layer
 short_title: PLX-Infrastructure
 description: Hosts on hardware of a tenant's own — a Proxmox hypervisor, guests created from stock Debian, a backup server for them, and an ingress VM sharing one public address — as roles in a third playbook of the platform repo.
 code: PLX-Infrastructure
-kind: approach
 maturity: candidate
 binds: host
 depends: [PLX-Tenancy]

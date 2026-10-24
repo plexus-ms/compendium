@@ -3,7 +3,6 @@ title: PLX-Scheduling – scheduled jobs and the dead-man's-switch
 short_title: PLX-Scheduling
 description: No workflow orchestrator — scheduled jobs are systemd timers, app pipelines are job queues inside the app, and a job that silently stops is noticed by a dead-man's-switch whose concrete mechanism is still open.
 code: PLX-Scheduling
-kind: approach
 maturity: candidate
 binds: host
 depends: [PLX-Platform]

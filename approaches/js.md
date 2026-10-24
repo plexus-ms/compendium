@@ -3,14 +3,13 @@ title: PLX-JS – the JS/TS toolchain
 short_title: PLX-JS
 description: The one toolchain arrangement for JS/TS repos — pnpm workspace plus Turborepo behind the standard verbs, node pinned once in .node-version, dev tools as devDependencies, Biome for format and lint.
 code: PLX-JS
-kind: approach
 maturity: standard
 binds: repo
 depends: [PLX-Repo]
 order: 16
 ---
 
-[PLX-Repo](repo.md) names four verbs and says nothing about what runs behind them.
+[PLX-Repo](../contracts/repo.md) names four verbs and says nothing about what runs behind them.
 This module is the arrangement behind them for one stack, JS/TS, the first toolchain the standard has specified.
 A Python or Go repo takes the same repo contract with a toolchain module of its own, when one is written.
 
@@ -25,7 +24,7 @@ A Python or Go repo takes the same repo contract with a toolchain module of its 
 > - The node version MUST be pinned exactly once: a `.node-version` file at the repo root, read by mise natively (`idiomatic_version_file_enable_tools`), by CI as a plain file, and by the image build as a build arg.
 > - JS-ecosystem dev tools (turbo, biome, …) MUST be devDependencies, on the PATH via mise's `_.path`, never mise `[tools]` entries; a `package.json` MUST NOT carry `engines`.
 
-Each fact sits in its canonical home ([§ 2 PLX-Repo](repo.md)): the pnpm version where pnpm itself and every update bot reads it, dev tools where npm's ecosystem versions them, the task graph where turbo reads it, and the node version in `.node-version`, the file the node ecosystem's own version managers converged on, which any consumer can read without a toolchain (`cat` in CI, an `ARG` in the Dockerfile, mise natively).
+Each fact sits in its canonical home ([§ 2 PLX-Repo](../contracts/repo.md)): the pnpm version where pnpm itself and every update bot reads it, dev tools where npm's ecosystem versions them, the task graph where turbo reads it, and the node version in `.node-version`, the file the node ecosystem's own version managers converged on, which any consumer can read without a toolchain (`cat` in CI, an `ARG` in the Dockerfile, mise natively).
 `pnpm-workspace.yaml` (`packages:` globs plus a `catalog:` pinning shared dev-tool versions) owns install and linking; turbo owns ordering and caching on top of it.
 The division of labor is exact: pnpm knows the package graph but not tasks, mise knows tasks but not the graph, turbo knows both.
 `dependsOn: ["^build"]` says once, for every consumer present and future, that internal packages build before their dependents typecheck, test, or build.

@@ -3,7 +3,6 @@ title: PLX-CI – the shared pipeline
 short_title: PLX-CI
 description: One reusable workflow mounts the verbs on the forge — check, test, hermetic image build, deploy — fanned out per changed app; no tenant operates a CI control plane of its own.
 code: PLX-CI
-kind: approach
 maturity: standard
 binds: repo
 depends: [PLX-Repo, PLX-App, PLX-Train, PLX-Deploy]
@@ -19,7 +18,7 @@ This module is the pipeline that results: a reusable workflow in `plexus-ms/ci-c
 
 > - A tenant MUST NOT operate its own CI control plane.
 > - The forge SHOULD be GitHub; a tenant SHOULD NOT self-host a forge.
-> - A tenant repo's CI MUST reach the repo only through its standard verbs ([§ 3 PLX-Repo](repo.md)) and the image build of [§ 7 PLX-App](app.md).
+> - A tenant repo's CI MUST reach the repo only through its standard verbs ([§ 3 PLX-Repo](../contracts/repo.md)) and the image build of [§ 7 PLX-App](../contracts/app.md).
 
 One reusable workflow runs check → test, then builds the image hermetically and pushes it, tagged with the git SHA.
 Every stage that touches the app runs through its contract verbs; the image push is the workflow's own step.

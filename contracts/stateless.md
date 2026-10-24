@@ -3,7 +3,6 @@ title: PLX-Stateless – the stateless app profile
 short_title: PLX-Stateless
 description: The app contract sharpened for apps holding no state of their own — static and marketing sites, stateless APIs.
 code: PLX-Stateless
-kind: contract
 maturity: standard
 binds: app
 depends: [PLX-App]
@@ -28,3 +27,4 @@ A stateless app degrades gracefully by construction: the host is fully reconstru
 ## Maintaining
 
 Keep the profile to what distinguishes the shape; anything true of every app belongs in [PLX-App](app.md).
+The approaches on each side are those of [PLX-App](app.md).

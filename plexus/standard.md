@@ -24,7 +24,7 @@ Section numbers are append-only within a major version: new sections go at the e
 
 The standard has two layers.
 The **map** is this document: prose and pointers, no requirements, no normative keywords.
-A **module** is a page under `modules/` that covers one concern a consumer could adopt or reject on its own, and it is where requirements live.
+A **module** is a page under `contracts/` or `approaches/` that covers one concern a consumer could adopt or reject on its own, and it is where requirements live.
 
 A module at standard maturity (§ 1.3) states its requirements as blockquoted bullets at the head of each numbered section, using the capitalised keywords of BCP 14 ([RFC 2119](https://www.rfc-editor.org/rfc/rfc2119), [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174)).
 Everything outside such a bullet is informative: the prose below a requirements block explains and motivates, but never binds.
@@ -35,20 +35,22 @@ The following terms are used throughout Plexus.
 
 Plexus revolves around tenants sharing methodology but never substance:
 
-- **Tenant** — one trust domain in the federation: its own forge org, repos, hosts, secrets vault, backups ([PLX-Tenancy](../modules/tenancy.md)).
+- **Tenant** — one trust domain in the federation: its own forge org, repos, hosts, secrets vault, backups ([PLX-Tenancy](../approaches/tenancy.md)).
   The boundary that matters is access and trust, not necessarily legal personality.
 - **Methodology** and **substance** — the sharing axis: methodology is knowledge and code-shaped-as-knowledge, shared across all tenants; substance is data, secrets, access, hosts, and is never shared.
 - **Primitive** — any named methodology (guideline, tool, or approach) the initiative ships or prescribes: a verb, a mount, an Ansible role, a published package, a copier template, a label scheme, a file layout, an endpoint path.
   Decided once, reused, versioned and published, or otherwise propagated (§ 13).
+- **Seam** — where two sides owned by different people or tools meet: one layer and the next, or the authors of a repo and whatever runs it.
+  A seam is named by its two sides and made explicit as exactly one contract (§ 1.3).
 - **Module**, **contract**, **approach**, **note**, **candidate**, **maturity** — see § 1.3.
 - **Declaration** — a repo's or app's `PLEXUS.md` marker: the Plexus version it was brought up to and the modules it follows (§ 1.4).
 - **Train** — one release of Plexus, tagged identically on every release repo and the compendium, whose number is the Plexus version (§ 1.5).
 
 Tenants usually build and ship software:
 
-- **Repo** — one release train and one toolchain contract inside a tenant ([PLX-Repo](../modules/repo.md)).
+- **Repo** — one release train and one toolchain contract inside a tenant ([PLX-Repo](../contracts/repo.md)).
   A tenant can have any number of **app repos** holding the dev side, and has exactly one **platform repo** holding the ops side.
-- **App** — one deployable unit satisfying the app contract ([PLX-App](../modules/app.md)).
+- **App** — one deployable unit satisfying the app contract ([PLX-App](../contracts/app.md)).
   It lives in an app repo for software the tenant builds, or the platform repo for third-party software the tenant merely operates.
 - **Verb** — a stateless, hand-runnable procedure that does one operational thing, authored portably.
   Ops verbs are the shared bash scripts `ci-cd` ships; contract verbs are the root mise tasks the repo contract requires.
@@ -57,12 +59,11 @@ Tenants usually build and ship software:
 
 IT operations is a layered concern. We are adopting the commonly used language of on-premises, IaaS, PaaS, and SaaS:
 
-- **Seam** — where one layer meets the next and the two sides are owned by different people or tools; a seam is made explicit as a contract.
-- **App/Software layer** — on top of the platform layer, the software a tenant provides as a service and the data it holds: the apps the tenant builds in its app repos and the third-party apps it merely operates from its platform repo, each meeting the app contract ([PLX-App](../modules/app.md)).
+- **App/Software layer** — on top of the platform layer, the software a tenant provides as a service and the data it holds: the apps the tenant builds in its app repos and the third-party apps it merely operates from its platform repo, each meeting the app contract ([PLX-App](../contracts/app.md)).
   It is the equivalent of a tenant being its own SaaS provider, and it is the dev side: everything from the domain core up to the seam where the platform provides the surroundings.
-- **Platform layer** — what makes any existing production host run a tenant's app and provide it as a service: the host baseline, the container engine and proxy, ingress, environment and secrets delivery, applied by the platform repo's playbooks ([PLX-Platform](../modules/platform.md)).
+- **Platform layer** — what makes any existing production host run a tenant's app and provide it as a service: the host baseline, the container engine and proxy, ingress, environment and secrets delivery, applied by the platform repo's playbooks ([PLX-Platform](../approaches/platform.md)).
   It is the equivalent of a tenant being its own PaaS provider, running the layer between the infrastructure below and the apps above.
-- **Infrastructure layer** — underneath the platform layer, this is what makes a tenant's hosts exist, reachable, and restorable: bought from a provider as IaaS (virtualized cloud instances etc.), or built by the tenant on bare metal of its own (on-premises or bare metal rented from a provider, [PLX-Infrastructure](../modules/infrastructure.md)).
+- **Infrastructure layer** — underneath the platform layer, this is what makes a tenant's hosts exist, reachable, and restorable: bought from a provider as IaaS (virtualized cloud instances etc.), or built by the tenant on bare metal of its own (on-premises or bare metal rented from a provider, [PLX-Infrastructure](../approaches/infrastructure.md)).
 
 
 ### § 1.3 Modules, contracts, and maturity
@@ -70,28 +71,52 @@ IT operations is a layered concern. We are adopting the commonly used language o
 A module has a kind and a maturity, and the two are independent axes.
 
 #### Kind: contract vs. approach
-- A **contract** sits at a seam and states what one layer asks of the next: the repo contract between a repo and whatever operates on it, the app contract between software (dev side) and its platform (ops side), the profiles that sharpen it, the host contract between the infrastructure layer and the platform.
-There are exactly as many contracts as seams, and a seam is always exactly one contract module.
-- An **approach** is an opinionated way to provide or consume a contract; every module that is not a contract is one.
+A module's kind is the folder it lives in, `contracts/` or `approaches/`.
+
+- A **contract** is the module written at a seam: what the two sides owe each other, so that either side can be replaced without the other noticing.
+  Contracts are opinionated interfaces, not tool-neutral ones: the repo contract names mise, the app contract names compose, the host contract names Debian.
+- An **approach** is an opinionated way to live on one side of a seam: to provide a contract, to consume it, or to do a side's own job; every module that is not a contract is one.
+  A tenant can replace an approach with its own and remain a Plexus tenant as long as it keeps the contracts.
+
+**The seams.**
+A seam is named by its two sides, and the [contracts index](../contracts/index.md) keeps the table of seams with the approaches on each side.
+Today there are three, and one open question:
+
+- *Infrastructure to platform*: below, whatever makes a host exist, a provider, the tenant's own metal, or another tenant's hypervisor; above, the platform repo.
+  [PLX-Host](../contracts/host.md).
+- *Platform to app*: below, ops, the platform repo; above, dev, the app's source repo.
+  [PLX-App](../contracts/app.md), with the profiles [PLX-Stateless](../contracts/stateless.md) and [PLX-Stateful](../contracts/stateful.md) sharpening it, one per app.
+- *Repo to its operators*: on one side the authors of a repo; on the other whatever runs it without having written it, a CI job, a coding agent, a colleague on a fresh checkout.
+  [PLX-Repo](../contracts/repo.md).
+- *Tenant to federation*, open: the tenant's side is [§ 1 PLX-Tenancy](../approaches/tenancy.md), the upstream's side is the prose of § 1.6; whether the two become one contract is undecided.
+
+**Three rules follow.**
+
+- One seam, one contract; a contract may have profiles, which are parts of it and not seams of their own.
+  A new contract needs a new named seam with two owners, and a page that cannot name its seam is an approach.
+- A dependency that crosses a seam targets a contract; dependencies between approaches on the same side are composition: you took this piece, so you have the whole it belongs to.
+  `mise check` enforces this where `binds` tells the sides apart, the dev side (`repo`, `app`) from the ops side (`host`, `organisation`), and refuses any dependency of a contract on an approach; the other seams are checked by reading.
+- A contract page is two-sided: its sections say which side they bind, and its Maintaining section lists the approaches on each side.
+  A guarantee that one side relies on from an approach on the other side moves into the contract at that seam, and the approach keeps the how.
 
 #### Maturity: note vs. candidate vs. standard
 - A **note** is written knowledge: no primitives, no requirements; a page the map links to and nothing more.
 - A **candidate** has shipped primitives and at least one consumer, and still no requirements: a candidate for standard, waiting on its second consumer.
 - A **standard** module has requirements and at least two consumers.
 
-**Codes and declarability.**
+#### Codes and declarability
 Only candidate and standard modules carry a code, `PLX-` plus one capitalised word, unique across the compendium, and only they can be declared.
 Notes have titles and no code.
 
-**Granularity.**
+#### Granularity
 One module per thing a consumer could adopt or reject on its own.
 Ingress, secrets delivery, and backups are therefore separate modules although one playbook mounts them; the four standard verbs are one module with the marker because no repo takes one without the other.
 Granularity is revisited while pages are written and when a consumer wants half a module.
 
-**Frontmatter.**
-Every module page carries `code` (absent on a note), `kind`, `maturity`, `binds` (what the module is declared for: `repo`, `app`, `host`, or `organisation`), `depends` (the codes a declaration of this module has to accompany), and, on standard modules only, `changed`, the train in which the module's requirements last changed, stamped by `ship` (§ 1.5).
+#### Frontmatter
+Every module page carries `code` (except for notes), `maturity`, `binds` (what the module is declared for: `repo`, `app`, `host`, or `organisation`), `depends` (the codes a declaration of this module has to accompany), and, on standard modules only, `changed`, the train in which the module's requirements last changed.
 
-**Page shape.**
+#### Page shape
 Numbered sections (`§ 1`, `§ 1.1`, …) hold requirements as `> - ` bullets followed by consumer prose; numbers are append-only within a major train, as in the map.
 One trailing section headed *Maintaining*, unnumbered and never cited, holds the maintainer side: which primitives ship the module, what changes with it, what debts it carries, when it is promoted.
 The extractor treats that section as prose.
@@ -111,23 +136,11 @@ modules: [PLX-Repo, PLX-JS, PLX-Train, PLX-CI, PLX-Updates]
 ```
 
 `plexus` is the Plexus version the repo or app was last brought up to; `modules` is the list of module codes it follows.
-Machine checks read only the frontmatter; the body is for humans, and it is where a deviation from a requirement is owned in a sentence of rationale.
-A recorded deviation reads as a decision; an unrecorded one reads as drift, and the marker is where the difference is made visible.
-
-**Declarations live only in repos.**
-An app's marker declares for the app, a repo's marker for the repo, and the platform repo's marker is the tenant's declaration: it covers the tenant's hosts and the modules that bind the organisation.
-Nothing lives on a host; what a host runs is read from the host.
-
-**Dependencies bind the declaration.**
-A declaration includes, for every module it lists, every module that one `depends` on, unless an enclosing declaration lists it: an app's dependencies are satisfied by its own list or its repo's, a repo's by its own or the tenant's.
-This is stated here as a rule now and checked mechanically when the staleness check ships (§ 13.4).
+Machine checks read only the frontmatter; the body is for humans, and it is where a deviation from a requirement is owned in a sentence of rationale..
 
 **Staleness is per module.**
 A declaration is stale for exactly those modules it lists whose `changed` is newer than its `plexus`; nothing else about it is stale.
-There is no global verdict: a repo declaring only the repo contract is a complete consumer, and the holistic pass/fail of earlier drafts is gone, because a collection that intends to cover all of IT cannot be passed or failed as a whole.
-What remains of conformance is this mechanism against invisible staleness.
-
-The requirements that make the marker mandatory are [§ 1 PLX-Repo](../modules/repo.md) and [§ 1 PLX-App](../modules/app.md).
+There is no global verdict.
 
 ### § 1.5 Versioning and the train
 
@@ -137,7 +150,7 @@ The train is the tested set: the only combination ever validated is the one the 
 Because an unchanged repo still gets the tag, every cross-repo pin can cite the train version and be right by construction.
 
 The release repos are `platform`, `ci-cd`, `preset-repo-web`, `preset-app-nextjs`, `preset-repo-platform`, and `compendium`.
-`packages` (npm semver via changesets, [PLX-Packages](../modules/packages.md)) and `renovate-config` (read from its default branch) ride outside the train.
+`packages` (npm semver via changesets, [PLX-Packages](../approaches/packages.md)) and `renovate-config` (read from its default branch) ride outside the train.
 Within the train, `ci-cd` tags verbs and workflow wrappers together, so a wrapper always checks out its verb at the same tag; `platform` tags the Ansible collection and the Terraform modules together, and its `galaxy.yml` version mirrors the tag exactly.
 The pre-train per-repo `vN` lines and the itops-era tags live on frozen in history, kept for existing pins and never retargeted.
 
@@ -163,7 +176,7 @@ The mitigations are structural, and the tenant can rely on them:
 - Tenant substance, business logic, secrets, anything tenant-specific, never appears in a public package or a public repo.
 
 These are obligations of the maintainers, not of consumers, which is why they are prose here rather than requirements in a module.
-The tenant's decision on how unattended to let updates flow ([§ 2 PLX-Updates](../modules/updates.md)) rests on them.
+The tenant's decision on how unattended to let updates flow ([§ 2 PLX-Updates](../approaches/updates.md)) rests on them.
 
 One sharp edge is named rather than implied away: some pins reference git tags, which are movable.
 Unlike npm versions, a retargeted tag silently changes what a tenant executes, with no attestation.
@@ -227,7 +240,7 @@ The structural conventions are self-policing, and the machinery is small:
 - `plexus/requirements.sh` checks all of that over the map and every module, validates module frontmatter, and prints a module's requirement lines on demand; `mise check` runs it, and the pre-commit and pre-push hooks run `mise check`.
   It writes no file: there is no generated requirements list to keep current.
 - Section numbers are append-only within a major train; insertions wait for a major.
-- Module pages live at `modules/<slug>.md`, and a new module is added to the map section that owns its concern in the same commit.
+- Module pages live at `contracts/<slug>.md` or `approaches/<slug>.md`, the folder being the kind (§ 1.3), and a new module is added to the map section that owns its concern in the same commit.
 
 The compendium follows the repo contract it documents: tools pinned in `mise.toml`, `check` as a verb, hooks through hk.
 
@@ -240,23 +253,23 @@ How an organisation is cut into trust domains and named, where its code lives, h
 
 The tenant is the trust boundary: one organisation, one forge org, one platform repo, one vault, its own hosts and backups.
 What spans tenants is methodology; what never does is substance.
-[PLX-Tenancy](../modules/tenancy.md) is the module, at standard maturity; its first section holds the one pair of requirements everything else rests on.
+[PLX-Tenancy](../approaches/tenancy.md) is the module, at standard maturity; its first section holds the one pair of requirements everything else rests on.
 
 ### § 2.2 Naming
 
 One short slug per tenant threads through every layer: forge org, hostnames, inventory groups, vault name, and the `plexus.tenant` label on every deployed service, so that staring at a host one can tell whose service this is.
-[§ 2 PLX-Tenancy](../modules/tenancy.md).
+[§ 2 PLX-Tenancy](../approaches/tenancy.md).
 
 ### § 2.3 Forge and repo layout
 
 One trust domain, N release trains, one platform repo: the ops side in a repo of its own, every other repo an app repo, app repos as monorepos by default, generated from the presets.
-[§ 3 PLX-Tenancy](../modules/tenancy.md).
+[§ 3 PLX-Tenancy](../approaches/tenancy.md).
 
 ### § 2.4 Arrangements between tenants
 
 Tenants sharing hardware are separated by a hypervisor and never inside one VM; the hypervisor side sees everything, so distinct legal persons sharing root access write the arrangement down.
-The common form is one tenant obtaining its infrastructure from another ([PLX-Infrastructure](../modules/infrastructure.md)).
-[§ 4 PLX-Tenancy](../modules/tenancy.md).
+The common form is one tenant obtaining its infrastructure from another ([PLX-Infrastructure](../approaches/infrastructure.md)).
+[§ 4 PLX-Tenancy](../approaches/tenancy.md).
 
 ### § 2.5 Documentation and knowledge
 
@@ -283,17 +296,17 @@ Each is consumed by a module below; none has a module of its own yet.
 ### § 3.1 Identity and access for people
 
 Not covered yet.
-The platform's host baseline gives each human admin a personal account with key-only SSH ([§ 2 PLX-Platform](../modules/platform.md)); the forge org governs code access ([§ 3 PLX-Tenancy](../modules/tenancy.md)); an identity provider for the organisation's people and apps is operated as a third-party app today and has no module.
+The platform's host baseline gives each human admin a personal account with key-only SSH ([§ 2 PLX-Platform](../approaches/platform.md)); the forge org governs code access ([§ 3 PLX-Tenancy](../approaches/tenancy.md)); an identity provider for the organisation's people and apps is operated as a third-party app today and has no module.
 
 ### § 3.2 Vault
 
 Not covered yet as a service.
-Every module that needs a secret assumes one vault per tenant reachable by a CLI that resolves `op://`-style pointers; [PLX-Secrets](../modules/secrets.md) is how the platform consumes it, with 1Password as the suggested default behind a thin adapter.
+Every module that needs a secret assumes one vault per tenant reachable by a CLI that resolves `op://`-style pointers; [PLX-Secrets](../approaches/secrets.md) is how the platform consumes it, with 1Password as the suggested default behind a thin adapter.
 
 ### § 3.3 Domains and DNS
 
 Not covered yet.
-A public host is deployment substance bound to an app in the tenant's inventory ([PLX-Ingress](../modules/ingress.md)); how the zone itself is held, delegated, and changed is still to be written.
+A public host is deployment substance bound to an app in the tenant's inventory ([PLX-Ingress](../approaches/ingress.md)); how the zone itself is held, delegated, and changed is still to be written.
 
 ### § 3.4 Mail
 
@@ -308,33 +321,33 @@ Everything a repo does before an artifact exists: the one way to run it, the too
 ### § 4.1 Repo contract
 
 A declaration marker, mise and hk as the one executable answer to "how do I run you", and the four standard verbs `dev`, `build`, `check`, `test`, each answering from a fresh checkout.
-[PLX-Repo](../modules/repo.md) is the contract every other repo- and app-level module depends on.
+[PLX-Repo](../contracts/repo.md) is the contract every other repo- and app-level module depends on.
 
 ### § 4.2 Toolchains
 
 The incantations behind the verbs, one module per stack.
-JS/TS is specified: pnpm workspace plus Turborepo, node pinned once, dev tools as devDependencies, Biome ([PLX-JS](../modules/js.md)).
+JS/TS is specified: pnpm workspace plus Turborepo, node pinned once, dev tools as devDependencies, Biome ([PLX-JS](../approaches/js.md)).
 Other stacks take the repo contract with a toolchain module still to be written.
 
 ### § 4.3 Sharing code
 
 Inside one repo a shared thing is a workspace dependency; across repos it is a published, versioned artifact, and nothing else crosses the boundary.
-[§ 1 PLX-Updates](../modules/updates.md) states the rule; [PLX-Packages](../modules/packages.md) is how a package monorepo publishes.
+[§ 1 PLX-Updates](../approaches/updates.md) states the rule; [PLX-Packages](../approaches/packages.md) is how a package monorepo publishes.
 
 ### § 4.4 Testing
 
 Not covered beyond the verb.
-`test` runs whatever gates a deploy and provides its own environment ([§ 3 PLX-Repo](../modules/repo.md)); what a good test suite for a Plexus app looks like, and how the domain core is engineered test-first while the edges are shared, is still to be written.
+`test` runs whatever gates a deploy and provides its own environment ([§ 3 PLX-Repo](../contracts/repo.md)); what a good test suite for a Plexus app looks like, and how the domain core is engineered test-first while the edges are shared, is still to be written.
 
 ### § 4.5 Local environment
 
 Not covered beyond the verb.
-`dev` takes a fresh checkout to a running development environment, and the app's `compose.yaml` runs identically in development with a local `.env` ([§ 3 PLX-App](../modules/app.md)); development-only services next to it are each app's business today.
+`dev` takes a fresh checkout to a running development environment, and the app's `compose.yaml` runs identically in development with a local `.env` ([§ 3 PLX-App](../contracts/app.md)); development-only services next to it are each app's business today.
 
 ### § 4.6 Application plumbing
 
 Not covered yet.
-The "standardize boundaries" edges, framework glue, common auth concerns, repeatable non-domain features, are to become published `@plexus-ms/*` packages, extracted when a second app needs the same plumbing and never speculatively from the first ([§ 2 PLX-Packages](../modules/packages.md)).
+The "standardize boundaries" edges, framework glue, common auth concerns, repeatable non-domain features, are to become published `@plexus-ms/*` packages, extracted when a second app needs the same plumbing and never speculatively from the first ([§ 2 PLX-Packages](../approaches/packages.md)).
 Until then the plumbing lives in the app that needs it.
 
 ### § 4.7 Working with coding agents
@@ -350,18 +363,18 @@ The seam between dev and ops, made explicit as a contract an app satisfies and a
 ### § 5.1 App contract
 
 Run shape in `compose.yaml`, environment through two files, one HTTP port on loopback, a readiness `/healthz`, logs on stdout, and a CI reference: the profile-neutral base the platform relies on for every app.
-[PLX-App](../modules/app.md).
+[PLX-App](../contracts/app.md).
 
 ### § 5.2 Profiles
 
 Every app takes exactly one.
-[PLX-Stateless](../modules/stateless.md) for apps holding no state; [PLX-Stateful](../modules/stateful.md) for apps with data services of their own, with backup labels, an idempotent one-shot `migrate`, expand/contract discipline, and a seed task.
+[PLX-Stateless](../contracts/stateless.md) for apps holding no state; [PLX-Stateful](../contracts/stateful.md) for apps with data services of their own, with backup labels, an idempotent one-shot `migrate`, expand/contract discipline, and a seed task.
 Further profiles append here as they are needed.
 
 ### § 5.3 Background jobs
 
 Not covered yet.
-The stance is settled: app-internal pipelines run in a job queue inside the app, deployed as a worker container in the same compose file ([§ 1 PLX-Scheduling](../modules/scheduling.md)); a profile or note on the worker's shape is still to be written.
+The stance is settled: app-internal pipelines run in a job queue inside the app, deployed as a worker container in the same compose file ([§ 1 PLX-Scheduling](../approaches/scheduling.md)); a profile or note on the worker's shape is still to be written.
 
 
 ## § 6 Delivery
@@ -371,32 +384,32 @@ From a merge to a running container: branches, the train, the pipeline, the verb
 ### § 6.1 Branch model
 
 `main`→prod, `develop`→staging, a release is a deploy keyed by SHA, hotfixes back-merge immediately, no changesets in app repos.
-[§ 1 PLX-Train](../modules/train.md).
+[§ 1 PLX-Train](../approaches/train.md).
 
 ### § 6.2 Release train
 
 The app is the unit of deployment, the repo the unit of promotion: a merge deploys exactly the apps whose sources changed, and promotion is the whole train, never selective.
-[§ 2 PLX-Train](../modules/train.md).
+[§ 2 PLX-Train](../approaches/train.md).
 
 ### § 6.3 CI pipeline
 
 One reusable workflow mounts the verbs on the forge, check → test → hermetic image build → deploy, fanned out per changed app; no tenant operates a CI control plane.
-[PLX-CI](../modules/ci.md).
+[PLX-CI](../approaches/ci.md).
 
 ### § 6.4 Deploy semantics
 
 Render the compose file with the image pinned, pull, migrate, swap, up, poll readiness, roll back on failure, store nothing.
-[PLX-Deploy](../modules/deploy.md), an approach at candidate maturity, with the fence around the verb in its Maintaining section.
+[PLX-Deploy](../approaches/deploy.md), an approach at candidate maturity, with the fence around the verb in its Maintaining section.
 
 ### § 6.5 Failed deploys and recovery
 
 A red staging deploy parks the train; recovery is a re-run of the failed job or a hand-run verb, never an empty commit.
-[§ 3 PLX-Train](../modules/train.md).
+[§ 3 PLX-Train](../approaches/train.md).
 
 ### § 6.6 Releasing libraries
 
 Trunk-based, versioned by changesets, published token-less through OIDC trusted publishing with provenance.
-[PLX-Packages](../modules/packages.md).
+[PLX-Packages](../approaches/packages.md).
 
 ### § 6.7 Image registry
 
@@ -422,32 +435,32 @@ A tenant's hosts as code: the Ansible collection mounted as playbooks, and the c
 ### § 7.1 Playbooks
 
 Two playbooks split by change cadence, provision for fresh hosts and deep changes, configure as the re-runnable everyday pass, each role wholly in one.
-[§ 1 PLX-Platform](../modules/platform.md).
+[§ 1 PLX-Platform](../approaches/platform.md).
 
 ### § 7.2 Host baseline
 
 Packages and system activity record, personal admins, unattended security upgrades, a default-drop firewall assembled from fragments, sshd closed to root; the deploy user, the container engine, and the proxy on an app host.
-[§ 2 PLX-Platform](../modules/platform.md).
+[§ 2 PLX-Platform](../approaches/platform.md).
 
 ### § 7.3 Ingress
 
 One inventory record per app binds host, loopback port, and values; the configure playbook renders the proxy's routes and the app's `.env` from it and fences `/healthz` at the edge.
-[PLX-Ingress](../modules/ingress.md).
+[PLX-Ingress](../approaches/ingress.md).
 
 ### § 7.4 App environment and secrets delivery
 
 Git holds `op://` pointers, the configure playbook resolves them into `.env.secret` on the host and re-creates the containers whose environment changed; the deploy verb never touches a secret.
-[PLX-Secrets](../modules/secrets.md).
+[PLX-Secrets](../approaches/secrets.md).
 
 ### § 7.5 Scheduling
 
 No orchestrator; scheduled jobs are systemd timers, and a job that silently stops is noticed by a dead-man's-switch whose mechanism is still open.
-[PLX-Scheduling](../modules/scheduling.md), an approach at candidate maturity.
+[PLX-Scheduling](../approaches/scheduling.md), an approach at candidate maturity.
 
 ### § 7.6 Host lifecycle
 
 Unattended security upgrades on, every other host change a supervised act, until patch drift is visible enough for an honest policy.
-[PLX-HostLifecycle](../modules/host-lifecycle.md), an approach at candidate maturity.
+[PLX-HostLifecycle](../approaches/host-lifecycle.md), an approach at candidate maturity.
 
 
 ## § 8 Infrastructure
@@ -457,7 +470,7 @@ What is below the platform: the contract a host satisfies before its first playb
 ### § 8.1 Host contract
 
 A Debian machine an operator can reach over SSH, with a stable name, outbound internet, and ports 80 and 443 reachable directly or through a layer-4 ingress.
-[PLX-Host](../modules/host.md), written informatively at candidate maturity.
+[PLX-Host](../contracts/host.md), written informatively at candidate maturity.
 
 ### § 8.2 Rented machines
 
@@ -467,17 +480,17 @@ A tenant on a provider's cloud has nothing to do below the host contract; which 
 ### § 8.3 Virtualisation
 
 A Proxmox hypervisor on Debian, bound to the overlay, with a default-drop firewall and backup jobs for every guest; the hypervisor's control plane keeps guest state below the platform, the one named trade-off against state in git.
-[§ 2 PLX-Infrastructure](../modules/infrastructure.md).
+[§ 2 PLX-Infrastructure](../approaches/infrastructure.md).
 
 ### § 8.4 Guests
 
 Created from the stock Debian cloud image with Proxmox's cloud-init, no template and no image of the tenant's own, the roles doing everything else on the first run.
-[§ 2 PLX-Infrastructure](../modules/infrastructure.md).
+[§ 2 PLX-Infrastructure](../approaches/infrastructure.md).
 
 ### § 8.5 Network edge
 
 An ingress VM holding the one public address, routing 443 by SNI and 80 by Host header to the tenant VMs without terminating anything, NAT for their outbound traffic.
-[§ 3 PLX-Infrastructure](../modules/infrastructure.md).
+[§ 3 PLX-Infrastructure](../approaches/infrastructure.md).
 
 ### § 8.6 Admin network
 
@@ -499,7 +512,7 @@ Every subsection is a stub, filled in from the maintainers' experience as it is 
 ### § 9.1 Joiners, movers, leavers
 
 Not covered yet.
-The platform's admin and forge-org membership are the two places a person's access is encoded today ([§ 2 PLX-Platform](../modules/platform.md), [§ 3 PLX-Tenancy](../modules/tenancy.md)).
+The platform's admin and forge-org membership are the two places a person's access is encoded today ([§ 2 PLX-Platform](../approaches/platform.md), [§ 3 PLX-Tenancy](../approaches/tenancy.md)).
 
 ### § 9.2 Devices and their management
 
@@ -538,22 +551,22 @@ What exists is spread across the modules; this section collects where.
 
 ### § 10.1 Hardening and remote access
 
-The host baseline: key-only SSH for personal admins, root closed after the first run, a default-drop firewall, unattended security upgrades ([§ 2 PLX-Platform](../modules/platform.md)); administration over an overlay network (§ 8.6).
+The host baseline: key-only SSH for personal admins, root closed after the first run, a default-drop firewall, unattended security upgrades ([§ 2 PLX-Platform](../approaches/platform.md)); administration over an overlay network (§ 8.6).
 A module that states the posture as requirements is still to be written.
 
 ### § 10.2 Supply-chain pins
 
-Immutable, provenance-attested packages, movable tags named as the accepted edge (§ 1.6), and an update-bot stratification by blast radius so that nothing new runs as root without a human reading the diff ([§ 2 PLX-Updates](../modules/updates.md)).
+Immutable, provenance-attested packages, movable tags named as the accepted edge (§ 1.6), and an update-bot stratification by blast radius so that nothing new runs as root without a human reading the diff ([§ 2 PLX-Updates](../approaches/updates.md)).
 
 ### § 10.3 Network isolation
 
 Not covered beyond tenancy.
-Tenants are separated by hypervisor and never share a VM ([§ 4 PLX-Tenancy](../modules/tenancy.md)); apps publish to loopback only and reach the world through the proxy ([§ 4 PLX-App](../modules/app.md)); isolation between guests of one hypervisor is still to be written.
+Tenants are separated by hypervisor and never share a VM ([§ 4 PLX-Tenancy](../approaches/tenancy.md)); apps publish to loopback only and reach the world through the proxy ([§ 4 PLX-App](../contracts/app.md)); isolation between guests of one hypervisor is still to be written.
 
 ### § 10.4 Vulnerabilities
 
 Not covered yet.
-Patching is the interim posture of [PLX-HostLifecycle](../modules/host-lifecycle.md); scanning images and dependencies for known vulnerabilities is still to be written.
+Patching is the interim posture of [PLX-HostLifecycle](../approaches/host-lifecycle.md); scanning images and dependencies for known vulnerabilities is still to be written.
 
 ### § 10.5 Incidents
 
@@ -567,17 +580,17 @@ What survives a lost host, a bad release, or a mistake: backups, restores, and h
 ### § 11.1 Backups per service
 
 Per-service dumps discovered from `plexus.backup` labels, an off-site repository, a hand-runnable restore verb.
-Designed and not yet shipped: [backups per service](../modules/backup.md) is a note until the handlers exist.
+Designed and not yet shipped: [backups per service](../approaches/backup.md) is a note until the handlers exist.
 
 ### § 11.2 Backups of whole machines
 
 The infrastructure layer's backup server takes every guest, encrypted, pruned and verified on its own schedule, with an off-site copy; what covers a tenant's data until § 11.1 ships.
-[§ 3 PLX-Infrastructure](../modules/infrastructure.md).
+[§ 3 PLX-Infrastructure](../approaches/infrastructure.md).
 
 ### § 11.3 Restore testing
 
 Untested backups are not backups: a new backup path passes one end-to-end restore before it is relied upon, and a scheduled restore test raises its own missed-job alert.
-Stated in the [backups note](../modules/backup.md); the tenant running whole-machine backups drills restores by hand today.
+Stated in the [backups note](../approaches/backup.md); the tenant running whole-machine backups drills restores by hand today.
 
 ### § 11.4 Disaster recovery
 
@@ -587,7 +600,7 @@ A stateless app is reconstructable from git and the registry; a host from the pl
 ### § 11.5 Operating databases
 
 Not covered yet.
-The stateful profile defaults to one database container per app that dies with it ([§ 1 PLX-Stateful](../modules/stateful.md)); upgrades of the engine, tuning, and when a shared instance is warranted are still to be written.
+The stateful profile defaults to one database container per app that dies with it ([§ 1 PLX-Stateful](../contracts/stateful.md)); upgrades of the engine, tuning, and when a shared instance is warranted are still to be written.
 
 ### § 11.6 Retention and deletion
 
@@ -605,7 +618,7 @@ Until it is decided, the only monitoring the modules ask for is the missed-job a
 ### § 12.1 Missed-job alerts
 
 A scheduled job that fails or does not run raises an alert; the dead-man's-switch mechanism, a ping service or a staleness watcher, is decided together with the rest of this section.
-[§ 2 PLX-Scheduling](../modules/scheduling.md).
+[§ 2 PLX-Scheduling](../approaches/scheduling.md).
 
 ### § 12.2 Metrics
 
@@ -615,7 +628,7 @@ The host baseline records system activity locally (sysstat) and an observability
 ### § 12.3 Logs
 
 Not covered beyond the contract.
-Apps write to stdout and stderr and never manage log files ([§ 6 PLX-App](../modules/app.md)); shipping and retention are the platform's job and have no module.
+Apps write to stdout and stderr and never manage log files ([§ 6 PLX-App](../contracts/app.md)); shipping and retention are the platform's job and have no module.
 
 ### § 12.4 Alerting channels
 
@@ -625,7 +638,7 @@ Today a failed deploy alerts as the failing CI job, hosts mail failed units to a
 ### § 12.5 Uptime
 
 Not covered yet.
-`/healthz` is fenced from the public precisely so that it does not become an uptime oracle; a tenant pointing an external monitor at it records the deviation ([§ 2 PLX-Ingress](../modules/ingress.md)).
+`/healthz` is fenced from the public precisely so that it does not become an uptime oracle; a tenant pointing an external monitor at it records the deviation ([§ 2 PLX-Ingress](../approaches/ingress.md)).
 
 ### § 12.6 Capacity
 
@@ -640,17 +653,17 @@ Keeping every consumer current with the decisions made once upstream.
 ### § 13.1 Propagation as versioned dependency
 
 A shared thing crosses a repo boundary only as a published, versioned artifact: packages, the workflow and verbs by train tag, the collection by train tag; consumers extend and override at the edge, never fork the base.
-[§ 1 PLX-Updates](../modules/updates.md).
+[§ 1 PLX-Updates](../approaches/updates.md).
 
 ### § 13.2 Update bot
 
 Every tenant repo runs a bot that watches its pins; how unattended a merge is follows the blast radius, from packages merging on green CI to the collection always waiting for a human.
-[§ 2 PLX-Updates](../modules/updates.md).
+[§ 2 PLX-Updates](../approaches/updates.md).
 
 ### § 13.3 Templates and re-sync
 
 What cannot be a dependency arrives through a copier template and is re-synced on the train by `copier update`; the three scaffolding tiers decide where a new artifact goes.
-[§ 3 PLX-Updates](../modules/updates.md).
+[§ 3 PLX-Updates](../approaches/updates.md).
 
 ### § 13.4 Staleness check
 

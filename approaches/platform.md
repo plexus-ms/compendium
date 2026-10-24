@@ -3,7 +3,6 @@ title: PLX-Platform – the operations platform
 short_title: PLX-Platform
 description: A tenant's hosts as code — the plexus.platform Ansible collection mounted as two playbooks split by change cadence, provision and configure, and the roles that make a Debian machine a tenant's app host.
 code: PLX-Platform
-kind: approach
 maturity: standard
 binds: host
 depends: [PLX-Host, PLX-Tenancy]
@@ -15,7 +14,7 @@ Plexus puts state in git and in tools it does not author, takes events from syst
 The operations platform is the part of that model that touches hosts: the `plexus.platform` Ansible collection as the shared logic core, and each tenant's platform repo as the mount, holding only the binding (playbooks as role lists, inventory, group vars, the committed `op://`-pointer env files).
 A tenant playbook is to the roles what a workflow wrapper is to a verb: a mount, not logic.
 
-The platform starts on top of a host that exists ([PLX-Host](host.md)); how it comes to exist is the infrastructure layer's business ([PLX-Infrastructure](infrastructure.md) for tenants on hardware of their own), and this module is the same either way.
+The platform starts on top of a host that exists ([PLX-Host](../contracts/host.md)); how it comes to exist is the infrastructure layer's business ([PLX-Infrastructure](infrastructure.md) for tenants on hardware of their own), and this module is the same either way.
 Ingress ([PLX-Ingress](ingress.md)), secrets delivery ([PLX-Secrets](secrets.md)), scheduling ([PLX-Scheduling](scheduling.md)), and host lifecycle ([PLX-HostLifecycle](host-lifecycle.md)) are the roles' concerns a tenant adopts on top of the two playbooks, each a module of its own.
 
 

@@ -3,14 +3,13 @@ title: PLX-Secrets – secrets delivery
 short_title: PLX-Secrets
 description: Git holds op:// pointers and never values; the configure playbook resolves them from the tenant's vault into .env.secret on the host and re-creates the containers whose environment changed.
 code: PLX-Secrets
-kind: approach
 maturity: standard
 binds: host
 depends: [PLX-Platform, PLX-App]
 order: 22
 ---
 
-The app contract says the platform hands the app an environment, through `.env` for values and `.env.secret` for secrets ([§ 3 PLX-App](app.md)).
+The app contract says the platform hands the app an environment, through `.env` for values and `.env.secret` for secrets ([§ 3 PLX-App](../contracts/app.md)).
 This module is how the secret half gets there: one pointer syntax, resolved by a platform playbook, never by the deploy verb.
 
 

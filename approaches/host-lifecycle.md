@@ -3,7 +3,6 @@ title: PLX-HostLifecycle – host lifecycle
 short_title: PLX-HostLifecycle
 description: The interim posture on patching — unattended security upgrades on, every other host change a supervised act — until patch drift is visible enough for an honest policy.
 code: PLX-HostLifecycle
-kind: approach
 maturity: candidate
 binds: host
 depends: [PLX-Platform]

@@ -2,7 +2,6 @@
 title: Backups per service
 short_title: Backups
 description: The label-driven backup job that is not yet shipped — per-service dumps discovered from plexus.backup labels, an off-site repository, a hand-runnable restore verb, and a scheduled restore test; what covers the gap meanwhile.
-kind: approach
 maturity: note
 binds: host
 depends: [PLX-Platform, PLX-Stateful]
@@ -10,7 +9,7 @@ order: 23
 ---
 
 This page is a note: written knowledge about a path Plexus intends to ship, with no primitives behind it yet and therefore no requirements and no code to declare.
-It is here so the design is a decision, not drift, and so the stateful profile's `plexus.backup` label ([§ 1 PLX-Stateful](stateful.md)) has the home it points at.
+It is here so the design is a decision, not drift, and so the stateful profile's `plexus.backup` label ([§ 1 PLX-Stateful](../contracts/stateful.md)) has the home it points at.
 
 
 ## § 1 The intended path

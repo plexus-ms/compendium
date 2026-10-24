@@ -83,8 +83,8 @@ The modules' kind divides them into `contracts/` and `approaches/`.
 
 - One seam, one contract; a contract may have profiles, which are parts of it and not seams of their own.
   A new contract needs a new named seam with two owners, and a page that cannot name its seam is an approach.
-- A dependency that crosses a seam targets a contract; dependencies between approaches on the same side are composition: you took this piece, so you have the whole it belongs to.
-  `mise check` enforces this where `binds` tells the sides apart, the dev side (`repo`, `app`) from the ops side (`host`, `organisation`), and refuses any dependency of a contract on an approach; the other seams are checked by reading.
+- A module reaches across a seam only through a contract, and says so in `consumes`; `depends` stays on its own side and is composition: you took this piece, so you have the whole it belongs to.
+  `mise check` refuses a `consumes` entry that is not a contract, a `depends` entry that crosses the dev/ops seam (`repo` and `app` against `host` and `organisation`), and any dependency of a contract on an approach.
 - A contract page is two-sided: its sections say which side they bind, and its Maintaining section lists the approaches on each side.
   A guarantee that one side relies on from an approach on the other side moves into the contract at that seam, and the approach keeps the how.
 
@@ -102,7 +102,7 @@ Ingress, secrets delivery, and backups are therefore separate modules although o
 Granularity is revisited while pages are written and when a consumer wants half a module.
 
 #### Frontmatter
-Every module page carries `code` (except for notes), `maturity`, `binds` (what the module is declared for: `repo`, `app`, `host`, or `organisation`), `depends` (the codes a declaration of this module has to accompany), and, on standard modules only, `changed`, the train in which the module's requirements last changed.
+Every module page carries `code` (except for notes), `maturity`, `binds` (what the module is declared for: `repo`, `app`, `host`, or `organisation`), `depends` (the codes on the same side of every seam that a declaration of this module has to accompany), on approaches `consumes` (the contracts on the other side of a seam this module relies on, declared by that side), and, on standard modules only, `changed`, the train in which the module's requirements last changed.
 
 #### Page shape
 Numbered sections (`§ 1`, `§ 1.1`, …) hold requirements as `> - ` bullets followed by consumer prose; numbers are append-only within a major train, as in the map.
@@ -127,10 +127,9 @@ modules: [PLX-Repo, PLX-JS, PLX-Release, PLX-CI, PLX-Updates]
 Machine checks read only the frontmatter; the body is for humans, and it is where a deviation from a requirement is owned in a sentence of rationale..
 
 **Dependencies.**
-A module's `depends` (§ 1.3) names what a declaration of it builds on, and how a dependency is satisfied follows the seams.
-A dependency on a module on the same side is satisfied by the declaring unit itself or by an enclosing declaration: an app's by its own list or its repo's, a repo's by its own or the tenant's platform repo.
-A dependency across a seam is satisfied by the other side declaring the contract: PLX-Ingress depends on PLX-App, and it is the apps that declare PLX-App, never the platform repo.
-The staleness check (§ 13.4) verifies both readings.
+A module's `depends` (§ 1.3) is satisfied by the declaring unit itself, by an enclosing declaration (an app's by its repo, a repo's by the tenant's platform repo), or by a contained one (a repo's by an app inside it, as PLX-CI's dependency on PLX-Deploy is met by the apps the pipeline deploys).
+What a module `consumes` is never the declaring unit's to satisfy: PLX-Ingress consumes PLX-App, and it is the apps that declare PLX-App; PLX-Platform consumes PLX-Host, and the side that provides the host declares it, or, for a rented machine, nobody does.
+The staleness check (§ 13.4) verifies the first and leaves the second to the other side.
 
 **Staleness is per module.**
 A declaration is stale for exactly those modules it lists whose `changed` is newer than its `plexus`; nothing else about it is stale.
@@ -654,6 +653,6 @@ What cannot be a dependency arrives through a copier template and is re-synced o
 
 ### § 13.4 Staleness check
 
-Not shipped yet.
-A scheduled check is to read every marker's `plexus` and `modules`, compare them with the modules' `changed`, verify that dependencies are declared (§ 1.4), and flag what is behind; never auto-fixed, never invisibly stale.
-It ships after the first train of the modular standard, once there are `changed` stamps to compare against.
+A hand-runnable verb in the maintainers' toolbox, `mise run staleness`, reads every marker in the workspace, compares each declared module's `changed` with the marker's `plexus`, verifies that every dependency is declared where § 1.4 says it is satisfied, and prints what is behind; it fixes nothing.
+It ships with train 0.61.0, after the first stamps of 0.60.0 gave it something to compare.
+Mounting it on a schedule in each tenant, so that a tenant sees its own staleness without the maintainers' workspace, is the next step and waits for a tenant that is not also the maintainer.

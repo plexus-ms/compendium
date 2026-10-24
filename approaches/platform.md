@@ -6,7 +6,8 @@ code: PLX-Platform
 maturity: standard
 binds: host
 changed: 0.60.0
-depends: [PLX-Host, PLX-Tenancy, PLX-App]
+depends: [PLX-Tenancy]
+consumes: [PLX-Host, PLX-App]
 order: 20
 ---
 

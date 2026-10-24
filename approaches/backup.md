@@ -4,7 +4,8 @@ short_title: Backups
 description: The label-driven backup job that is not yet shipped — per-service dumps discovered from plexus.backup labels, an off-site repository, a hand-runnable restore verb, and a scheduled restore test; what covers the gap meanwhile.
 maturity: note
 binds: host
-depends: [PLX-Platform, PLX-AppStateful]
+depends: [PLX-Platform]
+consumes: [PLX-AppStateful]
 order: 23
 ---
 

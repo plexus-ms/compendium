@@ -119,18 +119,26 @@ case "${1:---check}" in
       fi
     done
     # Dependencies respect the seams (§ 1.3 PLX): a contract depends only on
-    # contracts, and a dependency that crosses from the dev side (repo, app) to
-    # the ops side (host, organisation), or back, targets a contract.
+    # contracts, a dependency never crosses from the dev side (repo, app) to
+    # the ops side (host, organisation) or back, and what crosses a seam is
+    # listed under consumes and is a contract.
     awk '
       function side(b) { return (b == "repo" || b == "app") ? "dev" : "ops" }
-      FNR == 1 { key = FILENAME; sub(/.*\//, "", key); binds = ""; deps = ""; kind = (FILENAME ~ /\/contracts\//) ? "contract" : "approach" }
+      FNR == 1 { key = FILENAME; sub(/.*\//, "", key); binds = ""; deps = ""; cons = ""; kind = (FILENAME ~ /\/contracts\//) ? "contract" : "approach" }
       FNR == 1 && /^---$/ { infm = 1; next }
-      infm && /^---$/ { infm = 0; K[key] = kind; B[key] = binds; D[key] = deps; nextfile }
+      infm && /^---$/ { infm = 0; K[key] = kind; B[key] = binds; D[key] = deps; C[key] = cons; nextfile }
       infm && $1 == "code:" { key = $2 }
       infm && $1 == "binds:" { binds = $2 }
       infm && $1 == "depends:" { deps = $0; sub(/^depends: *\[/, "", deps); sub(/\].*/, "", deps); gsub(/,/, " ", deps) }
+      infm && $1 == "consumes:" { cons = $0; sub(/^consumes: *\[/, "", cons); sub(/\].*/, "", cons); gsub(/,/, " ", cons); C[key] = cons }
       END {
         for (m in K) {
+          n = split(C[m], c, " ")
+          for (i = 1; i <= n; i++) {
+            if (K[m] == "contract") { print "✗ " m " is a contract and consumes " c[i] "; a contract has no other side to consume" > "/dev/stderr"; bad = 1 }
+            else if ((c[i] in K) && K[c[i]] != "contract") { print "✗ " m " consumes " c[i] ", which is an approach; only a contract is consumed across a seam" > "/dev/stderr"; bad = 1 }
+            else if (!(c[i] in K)) { print "✗ " m " consumes unknown module " c[i] > "/dev/stderr"; bad = 1 }
+          }
           n = split(D[m], d, " ")
           for (i = 1; i <= n; i++) {
             if (!(d[i] in K)) continue

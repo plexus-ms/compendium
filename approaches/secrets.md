@@ -6,7 +6,8 @@ code: PLX-Secrets
 maturity: standard
 binds: host
 changed: 0.60.0
-depends: [PLX-Platform, PLX-App]
+depends: [PLX-Platform]
+consumes: [PLX-App]
 order: 22
 ---
 

@@ -5,7 +5,8 @@ description: What the shared deploy verb does — render the compose file with t
 code: PLX-Deploy
 maturity: candidate
 binds: app
-depends: [PLX-App, PLX-Host]
+depends: []
+consumes: [PLX-App, PLX-Host]
 order: 19
 ---
 

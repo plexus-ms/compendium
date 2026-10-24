@@ -32,6 +32,7 @@ The division of labor is exact: pnpm knows the package graph but not tasks, mise
 `dependsOn: ["^build"]` says once, for every consumer present and future, that internal packages build before their dependents typecheck, test, or build.
 That single rule is what makes every verb answerable from a fresh checkout: a workspace package's `dist/` is a build product, never a commit.
 Formatting and linting is Biome, invoked repo-wide by `check` and on staged files by the pre-commit hook, per the repo contract's hook discipline.
+Biome is pinned exactly, to the version its `biome.json` schema names, because a formatter's minor release can reformat the repo (Biome 2.6 began formatting YAML and Markdown, the hotfix of train 0.60.1); the update bot proposes the bump and the lint in CI decides whether it merges.
 The concrete arrangement, the `mise.toml`, `turbo.json`, root `package.json`, hook config, Dockerfile, is not specified here: the preset ships it ([PLX-Updates](updates.md)), and staying current with the template *is* the conformant arrangement.
 
 

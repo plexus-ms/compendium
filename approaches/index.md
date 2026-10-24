@@ -22,5 +22,6 @@ A consumer lists the approaches it follows in its `PLEXUS.md` marker (§ 1.4 PLX
 | PLX-Infrastructure | [the infrastructure layer](infrastructure.md) | candidate | host | PLX-Tenancy | – |
 | PLX-Updates | [propagation and the update bot](updates.md) | standard | repo | PLX-Repo | – |
 | PLX-Packages | [releasing packages](packages.md) | candidate | repo | PLX-Repo, PLX-JS | – |
+| – | [a Plexus CLI](cli.md) | note | repo | PLX-Repo | – |
 
 Section numbers inside an approach are append-only within a major train, like the map's; a section is cited by number and code, "§ 2 PLX-Updates".

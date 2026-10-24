@@ -656,3 +656,8 @@ What cannot be a dependency arrives through a copier template and is re-synced o
 A hand-runnable verb in the maintainers' toolbox, `mise run staleness`, reads every marker in the workspace, compares each declared module's `changed` with the marker's `plexus`, verifies that every dependency is declared where § 1.4 says it is satisfied, and prints what is behind; it fixes nothing.
 It ships with train 0.61.0, after the first stamps of 0.60.0 gave it something to compare.
 Mounting it on a schedule in each tenant, so that a tenant sees its own staleness without the maintainers' workspace, is the next step and waits for a tenant that is not also the maintainer.
+
+### § 13.5 Tooling
+
+The verbs and the maintainers' helpers are bash today, each hand-runnable and checked.
+Whether they fold into one published command-line tool, and what would justify that, is recorded in the [CLI note](../approaches/cli.md); nothing ships from it yet.

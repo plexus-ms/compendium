@@ -31,47 +31,56 @@ Everything outside such a bullet is informative: the prose below a requirements 
 
 ### § 1.2 Vocabulary
 
-The following terms are used throughout Plexus:
+The following terms are used throughout Plexus.
+
+Plexus revolves around tenants sharing methodology but never substance:
 
 - **Tenant** — one trust domain in the federation: its own forge org, repos, hosts, secrets vault, backups ([PLX-Tenancy](../modules/tenancy.md)).
-  The boundary that matters is *access* and trust, not legal personality.
+  The boundary that matters is access and trust, not necessarily legal personality.
+- **Methodology** and **substance** — the sharing axis: methodology is knowledge and code-shaped-as-knowledge, shared across all tenants; substance is data, secrets, access, hosts, and is never shared.
+- **Primitive** — any named methodology (guideline, tool, or approach) the initiative ships or prescribes: a verb, a mount, an Ansible role, a published package, a copier template, a label scheme, a file layout, an endpoint path.
+  Decided once, reused, versioned and published, or otherwise propagated (§ 13).
+- **Module**, **contract**, **approach**, **note**, **candidate**, **maturity** — see § 1.3.
+- **Declaration** — a repo's or app's `PLEXUS.md` marker: the Plexus version it was brought up to and the modules it follows (§ 1.4).
+- **Train** — one release of Plexus, tagged identically on every release repo and the compendium, whose number is the Plexus version (§ 1.5).
+
+Tenants usually build and ship software:
+
 - **Repo** — one release train and one toolchain contract inside a tenant ([PLX-Repo](../modules/repo.md)).
-  A tenant has exactly one **platform repo** holding the ops side and any number of **app repos** holding the dev side.
+  A tenant can have any number of **app repos** holding the dev side, and has exactly one **platform repo** holding the ops side.
 - **App** — one deployable unit satisfying the app contract ([PLX-App](../modules/app.md)).
   It lives in an app repo for software the tenant builds, or the platform repo for third-party software the tenant merely operates.
-- **Primitive** — any named guideline, tool, or approach the initiative ships or prescribes: a verb, a mount, an Ansible role, a published package, a copier template, a label scheme, a file layout, an endpoint path.
-  Decided once, reused, versioned and published, or otherwise propagated (§ 13).
 - **Verb** — a stateless, hand-runnable procedure that does one operational thing, authored portably.
   Ops verbs are the shared bash scripts `ci-cd` ships; contract verbs are the root mise tasks the repo contract requires.
 - **Mount** — the thin, disposable glue binding a verb or role to an event or state source it does not own: a workflow wrapper on forge events, a tenant playbook on an inventory, a systemd timer on the clock.
   Mounts carry no logic.
-- **Methodology** and **substance** — the federation's sharing axis: methodology is knowledge and code-shaped-as-knowledge, shared across all tenants; substance is data, secrets, access, hosts, and is never shared.
+
+IT operations is a layered concern. We are adopting the commonly used language of on-premises, IaaS, PaaS, and SaaS:
+
 - **Seam** — where one layer meets the next and the two sides are owned by different people or tools; a seam is made explicit as a contract.
-- **Platform layer** — what makes an existing host a tenant's app host and keeps it so: the host baseline, the container engine and proxy, ingress, environment and secrets delivery, applied by the platform repo's playbooks ([PLX-Platform](../modules/platform.md)).
-  It is the operations side of a tenant, the layer between the infrastructure below and the apps above.
-- **Infrastructure layer** — what makes a tenant's hosts exist, reachable, and restorable: bought from a provider, or built by the tenant on hardware of its own ([PLX-Infrastructure](../modules/infrastructure.md)).
-- **Module**, **contract**, **approach**, **note**, **maturity** — see § 1.3.
-- **Declaration** — a repo's or app's `PLEXUS.md` marker: the Plexus version it was brought up to and the modules it follows (§ 1.4).
-- **Train** — one release of Plexus, tagged identically on every release repo and the compendium, whose number is the Plexus version (§ 1.5).
+- **App/Software layer** — on top of the platform layer, the software a tenant provides as a service and the data it holds: the apps the tenant builds in its app repos and the third-party apps it merely operates from its platform repo, each meeting the app contract ([PLX-App](../modules/app.md)).
+  It is the equivalent of a tenant being its own SaaS provider, and it is the dev side: everything from the domain core up to the seam where the platform provides the surroundings.
+- **Platform layer** — what makes any existing production host run a tenant's app and provide it as a service: the host baseline, the container engine and proxy, ingress, environment and secrets delivery, applied by the platform repo's playbooks ([PLX-Platform](../modules/platform.md)).
+  It is the equivalent of a tenant being its own PaaS provider, running the layer between the infrastructure below and the apps above.
+- **Infrastructure layer** — underneath the platform layer, this is what makes a tenant's hosts exist, reachable, and restorable: bought from a provider as IaaS (virtualized cloud instances etc.), or built by the tenant on bare metal of its own (on-premises or bare metal rented from a provider, [PLX-Infrastructure](../modules/infrastructure.md)).
+
 
 ### § 1.3 Modules, contracts, and maturity
 
 A module has a kind and a maturity, and the two are independent axes.
 
-**Two kinds.**
-A **contract** sits at a seam and states what one layer asks of the next: the repo contract between a repo and whatever operates on it, the app contract between dev and ops, the profiles that sharpen it, the host contract between the infrastructure layer and the platform.
+#### Kind: contract vs. approach
+- A **contract** sits at a seam and states what one layer asks of the next: the repo contract between a repo and whatever operates on it, the app contract between software (dev side) and its platform (ops side), the profiles that sharpen it, the host contract between the infrastructure layer and the platform.
 There are exactly as many contracts as seams, and a seam is always exactly one contract module.
-An **approach** is an opinionated way to provide or consume a contract; every module that is not a contract is one.
+- An **approach** is an opinionated way to provide or consume a contract; every module that is not a contract is one.
 
-**Three maturity levels.**
-A **note** is written knowledge: no primitives, no requirements; a page the map links to and nothing more.
-An **approach** has shipped primitives and at least one consumer, and still no requirements.
-A **standard** module has requirements and at least two consumers.
-A consumer is a tenant; the `plexus-ms` organisation counts as a consumer of the modules that bind its own repos.
-Maturity is earned by consumers, never declared ahead of them: a module is promoted in the train in which its second consumer lands, and the keyword lint refuses requirements in any page below standard maturity.
+#### Maturity: note vs. candidate vs. standard
+- A **note** is written knowledge: no primitives, no requirements; a page the map links to and nothing more.
+- A **candidate** has shipped primitives and at least one consumer, and still no requirements: a candidate for standard, waiting on its second consumer.
+- A **standard** module has requirements and at least two consumers.
 
 **Codes and declarability.**
-Only approach and standard modules carry a code, `PLX-` plus one capitalised word, unique across the compendium, and only they can be declared.
+Only candidate and standard modules carry a code, `PLX-` plus one capitalised word, unique across the compendium, and only they can be declared.
 Notes have titles and no code.
 
 **Granularity.**
@@ -133,7 +142,7 @@ Within the train, `ci-cd` tags verbs and workflow wrappers together, so a wrappe
 The pre-train per-repo `vN` lines and the itops-era tags live on frozen in history, kept for existing pins and never retargeted.
 
 **Semver attaches to maturity.**
-A breaking change to a standard module's requirements forces a major train, with migration steps noted in the module; approach and note modules change in any minor train.
+A breaking change to a standard module's requirements forces a major train, with migration steps noted in the module; candidate and note modules change in any minor train.
 Minor bumps are routine trains, patch is reserved for hotfix trains.
 Section numbers in the map and in every module are append-only within a major train, so a citation written against one train stays right until the next major.
 The train reaches 1.0.0 once the modular standard with its first standard modules has shipped and settled; until then `0.x` promises nothing, and any train can change anything.
@@ -377,7 +386,7 @@ One reusable workflow mounts the verbs on the forge, check → test → hermetic
 ### § 6.4 Deploy semantics
 
 Render the compose file with the image pinned, pull, migrate, swap, up, poll readiness, roll back on failure, store nothing.
-[PLX-Deploy](../modules/deploy.md), an approach at approach maturity, with the fence around the verb in its Maintaining section.
+[PLX-Deploy](../modules/deploy.md), an approach at candidate maturity, with the fence around the verb in its Maintaining section.
 
 ### § 6.5 Failed deploys and recovery
 
@@ -433,12 +442,12 @@ Git holds `op://` pointers, the configure playbook resolves them into `.env.secr
 ### § 7.5 Scheduling
 
 No orchestrator; scheduled jobs are systemd timers, and a job that silently stops is noticed by a dead-man's-switch whose mechanism is still open.
-[PLX-Scheduling](../modules/scheduling.md), an approach at approach maturity.
+[PLX-Scheduling](../modules/scheduling.md), an approach at candidate maturity.
 
 ### § 7.6 Host lifecycle
 
 Unattended security upgrades on, every other host change a supervised act, until patch drift is visible enough for an honest policy.
-[PLX-HostLifecycle](../modules/host-lifecycle.md), an approach at approach maturity.
+[PLX-HostLifecycle](../modules/host-lifecycle.md), an approach at candidate maturity.
 
 
 ## § 8 Infrastructure
@@ -448,7 +457,7 @@ What is below the platform: the contract a host satisfies before its first playb
 ### § 8.1 Host contract
 
 A Debian machine an operator can reach over SSH, with a stable name, outbound internet, and ports 80 and 443 reachable directly or through a layer-4 ingress.
-[PLX-Host](../modules/host.md), written informatively at approach maturity.
+[PLX-Host](../modules/host.md), written informatively at candidate maturity.
 
 ### § 8.2 Rented machines
 

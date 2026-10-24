@@ -54,10 +54,10 @@ The `plexus-ms` organisation consumes the modules that bind its own repos: every
 | Module | Consumers | Maturity |
 |---|---|---|
 | PLX-Repo, PLX-App, PLX-Stateless, PLX-Stateful, PLX-Tenancy, PLX-JS, PLX-Train, PLX-CI, PLX-Platform, PLX-Ingress, PLX-Secrets, PLX-Updates | two tenants | standard |
-| PLX-Deploy, PLX-Scheduling, PLX-HostLifecycle | two tenants, no settled requirement yet | approach |
-| PLX-Infrastructure | one tenant | approach |
-| PLX-Host | one infrastructure layer on each side | approach |
-| PLX-Packages | the maintainers' one package monorepo | approach |
+| PLX-Deploy, PLX-Scheduling, PLX-HostLifecycle | two tenants, no settled requirement yet | candidate |
+| PLX-Infrastructure | one tenant | candidate |
+| PLX-Host | one infrastructure layer on each side | candidate |
+| PLX-Packages | the maintainers' one package monorepo | candidate |
 | backups per service | nothing shipped | note |
 
-A module listed at approach maturity with two consumers is one whose requirements have not been argued yet, not one lacking consumers; its page's Maintaining section says what promotes it.
+A module listed at candidate maturity with two consumers is one whose requirements have not been argued yet, not one lacking consumers; its page's Maintaining section says what promotes it.

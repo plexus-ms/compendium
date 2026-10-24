@@ -80,7 +80,7 @@ scan() {
 
     END {
       if (mode == "module") {
-        if (maturity !~ /^(note|approach|standard)$/) defect("maturity must be note, approach or standard, not \"" maturity "\"")
+        if (maturity !~ /^(note|candidate|standard)$/) defect("maturity must be note, candidate or standard, not \"" maturity "\"")
         if (kind !~ /^(contract|approach)$/) defect("kind must be contract or approach, not \"" kind "\"")
         if (binds !~ /^(repo|app|host|organisation)$/) defect("binds must be repo, app, host or organisation, not \"" binds "\"")
         if (maturity == "note" && code != "") defect("a note carries no code")

@@ -4,7 +4,7 @@ short_title: PLX-Packages
 description: How a package monorepo publishes — trunk-based on main, versioned by changesets, published token-less through OIDC trusted publishing with provenance, and designed to carry methodology and never substance.
 code: PLX-Packages
 kind: approach
-maturity: approach
+maturity: candidate
 binds: repo
 depends: [PLX-Repo, PLX-JS]
 order: 28
@@ -13,7 +13,7 @@ order: 28
 Apps release by deploy, keyed by SHA ([PLX-Train](train.md)).
 Packages release into a registry, keyed by semver, and that different physics wants a different model.
 This module is the one `plexus-ms/packages` uses; a tenant publishing packages of its own to a private registry ([§ 1 PLX-Updates](updates.md)) takes the same shape.
-It is an approach at approach maturity: one package monorepo runs it.
+It is an approach at candidate maturity: one package monorepo runs it.
 
 
 ## § 1 Trunk-based, versioned by changesets

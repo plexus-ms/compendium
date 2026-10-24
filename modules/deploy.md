@@ -4,7 +4,7 @@ short_title: PLX-Deploy
 description: What the shared deploy verb does — render the compose file with the image pinned, pull, migrate, swap, up, poll readiness, roll back on failure — and the fence around it.
 code: PLX-Deploy
 kind: approach
-maturity: approach
+maturity: candidate
 binds: app
 depends: [PLX-App, PLX-Host]
 order: 19

@@ -4,14 +4,14 @@ short_title: PLX-Scheduling
 description: No workflow orchestrator — scheduled jobs are systemd timers, app pipelines are job queues inside the app, and a job that silently stops is noticed by a dead-man's-switch whose concrete mechanism is still open.
 code: PLX-Scheduling
 kind: approach
-maturity: approach
+maturity: candidate
 binds: host
 depends: [PLX-Platform]
 order: 24
 ---
 
 This module is the stance on scheduled work: what runs it, and how a run that never happens gets noticed.
-It is an approach at approach maturity: the stance is settled and in use, but the dead-man's-switch has no shipped mechanism yet, and a module without its primitive carries no requirements.
+It is an approach at candidate maturity: the stance is settled and in use, but the dead-man's-switch has no shipped mechanism yet, and a module without its primitive carries no requirements.
 
 
 ## § 1 No orchestrator

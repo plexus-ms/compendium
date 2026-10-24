@@ -13,20 +13,20 @@ A consumer lists the codes it follows in its `PLEXUS.md` marker (§ 1.4 PLX); th
 | PLX-App | [the app contract](app.md) | contract | standard | app | PLX-Repo |
 | PLX-Stateless | [the stateless profile](stateless.md) | contract | standard | app | PLX-App |
 | PLX-Stateful | [the stateful profile](stateful.md) | contract | standard | app | PLX-App |
-| PLX-Host | [the host contract](host.md) | contract | approach | host | – |
+| PLX-Host | [the host contract](host.md) | contract | candidate | host | – |
 | PLX-Tenancy | [trust domains and tenants](tenancy.md) | approach | standard | organisation | – |
 | PLX-JS | [the JS/TS toolchain](js.md) | approach | standard | repo | PLX-Repo |
 | PLX-Train | [environment branches and the release train](train.md) | approach | standard | repo | PLX-App |
 | PLX-CI | [the shared pipeline](ci.md) | approach | standard | repo | PLX-Repo, PLX-App, PLX-Train, PLX-Deploy |
-| PLX-Deploy | [deploy semantics](deploy.md) | approach | approach | app | PLX-App, PLX-Host |
+| PLX-Deploy | [deploy semantics](deploy.md) | approach | candidate | app | PLX-App, PLX-Host |
 | PLX-Platform | [the operations platform](platform.md) | approach | standard | host | PLX-Host, PLX-Tenancy |
 | PLX-Ingress | [ingress](ingress.md) | approach | standard | host | PLX-Platform, PLX-App |
 | PLX-Secrets | [secrets delivery](secrets.md) | approach | standard | host | PLX-Platform, PLX-App |
 | – | [backups per service](backup.md) | approach | note | host | PLX-Platform, PLX-Stateful |
-| PLX-Scheduling | [scheduled jobs and the dead-man's-switch](scheduling.md) | approach | approach | host | PLX-Platform |
-| PLX-HostLifecycle | [host lifecycle](host-lifecycle.md) | approach | approach | host | PLX-Platform |
-| PLX-Infrastructure | [the infrastructure layer](infrastructure.md) | approach | approach | host | PLX-Tenancy |
+| PLX-Scheduling | [scheduled jobs and the dead-man's-switch](scheduling.md) | approach | candidate | host | PLX-Platform |
+| PLX-HostLifecycle | [host lifecycle](host-lifecycle.md) | approach | candidate | host | PLX-Platform |
+| PLX-Infrastructure | [the infrastructure layer](infrastructure.md) | approach | candidate | host | PLX-Tenancy |
 | PLX-Updates | [propagation and the update bot](updates.md) | approach | standard | repo | PLX-Repo |
-| PLX-Packages | [releasing packages](packages.md) | approach | approach | repo | PLX-Repo, PLX-JS |
+| PLX-Packages | [releasing packages](packages.md) | approach | candidate | repo | PLX-Repo, PLX-JS |
 
 Section numbers inside a module are append-only within a major train, like the map's; a module section is cited by number and code, "§ 2 PLX-App".

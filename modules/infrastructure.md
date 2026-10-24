@@ -4,7 +4,7 @@ short_title: PLX-Infrastructure
 description: Hosts on hardware of a tenant's own — a Proxmox hypervisor, guests created from stock Debian, a backup server for them, and an ingress VM sharing one public address — as roles in a third playbook of the platform repo.
 code: PLX-Infrastructure
 kind: approach
-maturity: approach
+maturity: candidate
 binds: host
 depends: [PLX-Tenancy]
 order: 26
@@ -13,7 +13,7 @@ order: 26
 The **infrastructure layer** is what makes a tenant's hosts exist, reachable, and restorable: bought from a provider, or built by the tenant on hardware of its own.
 A tenant on a provider's cloud has nothing to do here; the operations platform ([PLX-Platform](platform.md)) starts on top of a host that exists either way.
 This module is the second case: the roles the `plexus.platform` collection ships for a hypervisor, its guests, a backup server for them, and an ingress VM, and the third playbook of the platform repo that mounts them.
-It is an approach at approach maturity: one tenant runs it, which is one short of the bar for requirements.
+It is an approach at candidate maturity: one tenant runs it, which is one short of the bar for requirements.
 
 
 ## § 1 The playbook

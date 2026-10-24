@@ -4,7 +4,7 @@ short_title: PLX-Host
 description: What the operations platform assumes of a host before its first playbook run — a Debian machine an operator can reach over SSH, with an address the world or an ingress can reach.
 code: PLX-Host
 kind: contract
-maturity: approach
+maturity: candidate
 binds: host
 depends: []
 order: 14

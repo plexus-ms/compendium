@@ -5,6 +5,7 @@ description: The one toolchain arrangement for JS/TS repos — pnpm workspace pl
 code: PLX-JS
 maturity: standard
 binds: repo
+changed: 0.60.0
 depends: [PLX-Repo]
 order: 16
 ---

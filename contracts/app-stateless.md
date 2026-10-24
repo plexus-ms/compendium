@@ -5,6 +5,7 @@ description: The app contract sharpened for apps holding no state of their own â
 code: PLX-AppStateless
 maturity: standard
 binds: app
+changed: 0.60.0
 depends: [PLX-App]
 order: 12
 ---

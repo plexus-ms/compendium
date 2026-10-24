@@ -5,6 +5,7 @@ description: The app contract sharpened for apps backed by data services of thei
 code: PLX-AppStateful
 maturity: standard
 binds: app
+changed: 0.60.0
 depends: [PLX-App]
 order: 13
 ---

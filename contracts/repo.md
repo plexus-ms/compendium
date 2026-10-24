@@ -5,6 +5,7 @@ description: What Plexus asks of every repo — a declaration marker, mise and h
 code: PLX-Repo
 maturity: standard
 binds: repo
+changed: 0.60.0
 depends: []
 order: 10
 ---

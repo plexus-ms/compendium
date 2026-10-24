@@ -5,6 +5,7 @@ description: A tenant's hosts as code — the plexus.platform Ansible collection
 code: PLX-Platform
 maturity: standard
 binds: host
+changed: 0.60.0
 depends: [PLX-Host, PLX-Tenancy, PLX-App]
 order: 20
 ---

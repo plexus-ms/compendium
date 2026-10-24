@@ -5,6 +5,7 @@ description: One inventory record per app binds host, loopback port, and non-sec
 code: PLX-Ingress
 maturity: standard
 binds: host
+changed: 0.60.0
 depends: [PLX-Platform, PLX-App]
 order: 21
 ---

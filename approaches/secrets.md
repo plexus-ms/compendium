@@ -5,6 +5,7 @@ description: Git holds op:// pointers and never values; the configure playbook r
 code: PLX-Secrets
 maturity: standard
 binds: host
+changed: 0.60.0
 depends: [PLX-Platform, PLX-App]
 order: 22
 ---

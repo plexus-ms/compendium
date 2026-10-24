@@ -74,7 +74,7 @@ The verbs live only at the root; a per-app `mise.toml` would be a second encodin
 The verbs are the stack-neutral layer every repo answers; a toolchain module such as [PLX-JS](../approaches/js.md) specifies the incantations behind them for one stack.
 The shared pipeline ([PLX-CI](../approaches/ci.md)) invokes a repo only through these names, so the names are load-bearing and the incantations are not.
 They are deliberately stack-neutral: `check` subsumes what a JS/TS repo answers with biome and tsc and a Go repo answers with vet; *typecheck* and *lint* were incantations posing as contract.
-Migration is deliberately not a verb: at deploy time the repo is absent and the artifact is what is present, so migrating is a capability of the image, declared in the app's `compose.yaml` ([PLX-Stateful](stateful.md)) and invoked by the deploy verb through docker.
+Migration is deliberately not a verb: at deploy time the repo is absent and the artifact is what is present, so migrating is a capability of the image, declared in the app's `compose.yaml` ([PLX-AppStateful](app-stateful.md)) and invoked by the deploy verb through docker.
 Toolchain pinning follows § 2, so setup is `git clone && mise :dev` everywhere.
 
 

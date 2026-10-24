@@ -1,8 +1,8 @@
 ---
-title: PLX-Stateful – the stateful app profile
-short_title: PLX-Stateful
+title: PLX-AppStateful – the stateful app profile
+short_title: PLX-AppStateful
 description: The app contract sharpened for apps backed by data services of their own — backup labels, an idempotent one-shot migrate service, expand/contract migrations, a seed task.
-code: PLX-Stateful
+code: PLX-AppStateful
 maturity: standard
 binds: app
 depends: [PLX-App]

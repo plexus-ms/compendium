@@ -1,8 +1,8 @@
 ---
-title: PLX-Stateless – the stateless app profile
-short_title: PLX-Stateless
+title: PLX-AppStateless – the stateless app profile
+short_title: PLX-AppStateless
 description: The app contract sharpened for apps holding no state of their own — static and marketing sites, stateless APIs.
-code: PLX-Stateless
+code: PLX-AppStateless
 maturity: standard
 binds: app
 depends: [PLX-App]

@@ -16,7 +16,7 @@ A consumer lists the approaches it follows in its `PLEXUS.md` marker (§ 1.4 PLX
 | PLX-Platform | [the operations platform](platform.md) | standard | host | PLX-Host, PLX-Tenancy, PLX-App |
 | PLX-Ingress | [ingress](ingress.md) | standard | host | PLX-Platform, PLX-App |
 | PLX-Secrets | [secrets delivery](secrets.md) | standard | host | PLX-Platform, PLX-App |
-| – | [backups per service](backup.md) | note | host | PLX-Platform, PLX-Stateful |
+| – | [backups per service](backup.md) | note | host | PLX-Platform, PLX-AppStateful |
 | – | [scheduled jobs and the dead-man's-switch](scheduling.md) | note | host | PLX-Platform |
 | – | [host lifecycle](host-lifecycle.md) | note | host | PLX-Platform |
 | PLX-Infrastructure | [the infrastructure layer](infrastructure.md) | candidate | host | PLX-Tenancy |

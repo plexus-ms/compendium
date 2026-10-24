@@ -12,7 +12,7 @@ order: 11
 The app contract is the seam between dev and ops made explicit: the set of questions the platform asks of an app.
 It is small, verb-shaped, and identical for every stack; a PayloadCMS + MongoDB app, a Prisma + Postgres app, and a non-JS Django + Postgres app all satisfy it identically.
 This page is the profile-neutral base, what CI and the deploy verb rely on for *every* app.
-A profile module ([PLX-Stateless](stateless.md), [PLX-Stateful](stateful.md)) extends it for the app's actual shape.
+A profile module ([PLX-AppStateless](app-stateless.md), [PLX-AppStateful](app-stateful.md)) extends it for the app's actual shape.
 The sections bind the app, the dev side; where the platform owes the app something in return, the port value, the two environment files, the bullet says so.
 
 What the contract deliberately does **not** mention: databases, ORMs, frameworks, or anything interior.

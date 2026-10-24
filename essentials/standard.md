@@ -377,7 +377,7 @@ Run shape in `compose.yaml`, environment through two files, one HTTP port on loo
 ### § 5.2 Profiles
 
 Every app takes exactly one.
-[PLX-Stateless](../contracts/stateless.md) for apps holding no state; [PLX-Stateful](../contracts/stateful.md) for apps with data services of their own, with backup labels, an idempotent one-shot `migrate`, expand/contract discipline, and a seed task.
+[PLX-AppStateless](../contracts/app-stateless.md) for apps holding no state; [PLX-AppStateful](../contracts/app-stateful.md) for apps with data services of their own, with backup labels, an idempotent one-shot `migrate`, expand/contract discipline, and a seed task.
 Further profiles append here as they are needed.
 
 ### § 5.3 Background jobs
@@ -584,7 +584,7 @@ A stateless app is reconstructable from git and the registry; a host from the pl
 ### § 11.5 Operating databases
 
 Not covered yet.
-The stateful profile defaults to one database container per app that dies with it ([§ 1 PLX-Stateful](../contracts/stateful.md)); upgrades of the engine, tuning, and when a shared instance is warranted are still to be written.
+The stateful profile defaults to one database container per app that dies with it ([§ 1 PLX-AppStateful](../contracts/app-stateful.md)); upgrades of the engine, tuning, and when a shared instance is warranted are still to be written.
 
 ### § 11.6 Retention and deletion
 

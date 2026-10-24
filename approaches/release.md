@@ -22,9 +22,12 @@ The `plexus-ms` packages version by different physics, semver in a registry, and
 > - The platform repo SHOULD have a single `main`; environments are inventory groups, never branches.
 > - Apps MUST NOT use changesets.
 > - A hotfix branches from `main` and merges to `main`; it MUST be back-merged `main → develop` immediately.
+> - Promotion MUST be a fast-forward of `main` to `develop`; `main` MUST NOT carry merge commits of its own.
 > - Staging and prod MAY share a VM or take one each; both sit inside one tenant's trust domain, and [PLX-Tenancy](../contracts/tenancy.md) partitions tenants, not environments.
 
-Branches map to deploy targets; "promote staging to prod" is merging `develop → main`.
+Branches map to deploy targets; "promote staging to prod" is fast-forwarding `main` to `develop` (`git push origin origin/develop:main`, the `promote` task the preset ships), never a merge commit.
+A merge commit on `main` is a commit `develop` does not know, so the next promotion has to merge again, and `main` becomes a chain of promotion merges that says nothing; a fast-forward keeps `main` a pointer into `develop`'s history, and git refuses the push when it would be anything else.
+The hotfix back-merge is what keeps the fast-forward possible: after it, `main` is an ancestor of `develop` again.
 Since a release is a deploy keyed by SHA, there are no version numbers to reconcile between branches and therefore no back-merge tax; the reason environment branches are wrong for published packages does not apply here.
 Release tooling built for registries (changesets) has nothing to version in an app repo, which is why it is excluded outright.
 The hotfix back-merge keeps the branches converging.

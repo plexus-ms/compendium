@@ -5,7 +5,7 @@ hooks {
     stash = true
     steps {
       ["check"] {
-        glob = List("plexus/standard.md", "plexus/modules/*.md", "plexus/requirements.sh")
+        glob = List("plexus/standard.md", "modules/*.md", "plexus/requirements.sh")
         check = "mise check"
       }
     }

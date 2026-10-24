@@ -1,7 +1,7 @@
 ---
 title: The Plexus Manifesto
 short_title: The Manifesto
-description: Why Plexus exists — the fog problem, and the foundational premises and principles Plexus is built upon.
+description: Why Plexus exists: the fog problem, and the foundational premises and principles Plexus is built upon.
 version: v0
 timestamp: 2026-10-23
 order: 0

@@ -16,7 +16,7 @@ Maturity follows from this page (§ 1.3 PLX): a module two tenants run can carry
 
 ## The dogfood tenant `plexus`
 
-The tenant that runs plexus-ms.org, in its own organisation `plexus-ms-tenant`, on one VM that is a guest of the second tenant's hypervisor under a written arrangement ([§ 4 PLX-Tenancy](modules/tenancy.md)).
+The tenant that runs plexus-ms.org, in its own organisation `plexus-ms-tenant`, on one VM that is a guest of the second tenant's hypervisor under a written arrangement ([§ 4 PLX-Tenancy](../modules/tenancy.md)).
 
 | Repo | Declares |
 |---|---|
@@ -35,13 +35,13 @@ A company tenant on hardware of its own: a hypervisor with four guests, a backup
 | Repo | Declares |
 |---|---|
 | `platform` | PLX-Repo, PLX-Tenancy, PLX-Platform, PLX-Ingress, PLX-Secrets, PLX-Scheduling, PLX-HostLifecycle, PLX-Hosting, PLX-Updates |
-| `platform/apps/<identity provider>` | PLX-App, PLX-Stateful, PLX-Deploy, with the self-migrating image and the SQLite state recorded as deviations ([§ 2 PLX-Stateful](modules/stateful.md)) |
+| `platform/apps/<identity provider>` | PLX-App, PLX-Stateful, PLX-Deploy, with the self-migrating image and the SQLite state recorded as deviations ([§ 2 PLX-Stateful](../modules/stateful.md)) |
 | `web` | PLX-Repo, PLX-JS, PLX-Train, PLX-CI, PLX-Updates |
 | `web/apps/<marketing site>` | PLX-App, PLX-Stateless, PLX-Deploy |
 | `web/apps/<product site>` | PLX-App, PLX-Stateful, PLX-Deploy |
 | `web/apps/<product>` | PLX-App, PLX-Stateful, PLX-Deploy |
 
-Whole-machine backups with hand-drilled restores are what covers this tenant's data until [backups per service](modules/backup.md) ship.
+Whole-machine backups with hand-drilled restores are what covers this tenant's data until [backups per service](../modules/backup.md) ship.
 
 
 ## The maintainers' own repos

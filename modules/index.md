@@ -1,11 +1,10 @@
 ---
-title: The modules
-short_title: Modules
+title: PLX Modules
 description: One page per concern a consumer adopts on its own — contracts at the seams, approaches around them, each with a kind, a maturity, and what it binds.
-order: 9
+order: 2
 ---
 
-A module covers one concern a consumer could adopt or reject on its own (§ 1.3 PLX).
+A module covers one concern a consumer could adopt or reject on its own ([§ 1.3 PLX](../plexus/standard.md)).
 A consumer lists the codes it follows in its `PLEXUS.md` marker (§ 1.4 PLX); the map (§ 2 to § 13 PLX) says which concern each module covers.
 
 | Code | Page | Kind | Maturity | Binds | Depends on |

@@ -20,8 +20,9 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 MAP="$SCRIPT_DIR/standard.md"
-MODULES="$SCRIPT_DIR/modules"
+MODULES="$ROOT/modules"
 
 # scan <mode> <file>: mode is "map", "module", or "extract". modules/index.md is
 # the modules' table of contents, not a module, and is skipped.
@@ -29,7 +30,7 @@ MODULES="$SCRIPT_DIR/modules"
 # extract mode prints the requirement lines of a standard module to stdout.
 scan() {
   local mode="$1" file="$2"
-  awk -v mode="$mode" -v name="${file#"$SCRIPT_DIR"/}" '
+  awk -v mode="$mode" -v name="${file#"$ROOT"/}" '
     function defect(msg) { err[++ne] = "✗ " name ": line " NR ": " msg }
     function haskw(s,   t) {
       t = s

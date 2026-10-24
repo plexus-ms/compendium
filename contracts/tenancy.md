@@ -7,7 +7,7 @@ maturity: standard
 binds: organisation
 changed: 0.61.0
 depends: []
-order: 15
+order: 0
 ---
 
 A **tenant** is one trust domain in the federation: its own forge org, repos, hosts, secrets vault, backups.

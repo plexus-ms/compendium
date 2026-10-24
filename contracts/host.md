@@ -6,7 +6,7 @@ code: PLX-Host
 maturity: candidate
 binds: host
 depends: []
-order: 14
+order: 5
 ---
 
 The host contract sits at the seam between the infrastructure layer and the operations platform.

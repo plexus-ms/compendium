@@ -7,7 +7,7 @@ maturity: standard
 binds: app
 changed: 0.61.0
 depends: [PLX-Repo]
-order: 11
+order: 2
 ---
 
 The app contract is the seam between dev and ops made explicit: the set of questions the platform asks of an app.

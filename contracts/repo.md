@@ -7,7 +7,7 @@ maturity: standard
 binds: repo
 changed: 0.61.0
 depends: []
-order: 10
+order: 1
 ---
 
 The repo contract sits at the seam between a repo and everything that operates on it: a developer at a fresh checkout, a git hook, a CI job, the staleness check.

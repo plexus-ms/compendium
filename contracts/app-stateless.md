@@ -7,7 +7,7 @@ maturity: standard
 binds: app
 changed: 0.60.0
 depends: [PLX-App]
-order: 12
+order: 3
 ---
 
 A profile is a variant of the app contract: it extends and sharpens [PLX-App](app.md) for one recognizable shape of app, the way an interface is taken by a concrete type.

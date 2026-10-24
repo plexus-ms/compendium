@@ -2,7 +2,7 @@
 title: The Plexus Standard (PLX)
 short_title: The Standard
 description: The map of Plexus — one section per concern, from the organisation to the metal and back to upkeep, each pointing at the modules that cover it and naming what is not covered yet.
-version: 0.60.1
+version: 0.61.0
 timestamp: 2026-10-24
 order: 1
 ---

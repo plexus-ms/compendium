@@ -5,7 +5,7 @@ description: One reusable workflow mounts the verbs on the forge — check, test
 code: PLX-CI
 maturity: standard
 binds: repo
-changed: 0.60.0
+changed: 0.61.0
 depends: [PLX-Repo, PLX-App, PLX-Release, PLX-Deploy]
 order: 18
 ---

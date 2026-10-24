@@ -5,7 +5,7 @@ description: Releases keyed by git SHA — main to prod, develop to staging, the
 code: PLX-Release
 maturity: standard
 binds: repo
-changed: 0.60.0
+changed: 0.61.0
 depends: [PLX-App]
 order: 17
 ---

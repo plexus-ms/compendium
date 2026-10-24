@@ -5,7 +5,7 @@ description: What the platform asks of every deployable unit — a declaration m
 code: PLX-App
 maturity: standard
 binds: app
-changed: 0.60.0
+changed: 0.61.0
 depends: [PLX-Repo]
 order: 11
 ---

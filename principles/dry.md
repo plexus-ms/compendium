@@ -5,4 +5,4 @@ timestamp: 2026-07
 order: 1
 ---
 
-Coming soon.
+Don't repeat yourself.

@@ -13,18 +13,14 @@ A reverse proxy per VM terminates TLS and maps domains to app ports.
 This module is how a tenant tells the platform which app answers under which name, and how that one fact reaches both the proxy and the app's compose interpolation ([§ 4 PLX-App](../contracts/app.md)) without being stated twice.
 
 
-## § 1 The inventory record
+## § 1 What the proxy reads
 
-> - Each app's loopback port MUST be assigned in the tenant's inventory (`apps[].loopback_port`), in the same record that binds its public host (`apps[].host`) and names its source repo (`apps[].repo`).
-> - App names MUST be unique per tenant, across all of its repos.
-> - Non-secret values the platform provides to an app MUST be declared in the same record (`apps[].env`) and written to `.env`; secret values follow [PLX-Secrets](secrets.md).
+> - The proxy MUST route each app's public host (`apps[].host`) to the app's loopback port (`apps[].loopback_port`) on the same VM, both read from the app record ([§ 3 PLX-Platform](platform.md)) and stated nowhere else.
 > - The playbook SHOULD fail on a duplicate loopback port per VM.
 > - An app's path prefix, where it has one ([§ 4 PLX-App](../contracts/app.md)), MUST be bound in the same record (`apps[].path`); a host MUST serve at most one app per prefix and at most one at its root.
 
 Because host→port→app is one line in the platform repo's inventory, per-VM port uniqueness is checkable in a single file instead of being coordination state scattered across app repos.
-The app name is the join key across repos: the inventory record, the compose project, and the host directory all key on it, which is why it is unique per tenant rather than per repo.
-From that one record, the configure playbook renders the ingress config *and* injects the port into the app's compose interpolation: it writes the value to `<app_dir>/.env` on the host, the per-app directory the playbook lays out as `<deploy root>/<tenant>/<app>` (e.g. `/opt/stacks/plexus/website`), which compose reads implicitly, so the deploy verb stays port-unaware.
-The same file pins the compose project name to `<tenant>-<app>`: container and network names all derive from the project name, and its directory-basename default would collide the moment two co-hosted tenants deploy an app with the same name.
+The configure playbook renders the proxy's routes from that record, and the same record puts the port into the app's `.env` (§ 3 PLX-Platform), which is how one fact reaches both the proxy and the app's compose interpolation without being stated twice.
 
 Apps sharing a host are told apart by path prefix, and stripping it on the way in is what the app contract promises the app (§ 4 PLX-App); the proxy config rendered from the record is where the promise is kept, and the public URL the app needs for links reaches it through `apps[].env`.
 

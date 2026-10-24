@@ -28,7 +28,7 @@ Since a release is a deploy keyed by SHA, there are no version numbers to reconc
 Release tooling built for registries (changesets) has nothing to version in an app repo, which is why it is excluded outright.
 The hotfix back-merge keeps the branches converging.
 
-Which host an environment *is*, is inventory, not convention: `main`→prod and `develop`→staging name deploy targets, and the binding, which VM, which inventory record, which domain, lives in the platform repo's inventory ([PLX-Ingress](ingress.md)), where the CI mount reads it.
+Which host an environment *is*, is inventory, not convention: `main`→prod and `develop`→staging name deploy targets, and the binding, which VM, which inventory record, which domain, lives in the platform repo's inventory ([§ 3 PLX-Platform](platform.md)), where the CI mount reads it.
 The platform repo itself needs no environment branches because it has no release cycle of its own to promote: staging and prod are two inventory groups in one file, and a playbook run targets one of them.
 
 

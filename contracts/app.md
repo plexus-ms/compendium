@@ -64,7 +64,7 @@ Same verb, two mounts.
 > - `compose.yaml` MUST reference the app's own image as `${PLEXUS_DEPLOYMENT_IMAGE}`; the deploy verb pins the concrete ref in its place when it renders the file onto the host.
 
 The seam is "the platform hands the app an environment", and nothing more is said about it.
-What the app reads is recorded in its code; what the platform provides is recorded on the platform side, one record per app ([PLX-Ingress](../approaches/ingress.md), [PLX-Secrets](../approaches/secrets.md)).
+What the app reads is recorded in its code; what the platform provides is recorded on the platform side, one record per app ([§ 3 PLX-Platform](../approaches/platform.md), [PLX-Secrets](../approaches/secrets.md)).
 No file in between declares or validates the variables: whether an app checks its environment at startup is its interior, and a process that cannot start fails the readiness poll and is rolled back like any other bad release ([PLX-Deploy](../approaches/deploy.md)).
 
 The reserved vocabulary is small, and each name has one provider:
@@ -86,7 +86,7 @@ Pinning it into the compose file, the way a third-party app's image is pinned in
 > - The app MUST NOT hardcode a host port; `compose.yaml` publishes via interpolation: `127.0.0.1:${PLEXUS_LOOPBACK_PORT}:<container-port>`.
 > - An app MAY be served under a path prefix of a host it shares with other apps of the same tenant; the platform MUST strip the prefix before a request reaches the app, and the app MUST serve from its own root and take the public URL it needs for links from its environment.
 
-The host side of the binding is not the app's to choose: the loopback port is assigned by the platform and written to the app directory by the configure playbook ([PLX-Ingress](../approaches/ingress.md)).
+The host side of the binding is not the app's to choose: the loopback port is assigned by the platform and written to the app directory by the configure playbook ([§ 3 PLX-Platform](../approaches/platform.md)).
 TLS, hostnames, and the host→port binding are likewise the platform's job; public host and loopback port alike are deployment substance, so the app stays deployable under any hostname and next to any neighbour.
 The binding reaches compose through the platform's `.env` in the app directory, which compose reads implicitly; the app never reads it.
 The prefix is the platform's promise in the other direction: an app stays as deployable under any prefix as under any hostname because it never sees the prefix, and where it is bound (`apps[].path`) and how the proxy strips it are the platform's business ([§ 1 PLX-Ingress](../approaches/ingress.md)).
@@ -133,5 +133,5 @@ The contract stays interior-blind; a requirement that names a database, a framew
 The preset `plexus-ms/preset-app-nextjs` ships the arrangement that satisfies this page for a Next.js app: the Dockerfile, `compose.yaml` with the `web` service and the contract labels, the healthz route.
 When this page changes, the preset changes in the same train.
 
-Approaches on the platform side: [PLX-Ingress](../approaches/ingress.md), [PLX-Secrets](../approaches/secrets.md), [PLX-Deploy](../approaches/deploy.md), [backups per service](../approaches/backup.md).
+Approaches on the platform side: [PLX-Platform](../approaches/platform.md), [PLX-Ingress](../approaches/ingress.md), [PLX-Secrets](../approaches/secrets.md), [PLX-Deploy](../approaches/deploy.md), [backups per service](../approaches/backup.md).
 On the app side: [PLX-CI](../approaches/ci.md), [PLX-Release](../approaches/release.md), and the preset.

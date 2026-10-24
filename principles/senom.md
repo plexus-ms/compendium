@@ -5,4 +5,4 @@ timestamp: 2026-07
 order: 0
 ---
 
-Coming soon.
+Simple, easy, no magic.

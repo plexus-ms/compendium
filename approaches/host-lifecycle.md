@@ -1,9 +1,8 @@
 ---
-title: PLX-HostLifecycle – host lifecycle
-short_title: PLX-HostLifecycle
+title: Host lifecycle
+short_title: Host lifecycle
 description: The interim posture on patching — unattended security upgrades on, every other host change a supervised act — until patch drift is visible enough for an honest policy.
-code: PLX-HostLifecycle
-maturity: candidate
+maturity: note
 binds: host
 depends: [PLX-Platform]
 order: 25
@@ -11,6 +10,7 @@ order: 25
 
 This module is the posture on what happens to a host after its first playbook run: patches, reboots, upgrades, rebuilds.
 It is interim by design and says so.
+It is a note: one baseline role (`configure_unattended_upgrades`, [§ 2 PLX-Platform](platform.md)) and a posture, no primitive of its own.
 
 
 ## § 1 The interim posture
@@ -32,5 +32,5 @@ Delete something only after checking what still references it; a guest removed f
 
 ## Maintaining
 
-The module is promoted when a policy exists that two tenants follow and a role enforces; until then its one requirement-shaped sentence stays prose.
+The note becomes a module when a policy exists that a role enforces, and standard when two tenants follow it; until then its one requirement-shaped sentence stays prose.
 Engine and distribution majors are handled on the train like any other role change: the role learns the new version, the train ships it, the tenant applies it under supervision.

@@ -134,7 +134,7 @@ There is no global verdict.
 
 Plexus has one version: the number of the **train**, a plain semver tag (`0.60.0`, no `v` prefix) stamped identically on every train repo, whether or not it changed, and on the compendium.
 The number says *when*, not *how stable*; stability is the maturity axis of § 1.3.
-The train is the tested set: the only combination ever validated is the one the [reference stack](reference-stack.md) runs together, so independent per-repo version lines would name compatibility cells nobody tests.
+The train is the tested set: the only combination ever validated is the one the maintainers' tenants run together, so independent per-repo version lines would name compatibility cells nobody tests.
 Because an unchanged repo still gets the tag, every cross-repo pin can cite the train version and be right by construction.
 
 The train repos are `platform`, `ci-cd`, `preset-repo-web`, `preset-app-nextjs`, `preset-repo-platform`, and `compendium`.
@@ -182,7 +182,7 @@ The repos that ship the methodology:
 | `preset-app-nextjs` | The copier template for a Next.js app inside an app repo: contract-verb scripts, Dockerfile, `compose.yaml` with the contract labels. |
 | `preset-repo-platform` | The copier template for a tenant's platform repo: the two playbooks, on request a third for the infrastructure layer, inventory, the `op://`-pointer env files, the collection pin, the `apps/` directory and workflow for third-party apps. |
 | `renovate-config` | The shared Renovate preset every tenant repo extends in one line. |
-| `compendium` | This map, the modules, the manifesto, the reference stack, and the supporting reference docs. |
+| `compendium` | This map, the modules, the manifesto, and the supporting reference docs. |
 
 The dogfood tenant `plexus` lives in its own organisation, `plexus-ms-tenant`, laid out like any tenant and bound by the modules it declares, not by anything in this section: the maintainers' organisation ships methodology, the tenant's holds substance, and the two never share an access boundary.
 
@@ -382,7 +382,7 @@ Further profiles append here as they are needed.
 
 ### § 5.3 Background jobs
 
-The stance for now is: app-internal pipelines run in a job queue inside the app, deployed as a worker container in the same compose file ([§ 1 PLX-Scheduling](../approaches/scheduling.md)); a profile or note on the worker's shape is still to be written.
+The stance for now is: app-internal pipelines run in a job queue inside the app, deployed as a worker container in the same compose file (the [scheduling note](../approaches/scheduling.md)); a profile or note on the worker's shape is still to be written.
 
 More approaches to background jobs and centralized orchestration may follow in the future.
 
@@ -423,19 +423,23 @@ Trunk-based, versioned by changesets, published token-less through OIDC trusted 
 
 ### § 6.7 Image registry
 
-Not covered beyond the default.
-SHA-tagged images accumulate in GHCR unboundedly and nothing prunes them; that is deliberate for now, since rollback and re-deploys assume history stays available and storage is cheap at this scale.
-Revisit when registry cost or quota bites; any future retention policy has a floor, the tags currently deployed in any environment plus their predecessors, or rollback loses its guarantee.
+Not covered beyond the default behavior of GHCR currently.
+
+Will be revisited and expanded when the need arises.
 
 ### § 6.8 Preview environments
 
-Not covered.
-A single staging per app covers most of the value; per-PR environments are revisited when a product has real customers.
+Not covered yet.
+
+A single staging per app covers most of the value; per-PR environments might follow in the future.
 
 ### § 6.9 Zero-downtime deploys
 
-Not covered.
-The deploy verb re-creates containers in place and accepts seconds of downtime per deploy; blue-green or rolling is revisited when an app has traffic for which a blink is a real cost, and whatever the answer, it stays a verb, not a reconciler.
+Not covered yet.
+
+The deploy verb re-creates containers in place and accepts seconds of downtime per deploy.
+
+Blue-green or rolling deploys might follow in the future.
 
 
 ## § 7 Platform
@@ -449,12 +453,12 @@ Two playbooks split by change cadence, provision for fresh hosts and deep change
 
 ### § 7.2 Host baseline
 
-Packages and system activity record, personal admins, unattended security upgrades, a default-drop firewall assembled from fragments, sshd closed to root; the deploy user, the container engine, and the proxy on an app host.
+Packages and system activity record, personal admins, unattended security upgrades, a default-drop firewall assembled from fragments, sshd closed to root; the deploy user and the container engine on an app host.
 [§ 2 PLX-Platform](../approaches/platform.md).
 
 ### § 7.3 Ingress
 
-One inventory record per app binds host, loopback port, and values; the configure playbook renders the proxy's routes and the app's `.env` from it and fences `/healthz` at the edge.
+The proxy's routes are rendered from the app record, public host to loopback port, and `/healthz` is fenced at the edge; the proxy is the substitutable piece.
 [PLX-Ingress](../approaches/ingress.md).
 
 ### § 7.4 App environment and secrets delivery
@@ -465,12 +469,17 @@ Git holds `op://` pointers, the configure playbook resolves them into `.env.secr
 ### § 7.5 Scheduling
 
 No orchestrator; scheduled jobs are systemd timers, and a job that silently stops is noticed by a dead-man's-switch whose mechanism is still open.
-[PLX-Scheduling](../approaches/scheduling.md), an approach at candidate maturity.
+A [note](../approaches/scheduling.md) until the mechanism ships.
 
 ### § 7.6 Host lifecycle
 
 Unattended security upgrades on, every other host change a supervised act, until patch drift is visible enough for an honest policy.
-[PLX-HostLifecycle](../approaches/host-lifecycle.md), an approach at candidate maturity.
+A [note](../approaches/host-lifecycle.md) until a policy exists that a role enforces.
+
+### § 7.7 App record and lifecycle
+
+One inventory record per app binds name, source repo, host, loopback port, and values; the configure playbook lays out the app's directory, writes `.env` from the record, and pulls and starts what the deploy verb has placed.
+[§ 3 PLX-Platform](../approaches/platform.md).
 
 
 ## § 8 Infrastructure
@@ -516,41 +525,6 @@ Which hardware a hypervisor runs on, where the backup server sits, and how an of
 
 ## § 9 Workplace
 
-Running an organisation's IT for its people: the part of Plexus that is ambition rather than practice yet.
-Every subsection is a stub, filled in from the maintainers' experience as it is written down.
-
-### § 9.1 Joiners, movers, leavers
-
-Not covered yet.
-The platform's admin and forge-org membership are the two places a person's access is encoded today ([§ 2 PLX-Platform](../approaches/platform.md), [§ 3 PLX-Tenancy](../contracts/tenancy.md)).
-
-### § 9.2 Devices and their management
-
-Not covered yet.
-
-### § 9.3 Collaboration and communication
-
-Not covered yet.
-
-### § 9.4 Software and licences
-
-Not covered yet.
-
-### § 9.5 File storage
-
-Not covered yet.
-
-### § 9.6 Asset inventory
-
-Not covered yet.
-The platform repo's inventory records hosts and apps; what records the organisation's other assets is still to be written.
-
-### § 9.7 Office network and printing
-
-Not covered yet.
-
-### § 9.8 Support and requests
-
 Not covered yet.
 
 
@@ -576,7 +550,7 @@ Tenants are separated by hypervisor and never share a VM ([§ 4 PLX-Tenancy](../
 ### § 10.4 Vulnerabilities
 
 Not covered yet.
-Patching is the interim posture of [PLX-HostLifecycle](../approaches/host-lifecycle.md); scanning images and dependencies for known vulnerabilities is still to be written.
+Patching is the interim posture of the [host lifecycle note](../approaches/host-lifecycle.md); scanning images and dependencies for known vulnerabilities is still to be written.
 
 ### § 10.5 Incidents
 
@@ -621,14 +595,11 @@ Backup retention is the backup server's schedule; application-level retention an
 ## § 12 Observability
 
 Knowing what runs where and whether it is healthy.
-Almost all of it is deferred, deliberately: the answer to "when is it time to scale?" is data, not vibes, and the usual gap is measurement, not orchestration.
-Candidates for the stack are Grafana + Prometheus/node-exporter + Loki, or lighter, Beszel + Uptime Kuma; the same stack is to provide the "what's running where" view grouped by `plexus.tenant`.
-Until it is decided, the only monitoring the modules ask for is the missed-job alert.
 
 ### § 12.1 Missed-job alerts
 
 A scheduled job that fails or does not run raises an alert; the dead-man's-switch mechanism, a ping service or a staleness watcher, is decided together with the rest of this section.
-[§ 2 PLX-Scheduling](../approaches/scheduling.md).
+The [scheduling note](../approaches/scheduling.md).
 
 ### § 12.2 Metrics
 

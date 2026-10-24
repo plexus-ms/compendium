@@ -30,7 +30,7 @@ Machine checks read only the frontmatter; the body is for humans, and it is wher
 ```markdown
 ---
 plexus: 0.60.0
-modules: [PLX-Repo, PLX-JS, PLX-Train, PLX-CI, PLX-Updates]
+modules: [PLX-Repo, PLX-JS, PLX-Release, PLX-CI, PLX-Updates]
 ---
 
 - Free-form prose.

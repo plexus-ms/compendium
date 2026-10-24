@@ -20,7 +20,7 @@ This module is the third step: how a change made once upstream reaches every ten
 > - Within a tenant, such an artifact MAY be published to the tenant's private registry.
 > - A consumer config SHOULD extend the shared `@plexus-ms/*` config and keep local additions in its own file.
 
-A repo has one access boundary and one release train, so nothing can be shared across repos by reference without dissolving one or the other; that single fact generates the rule.
+A repo has one access boundary and one release cycle, so nothing can be shared across repos by reference without dissolving one or the other; that single fact generates the rule.
 Within a repo: pnpm workspaces, instant edits, atomic cross-package commits, no publish overhead, safe because it is one access boundary.
 Across repos: published, versioned packages, the only mechanism that crosses a boundary, buying decoupled upgrade timing (a consumer pins `^2` and upgrades when *it* chooses) and update-bot propagation (the bot needs a version to detect).
 Two repos of one tenant are no exception: a private package in the tenant's own registry crosses their boundary the same way, and a shared thing that hurts to publish is a signal the repo split was wrong, never a reason to reach across.

@@ -42,13 +42,13 @@ Plexus revolves around tenants sharing methodology but never substance:
   Decided once, reused, versioned and published, or otherwise propagated (§ 13).
 - **Seam** — where two sides owned by different people or tools meet: one layer and the next, or the authors of a repo and whatever runs it.
   A seam is named by its two sides and made explicit as exactly one contract (§ 1.3).
-- **Module**, **contract**, **approach**, **note**, **candidate**, **maturity** — see § 1.3.
+- **Module**, **contract**, **approach**, **maturity** — see § 1.3.
 - **Declaration** — a repo's or app's `PLEXUS.md` marker: the Plexus version it was brought up to and the modules it follows (§ 1.4).
-- **Train** — one release of Plexus, tagged identically on every release repo and the compendium, whose number is the Plexus version (§ 1.5).
+- **Train** — one release of Plexus, tagged identically on every train repo and the compendium, whose number is the Plexus version (§ 1.5).
 
 Tenants usually build and ship software:
 
-- **Repo** — one release train and one toolchain contract inside a tenant ([PLX-Repo](../contracts/repo.md)).
+- **Repo** — one release cycle and one toolchain inside a tenant bundled in one forge repository ([PLX-Repo](../contracts/repo.md)).
   A tenant can have any number of **app repos** holding the dev side, and has exactly one **platform repo** holding the ops side.
 - **App** — one deployable unit satisfying the app contract ([PLX-App](../contracts/app.md)).
   It lives in an app repo for software the tenant builds, or the platform repo for third-party software the tenant merely operates.
@@ -66,32 +66,20 @@ IT operations is a layered concern. We are adopting the commonly used language o
 - **Infrastructure layer** — underneath the platform layer, this is what makes a tenant's hosts exist, reachable, and restorable: bought from a provider as IaaS (virtualized cloud instances etc.), or built by the tenant on bare metal of its own (on-premises or bare metal rented from a provider, [PLX-Infrastructure](../approaches/infrastructure.md)).
 
 
-### § 1.3 Modules, contracts, and maturity
+### § 1.3 Modules and maturity
 
 A module has a kind and a maturity, and the two are independent axes.
 
-#### Kind: contract vs. approach
-A module's kind is the folder it lives in, `contracts/` or `approaches/`.
+#### Contracts and approaches
+The modules' kind divides them into `contracts/` and `approaches/`.
 
 - A **contract** is the module written at a seam: what the two sides owe each other, so that either side can be replaced without the other noticing.
   Contracts are opinionated interfaces, not tool-neutral ones: the repo contract names mise, the app contract names compose, the host contract names Debian.
+  See the [contracts index](../contracts/index.md) for the table of all seams.
 - An **approach** is an opinionated way to live on one side of a seam: to provide a contract, to consume it, or to do a side's own job; every module that is not a contract is one.
   A tenant can replace an approach with its own and remain a Plexus tenant as long as it keeps the contracts.
 
-**The seams.**
-A seam is named by its two sides, and the [contracts index](../contracts/index.md) keeps the table of seams with the approaches on each side.
-Today there are four:
-
-- *Infrastructure to platform*: below, whatever makes a host exist, a provider, the tenant's own metal, or another tenant's hypervisor; above, the platform repo.
-  [PLX-Host](../contracts/host.md).
-- *Platform to app*: below, ops, the platform repo; above, dev, the app's source repo.
-  [PLX-App](../contracts/app.md), with the profiles [PLX-Stateless](../contracts/stateless.md) and [PLX-Stateful](../contracts/stateful.md) sharpening it, one per app.
-- *Repo to its operators*: on one side the authors of a repo; on the other whatever runs it without having written it, a CI job, a coding agent, a colleague on a fresh checkout.
-  [PLX-Repo](../contracts/repo.md).
-- *Tenant to federation*: on one side a tenant, on the other the upstream whose primitives reach into it.
-  The tenant's obligations are [PLX-Tenancy](../contracts/tenancy.md); the upstream's are the guarantees of § 1.6, prose because they bind the maintainers and not a consumer.
-
-**Three rules follow.**
+**Three rules for contracts and approaches:**
 
 - One seam, one contract; a contract may have profiles, which are parts of it and not seams of their own.
   A new contract needs a new named seam with two owners, and a page that cannot name its seam is an approach.
@@ -105,7 +93,6 @@ Today there are four:
 - A **candidate** has shipped primitives and at least one consumer, and still no requirements: a candidate for standard, waiting on its second consumer.
 - A **standard** module has requirements and at least two consumers.
 
-#### Codes and declarability
 Only candidate and standard modules carry a code, `PLX-` plus one capitalised word, unique across the compendium, and only they can be declared.
 Notes have titles and no code.
 
@@ -129,7 +116,7 @@ A consumer says what it follows in a `PLEXUS.md` marker at the root of each repo
 ```markdown
 ---
 plexus: 0.60.0
-modules: [PLX-Repo, PLX-JS, PLX-Train, PLX-CI, PLX-Updates]
+modules: [PLX-Repo, PLX-JS, PLX-Release, PLX-CI, PLX-Updates]
 ---
 
 - Free-form prose: what this repo is, how to find your way.
@@ -145,12 +132,12 @@ There is no global verdict.
 
 ### § 1.5 Versioning and the train
 
-Plexus has one version: the number of the **release train**, a plain semver tag (`0.60.0`, no `v` prefix) stamped identically on every release repo, whether or not it changed, and on the compendium.
+Plexus has one version: the number of the **train**, a plain semver tag (`0.60.0`, no `v` prefix) stamped identically on every train repo, whether or not it changed, and on the compendium.
 The number says *when*, not *how stable*; stability is the maturity axis of § 1.3.
 The train is the tested set: the only combination ever validated is the one the [reference stack](reference-stack.md) runs together, so independent per-repo version lines would name compatibility cells nobody tests.
 Because an unchanged repo still gets the tag, every cross-repo pin can cite the train version and be right by construction.
 
-The release repos are `platform`, `ci-cd`, `preset-repo-web`, `preset-app-nextjs`, `preset-repo-platform`, and `compendium`.
+The train repos are `platform`, `ci-cd`, `preset-repo-web`, `preset-app-nextjs`, `preset-repo-platform`, and `compendium`.
 `packages` (npm semver via changesets, [PLX-Packages](../approaches/packages.md)) and `renovate-config` (read from its default branch) ride outside the train.
 Within the train, `ci-cd` tags verbs and workflow wrappers together, so a wrapper always checks out its verb at the same tag; `platform` tags the Ansible collection and the Terraform modules together, and its `galaxy.yml` version mirrors the tag exactly.
 The pre-train per-repo `vN` lines and the itops-era tags live on frozen in history, kept for existing pins and never retargeted.
@@ -162,7 +149,7 @@ Section numbers in the map and in every module are append-only within a major tr
 The train reaches 1.0.0 once the modular standard with its first standard modules has shipped and settled; until then `0.x` promises nothing, and any train can change anything.
 
 **What `ship` writes.**
-The umbrella `ship` task in the maintainers' `toolbox` writes the bookkeeping, tags every release repo, pushes, and copier-updates the consumers in one pass.
+The umbrella `ship` task in the maintainers' `toolbox` writes the bookkeeping, tags every train repo, pushes, and copier-updates the consumers in one pass.
 For the compendium it writes the version and timestamp in this document's frontmatter (a draft carries `v0` until its first train) and stamps `changed` on each standard module whose extracted requirement lines differ from the previous train's, using the same extractor `mise check` runs.
 
 ### § 1.6 Upstream guarantees
@@ -217,13 +204,7 @@ flowchart TB
 
 ### § 1.7 Governance
 
-Today one maintainer controls the doctrine, the packages, the templates, and thus the supply chain.
-The consequences and the day-one safety net are stated where tenants can see them (§ 1.6, and the [Manifesto](manifesto.md)'s honest edges).
-More maintainers follow the same lazy rule as everything else, when a real second contributor exists, with one proactive trigger: the day a third-party tenant runs the standard in production, single-maintainer governance stops being merely honest and starts being a liability to someone else.
-Per-tenant second admins are provisioned the same way, lazily, when a real second operator exists.
-
-Deferred decisions are not kept in one roadmap.
-Each is written into the module or map stub that owns its concern, with the trigger that reopens it, so that the stubs of this map are the overview of what Plexus does not cover yet, and a deferral is a decision rather than drift.
+Deferred decisions are written into the module or map stub that owns its concern, with the trigger that reopens it, so that the stubs of this map are the overview of what Plexus does not cover yet, and a deferral is a decision rather than drift.
 
 ### § 1.8 Compendium conventions
 
@@ -253,7 +234,7 @@ How an organisation is cut into trust domains and named, where its code lives, h
 
 ### § 2.1 Trust domains and tenancy
 
-The tenant is the trust boundary: one organisation, one forge org, one platform repo, one vault, its own hosts and backups.
+The tenant is the trust boundary: one organisation, one forge org, one platform repo, one secrets vault, its own hosts and backups.
 What spans tenants is methodology; what never does is substance.
 [PLX-Tenancy](../contracts/tenancy.md) is the contract, at standard maturity; its first section holds the one pair of requirements everything else rests on.
 
@@ -264,7 +245,7 @@ One short slug per tenant threads through every layer: forge org, hostnames, inv
 
 ### § 2.3 Forge and repo layout
 
-One trust domain, N release trains, one platform repo: the ops side in a repo of its own, every other repo an app repo, app repos as monorepos by default, generated from the presets.
+One trust domain, N release cycles, one platform repo: the ops side in a repo of its own, every other repo an app repo, app repos as monorepos by default, generated from the presets.
 [§ 3 PLX-Tenancy](../contracts/tenancy.md).
 
 ### § 2.4 Arrangements between tenants
@@ -275,45 +256,56 @@ The common form is one tenant obtaining its infrastructure from another ([PLX-In
 
 ### § 2.5 Documentation and knowledge
 
-Not covered yet.
-Plexus's own stance is that artifacts are the documentation (the [Manifesto](manifesto.md)) and that a tenant repo's marker body is where its non-derivable knowledge lives; how an organisation keeps the knowledge that is not next to a system, runbooks, decisions, onboarding, is a note still to be written.
+Plexus's own stance is that artifacts are the documentation (the [Manifesto](manifesto.md)) and that a tenant repo's marker body is where its non-derivable knowledge lives; how an organisation keeps the knowledge that is not next to a system (runbooks, decisions, onboarding, user manuals) is not in our scope for now.
 
 ### § 2.6 Legal and data protection
 
-Not covered yet.
 The only requirement in this area today is the written arrangement of § 2.4, with a data-processing agreement where applicable.
-Moving a commercial tenant off shared metal is a deferred decision with a trigger: the day a tenant has a customer with real data-processing expectations, revisit migrating that tenant's VMs to hardware it controls itself, not because the hypervisor stops isolating, but because "dedicated, tenant-only" can be a commercial or trust requirement independent of the technical reality.
+Moving tenants off shared metal can be triggered by a customer with real data-processing expectations: not because the hypervisor stops isolating, but because "dedicated instance for us only" can be a compliance or trust requirement independent of the technical reality.
 
 ### § 2.7 Cost, vendors, procurement
 
-Not covered yet.
-Where the standard picks a vendor today it does so inside a module, as a suggested default a tenant substitutes by recording the deviation; a view on cost and vendor choice across the whole stack is still to be written.
+Where the standard picks a vendor today it does so inside a module, as a suggested pragmatic default chosen by the maintainers, which a tenant can substitute by recording the deviation.
+
+A more holistic view on cost and vendor choice across the whole stack may follow in the future, but tenants will have vastly different needs and budgets.
 
 
 ## § 3 Shared services
 
-The services an organisation runs for itself and its people rather than for one app: identity, the vault, domains, mail.
+The services an organisation runs for itself and its people rather than for one app: identity, secrets, domains, mail.
 Each is consumed by a module below; none has a module of its own yet.
 
 ### § 3.1 Identity and access for people
 
-Not covered yet.
-The platform's host baseline gives each human admin a personal account with key-only SSH ([§ 2 PLX-Platform](../approaches/platform.md)); the forge org governs code access ([§ 3 PLX-Tenancy](../contracts/tenancy.md)); an identity provider for the organisation's people and apps is operated as a third-party app today and has no module.
+The platform's host baseline gives each human admin a personal account with key-only SSH ([§ 2 PLX-Platform](../approaches/platform.md)).
 
-### § 3.2 Vault
+The forge org governs code access ([§ 3 PLX-Tenancy](../contracts/tenancy.md)).
 
-Not covered yet as a service.
-Every module that needs a secret assumes one vault per tenant reachable by a CLI that resolves `op://`-style pointers; [PLX-Secrets](../approaches/secrets.md) is how the platform consumes it, with 1Password as the suggested default behind a thin adapter.
+Identity providers for the organisation's people and apps are operated as third-party apps today and have no dedicated module.
+
+More approaches to identity and access may follow in the future.
+
+### § 3.2 Secrets
+
+Every module that needs a secret assumes one secrets vault per tenant, as the tenant is the trust boundary.
+
+Today the standard assumes an external secrets service, with 1Password as a suggested default, reachable by a CLI that resolves `op://`-style pointers; [PLX-Secrets](../approaches/secrets.md) is how the platform consumes it.
+
+More approaches to secrets management and more services may follow in the future.
 
 ### § 3.3 Domains and DNS
 
 Not covered yet.
-A public host is deployment substance bound to an app in the tenant's inventory ([PLX-Ingress](../approaches/ingress.md)); how the zone itself is held, delegated, and changed is still to be written.
+
+A public host is deployment substance bound to an app in the tenant's inventory ([PLX-Ingress](../approaches/ingress.md)); how the DNS zone itself is held, delegated, and changed is still to be decided.
+
+Approaches on DNS and domain management with a focus on bringing DNS state into Git and managing it IaC-style will follow in the future.
 
 ### § 3.4 Mail
 
-Not covered yet.
-Hosts send local mail to a mailbox through a relay the tenant provides (the `configure_mail` role); apps send through a transactional provider from their environment; neither is a module.
+Hosts send local mail to a mailbox through a relay the tenant provides (the `configure_mail` role); apps send through a transactional provider from their environment; neither is a standard module today.
+
+More approaches to mail may follow in the future.
 
 
 ## § 4 Development
@@ -331,31 +323,46 @@ The incantations behind the verbs, one module per stack.
 JS/TS is specified: pnpm workspace plus Turborepo, node pinned once, dev tools as devDependencies, Biome ([PLX-JS](../approaches/js.md)).
 Other stacks take the repo contract with a toolchain module still to be written.
 
+More toolchain modules may follow in the future.
+
 ### § 4.3 Sharing code
 
-Inside one repo a shared thing is a workspace dependency; across repos it is a published, versioned artifact, and nothing else crosses the boundary.
-[§ 1 PLX-Updates](../approaches/updates.md) states the rule; [PLX-Packages](../approaches/packages.md) is how a package monorepo publishes.
+The standard approach to share code across repos is a published, versioned artifact, and nothing else should cross the boundary.
+This is not possible in all cases, and the fallback is a template synced up with e.g. copier, or even manual sync, but this should be treated as a rigorous ladder to step through:
+1. versioned artifact, if possible;
+2. template, if the first is not possible;
+3. manual sync, if the first two are not possible.
+
+In a JS monorepo, code that does not need to cross repo boundaries can just be an unpublished package in that monorepo.
+
+[§ 1 PLX-Updates](../approaches/updates.md) states the rule; [PLX-Packages](../approaches/packages.md) is how a JS package repo publishes.
 
 ### § 4.4 Testing
 
 Not covered beyond the verb.
 `test` runs whatever gates a deploy and provides its own environment ([§ 3 PLX-Repo](../contracts/repo.md)); what a good test suite for a Plexus app looks like, and how the domain core is engineered test-first while the edges are shared, is still to be written.
 
+More approaches to testing will follow in the future.
+
 ### § 4.5 Local environment
 
 Not covered beyond the verb.
 `dev` takes a fresh checkout to a running development environment, and the app's `compose.yaml` runs identically in development with a local `.env` ([§ 3 PLX-App](../contracts/app.md)); development-only services next to it are each app's business today.
 
+More approaches to local development environment standardization may follow in the future.
+
 ### § 4.6 Application plumbing
 
-Not covered yet.
-The "standardize boundaries" edges, framework glue, common auth concerns, repeatable non-domain features, are to become published `@plexus-ms/*` packages, extracted when a second app needs the same plumbing and never speculatively from the first ([§ 2 PLX-Packages](../approaches/packages.md)).
+The "standardize boundaries" edges, framework glue, common auth concerns, repeatable non-domain features, are to become published `@plexus-ms/*` packages, extracted when a second app needs the same plumbing ([§ 2 PLX-Packages](../approaches/packages.md)).
 Until then the plumbing lives in the app that needs it.
+
+General re-use of plumbing and boilerplate is encouraged per the DRY principle.
 
 ### § 4.7 Working with coding agents
 
 Not covered yet.
-The workspace that develops Plexus is run with coding agents and carries instructions for them; what of that is methodology worth a note is still to be decided.
+
+Approaches to coding agents will follow in the future.
 
 
 ## § 5 Application
@@ -375,23 +382,24 @@ Further profiles append here as they are needed.
 
 ### § 5.3 Background jobs
 
-Not covered yet.
-The stance is settled: app-internal pipelines run in a job queue inside the app, deployed as a worker container in the same compose file ([§ 1 PLX-Scheduling](../approaches/scheduling.md)); a profile or note on the worker's shape is still to be written.
+The stance for now is: app-internal pipelines run in a job queue inside the app, deployed as a worker container in the same compose file ([§ 1 PLX-Scheduling](../approaches/scheduling.md)); a profile or note on the worker's shape is still to be written.
+
+More approaches to background jobs and centralized orchestration may follow in the future.
 
 
 ## § 6 Delivery
 
-From a merge to a running container: branches, the train, the pipeline, the verb, and what happens when it fails.
+From a merge to a running container: branches, the release model, the pipeline, the verb, and what happens when it fails.
 
 ### § 6.1 Branch model
 
 `main`→prod, `develop`→staging, a release is a deploy keyed by SHA, hotfixes back-merge immediately, no changesets in app repos.
-[§ 1 PLX-Train](../approaches/train.md).
+[§ 1 PLX-Release](../approaches/release.md).
 
-### § 6.2 Release train
+### § 6.2 Deployment and promotion
 
-The app is the unit of deployment, the repo the unit of promotion: a merge deploys exactly the apps whose sources changed, and promotion is the whole train, never selective.
-[§ 2 PLX-Train](../approaches/train.md).
+The app is the unit of deployment, the repo the unit of promotion: a merge deploys exactly the apps whose sources changed, and promotion is the whole repo, never selective.
+[§ 2 PLX-Release](../approaches/release.md).
 
 ### § 6.3 CI pipeline
 
@@ -405,8 +413,8 @@ Render the compose file with the image pinned, pull, migrate, swap, up, poll rea
 
 ### § 6.5 Failed deploys and recovery
 
-A red staging deploy parks the train; recovery is a re-run of the failed job or a hand-run verb, never an empty commit.
-[§ 3 PLX-Train](../approaches/train.md).
+A red staging deploy parks promotion; recovery is a re-run of the failed job or a hand-run verb, never an empty commit.
+[§ 3 PLX-Release](../approaches/release.md).
 
 ### § 6.6 Releasing libraries
 

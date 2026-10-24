@@ -9,7 +9,7 @@ depends: [PLX-Repo, PLX-JS]
 order: 28
 ---
 
-Apps release by deploy, keyed by SHA ([PLX-Train](train.md)).
+Apps release by deploy, keyed by SHA ([PLX-Release](release.md)).
 Packages release into a registry, keyed by semver, and that different physics wants a different model.
 This module is the one `plexus-ms/packages` uses; a tenant publishing packages of its own to a private registry ([§ 1 PLX-Updates](updates.md)) takes the same shape.
 It is an approach at candidate maturity: one package monorepo runs it.
@@ -47,6 +47,6 @@ Application plumbing, the "standardize boundaries" edges (framework glue, common
 
 ## Maintaining
 
-`plexus-ms/packages` rides outside the release train: npm semver via changesets is its versioning, and the train number says nothing about it.
+`plexus-ms/packages` rides outside the train (§ 1.5 PLX): npm semver via changesets is its versioning, and the train number says nothing about it.
 The repo hand-maintains the monorepo arrangement the presets ship to tenants; a library-monorepo template is extracted when a second package monorepo appears, never speculatively from the first.
 The module is promoted when that second monorepo runs it.

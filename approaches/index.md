@@ -10,8 +10,8 @@ A consumer lists the approaches it follows in its `PLEXUS.md` marker (§ 1.4 PLX
 | Code | Page | Maturity | Binds | Depends on |
 |---|---|---|---|---|
 | PLX-JS | [the JS/TS toolchain](js.md) | standard | repo | PLX-Repo |
-| PLX-Train | [environment branches and the release train](train.md) | standard | repo | PLX-App |
-| PLX-CI | [the shared pipeline](ci.md) | standard | repo | PLX-Repo, PLX-App, PLX-Train, PLX-Deploy |
+| PLX-Release | [the release model](release.md) | standard | repo | PLX-App |
+| PLX-CI | [the shared pipeline](ci.md) | standard | repo | PLX-Repo, PLX-App, PLX-Release, PLX-Deploy |
 | PLX-Deploy | [deploy semantics](deploy.md) | candidate | app | PLX-App, PLX-Host |
 | PLX-Platform | [the operations platform](platform.md) | standard | host | PLX-Host, PLX-Tenancy |
 | PLX-Ingress | [ingress](ingress.md) | standard | host | PLX-Platform, PLX-App |

@@ -49,14 +49,14 @@ The label makes the boundary visible exactly where it otherwise blurs: staring a
 > - App repos SHOULD be generated from `plexus-ms/preset-repo-web`, apps within them from `plexus-ms/preset-app-nextjs`, and the platform repo from `plexus-ms/preset-repo-platform`.
 
 Org membership governs code access; a person in tenant A's org is simply not in tenant B's.
-Inside the org, the layout follows three cardinalities: one trust domain, N release trains, one platform repo.
-A **repo** is one release train and one toolchain contract ([PLX-Repo](../contracts/repo.md)) inside a tenant.
-The ops side gets a repo of its own because everything about it is repo-level and unlike an app's: it rides no release train ([PLX-Train](train.md)), it is applied by playbook runs on its own occasions ([PLX-Platform](platform.md)), its dependency bumps are human-reviewed because they run as root ([PLX-Updates](updates.md)), and it holds the root playbooks and the vault pointers, so its access list is naturally the shortest in the org.
+Inside the org, the layout follows three cardinalities: one trust domain, N release cycles, one platform repo.
+A **repo** is one release cycle and one toolchain contract ([PLX-Repo](../contracts/repo.md)) inside a tenant.
+The ops side gets a repo of its own because everything about it is repo-level and unlike an app's: it has no release cycle ([PLX-Release](../approaches/release.md)), it is applied by playbook runs on its own occasions ([PLX-Platform](../approaches/platform.md)), its dependency bumps are human-reviewed because they run as root ([PLX-Updates](../approaches/updates.md)), and it holds the root playbooks and the vault pointers, so its access list is naturally the shortest in the org.
 Co-locating it in one arbitrary app repo would be an asymmetry every second reader has to be told about.
 
 Within an app repo, the monorepo's benefits remain direct: apps and the packages they share version together, cross-cutting changes land as one atomic commit, and it is safe because a repo is one access boundary.
 With several apps in one repo, deploys are per-app and promotion is repo-wide; a product that persistently needs its own release cadence is the one reason to give it its own repo within the tenant's org.
-Adding an app to the tenant therefore touches two repos: the app itself lands in its source repo, and its host, loopback port, and env values land as one inventory record in the platform repo ([PLX-Ingress](ingress.md)).
+Adding an app to the tenant therefore touches two repos: the app itself lands in its source repo, and its host, loopback port, and env values land as one inventory record in the platform repo ([PLX-Ingress](../approaches/ingress.md)).
 That is the design working, not friction: the ops-side act of binding an app to a host is explicit and reviewed.
 
 
@@ -67,7 +67,7 @@ That is the design working, not friction: the ops-side act of binding an app to 
 > - Distinct legal persons sharing platform root access or further platform concerns MUST document the arrangement in writing: e.g. a one-page document defining the relationship, plus a data-processing agreement where applicable.
 
 At small scale, pooling workloads on one physical host is the correct economics, and virtualization draws the boundary.
-The common form is one tenant obtaining its infrastructure from another: the second tenant runs the hypervisor ([PLX-Infrastructure](infrastructure.md)), and the first tenant's VM is one of its guests.
+The common form is one tenant obtaining its infrastructure from another: the second tenant runs the hypervisor ([PLX-Infrastructure](../approaches/infrastructure.md)), and the first tenant's VM is one of its guests.
 Be clear about what that buys and what it does not: virtualization solves performance and fault isolation, but it *centralizes* access rather than partitioning it.
 The hypervisor side sees everything, a hypervisor has unrestricted control over every VM, so the host is a critical attack vector, and it does nothing for legal controllership; hence the written arrangement.
 Where the guest's backups ride along on the hypervisor's backup path, or its local mail goes through the relay of the tenant that runs the hypervisor, the guest tenant's platform marker records the deviation from § 4 with its reason.

@@ -1,7 +1,7 @@
 ---
 title: The reference stack
 short_title: Reference stack
-description: The module composition each release train is actually tested against — what the dogfood tenant and a second tenant declare, repo by repo.
+description: The module composition each train is actually tested against — what the dogfood tenant and a second tenant declare, repo by repo.
 version: v0
 timestamp: 2026-10-23
 order: 2
@@ -21,7 +21,7 @@ The tenant that runs plexus-ms.org, in its own organisation `plexus-ms-tenant`, 
 | Repo | Declares |
 |---|---|
 | `platform` | PLX-Repo, PLX-Tenancy, PLX-Platform, PLX-Ingress, PLX-Secrets, PLX-Scheduling, PLX-HostLifecycle, PLX-Updates |
-| `web` | PLX-Repo, PLX-JS, PLX-Train, PLX-CI, PLX-Updates |
+| `web` | PLX-Repo, PLX-JS, PLX-Release, PLX-CI, PLX-Updates |
 | `web/apps/website` | PLX-App, PLX-Stateless, PLX-Deploy |
 
 The platform repo holds no third-party app.
@@ -36,7 +36,7 @@ A company tenant on hardware of its own: a hypervisor with four guests, a backup
 |---|---|
 | `platform` | PLX-Repo, PLX-Tenancy, PLX-Platform, PLX-Ingress, PLX-Secrets, PLX-Scheduling, PLX-HostLifecycle, PLX-Infrastructure, PLX-Updates |
 | `platform/apps/<identity provider>` | PLX-App, PLX-Stateful, PLX-Deploy, with the self-migrating image and the SQLite state recorded as deviations ([§ 2 PLX-Stateful](../contracts/stateful.md)) |
-| `web` | PLX-Repo, PLX-JS, PLX-Train, PLX-CI, PLX-Updates |
+| `web` | PLX-Repo, PLX-JS, PLX-Release, PLX-CI, PLX-Updates |
 | `web/apps/<marketing site>` | PLX-App, PLX-Stateless, PLX-Deploy |
 | `web/apps/<product site>` | PLX-App, PLX-Stateful, PLX-Deploy |
 | `web/apps/<product>` | PLX-App, PLX-Stateful, PLX-Deploy |
@@ -46,14 +46,14 @@ Whole-machine backups with hand-drilled restores are what covers this tenant's d
 
 ## The maintainers' own repos
 
-The `plexus-ms` organisation consumes the modules that bind its own repos: every release repo and the compendium declare PLX-Repo, `packages` declares PLX-JS and PLX-Packages, and the presets ship the arrangements PLX-JS and PLX-Platform describe.
+The `plexus-ms` organisation consumes the modules that bind its own repos: every train repo and the compendium declare PLX-Repo, `packages` declares PLX-JS and PLX-Packages, and the presets ship the arrangements PLX-JS and PLX-Platform describe.
 
 
 ## What follows from it
 
 | Module | Consumers | Maturity |
 |---|---|---|
-| PLX-Repo, PLX-App, PLX-Stateless, PLX-Stateful, PLX-Tenancy, PLX-JS, PLX-Train, PLX-CI, PLX-Platform, PLX-Ingress, PLX-Secrets, PLX-Updates | two tenants | standard |
+| PLX-Repo, PLX-App, PLX-Stateless, PLX-Stateful, PLX-Tenancy, PLX-JS, PLX-Release, PLX-CI, PLX-Platform, PLX-Ingress, PLX-Secrets, PLX-Updates | two tenants | standard |
 | PLX-Deploy, PLX-Scheduling, PLX-HostLifecycle | two tenants, no settled requirement yet | candidate |
 | PLX-Infrastructure | one tenant | candidate |
 | PLX-Host | one infrastructure layer on each side | candidate |

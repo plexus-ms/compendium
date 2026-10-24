@@ -38,6 +38,9 @@ Leaving GitHub means adjusting the mounts, never the logic: the workflow wrapper
 
 ## Maintaining
 
+A web repo still carries one `DEPLOY_HOST` variable for all its apps, while a platform repo looks each app's target up in its inventory (§ 3 PLX-Platform).
+Publishing the inventory's targets into the app repos as a variable was designed and deliberately not built: the trigger that reopens it is CI running over the tenant's overlay network, where the deploy target stops being a forge variable altogether.
+
 `plexus-ms/ci-cd` ships both halves and tags them together, so a wrapper always checks out its verb at the same tag.
 The layering is load-bearing:
 

@@ -21,6 +21,7 @@ A Python or Go repo takes the same repo contract with a toolchain module of its 
 > - JS/TS app repos MUST use the monorepo pattern: pnpm workspace plus Turborepo.
 > - Turborepo owns the task graph: leaf tasks are `package.json` scripts, `turbo.json` states the task rules (`build`, `typecheck`, and `test` depend on `^build`), and the workspace edges are read from each `package.json`; the graph MUST NOT be re-encoded in mise tasks or CI configuration.
 > - Leaf projects MUST NOT carry a `mise.toml`; the root verbs delegate to turbo.
+> - An app's Dockerfile MUST NOT restate build incantations of its own; its build stage invokes the task graph's `build` entry, the one the verb runs ([§ 7 PLX-App](../contracts/app.md)).
 > - mise MUST install only node for the JS/TS toolchain; the package manager arrives through node itself: a `postinstall` hook enables corepack, which installs the pnpm version pinned in the root `package.json` `packageManager` field, the single pnpm pin (Turborepo requires the field anyway).
 > - The node version MUST be pinned exactly once: a `.node-version` file at the repo root, read by mise natively (`idiomatic_version_file_enable_tools`), by CI as a plain file, and by the image build as a build arg.
 > - JS-ecosystem dev tools (turbo, biome, …) MUST be devDependencies, on the PATH via mise's `_.path`, never mise `[tools]` entries; a `package.json` MUST NOT carry `engines`.

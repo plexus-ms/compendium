@@ -45,9 +45,7 @@ The label makes the boundary visible exactly where it otherwise blurs: staring a
 > - Tenant repos SHOULD be partitioned by separate forge orgs.
 > - A tenant MUST hold its ops side (inventory, host definitions, playbooks, deployment configs) in exactly one repo, the platform repo; every other tenant repo is an app repo.
 > - The platform repo MUST NOT hold the source of an app the tenant builds itself; it MAY hold third-party apps the tenant merely operates ([§ 2 PLX-App](../contracts/app.md)).
-> - App repos SHOULD use the monorepo pattern: one repo holding `apps/` and `packages/` for one web ecosystem; a tenant SHOULD start with a single web monorepo and add a further app repo only for a product that persistently needs its own release cadence.
 > - The platform repo SHOULD be named `platform` and the default web monorepo `web`; further app repos are named after their product.
-> - App repos SHOULD be generated from `plexus-ms/preset-repo-web`, apps within them from `plexus-ms/preset-app-nextjs`, and the platform repo from `plexus-ms/preset-repo-platform`.
 
 Org membership governs code access; a person in tenant A's org is simply not in tenant B's.
 Inside the org, the layout follows three cardinalities: one trust domain, N release cycles, one platform repo.

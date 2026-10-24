@@ -120,7 +120,7 @@ Shipping and retention are the platform's job.
 ## § 7 CI reference
 
 > - The app's CI MUST run check, then test, then build and push the image, each stage reaching the app only through its repo's standard verbs.
-> - The app MUST provide a multi-stage Dockerfile whose build stage invokes the same task-graph entry as the `build` verb; the Dockerfile MUST NOT restate build incantations of its own.
+> - The app MUST provide a multi-stage Dockerfile whose build stage invokes the same entry as the `build` verb.
 
 In practice the first line is a ~5-line reference to the shared reusable workflow ([PLX-CI](../approaches/ci.md)); in a multi-app monorepo the reference is path-scoped per app ([PLX-Release](../approaches/release.md)).
 The image build is hermetic: it runs inside the Dockerfile, so the artifact is correct from any host, macOS included, and a local `docker build --platform` can produce an image for any target.

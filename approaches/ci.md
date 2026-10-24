@@ -19,9 +19,8 @@ This module is the pipeline that results: a reusable workflow in `plexus-ms/ci-c
 
 > - A tenant MUST NOT operate its own CI control plane.
 > - The forge SHOULD be GitHub; a tenant SHOULD NOT self-host a forge.
-> - A tenant repo's CI MUST reach the repo only through its standard verbs ([§ 3 PLX-Repo](../contracts/repo.md)) and the image build of [§ 7 PLX-App](../contracts/app.md).
 
-One reusable workflow runs check → test, then builds the image hermetically and pushes it, tagged with the git SHA.
+One reusable workflow runs check → test, then builds the image hermetically and pushes it, tagged with the git SHA; it reaches the repo only through the standard verbs and the image build, which is what the repo contract asks of every operator ([§ 3 PLX-Repo](../contracts/repo.md)).
 Every stage that touches the app runs through its contract verbs; the image push is the workflow's own step.
 There is no setup stage: verbs prepare what they need, so the check job is literally checkout → toolchain → verbs.
 That indirection is what keeps one workflow tenant- and stack-neutral.

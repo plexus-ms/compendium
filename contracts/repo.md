@@ -71,6 +71,7 @@ The verbs live only at the root; a per-app `mise.toml` would be a second encodin
 > - `dev` MUST take a fresh checkout to a running development environment; `build` MUST produce the production artifact; `check` MUST run every static check that gates a deploy; `test` MUST run the tests that gate a deploy, providing whatever environment they need.
 > - Every verb MUST succeed from a fresh checkout; installing dependencies and building internal workspace packages first is the repo's own business, never the caller's.
 > - A verb a given stack has no use for MUST still exist and pass (a documented no-op), never as a missing verb.
+> - Whatever operates on a repo without having written it, CI first, MUST reach it only through the standard verbs and the image build of [§ 7 PLX-App](app.md); this line binds the operating side.
 
 The verbs are the stack-neutral layer every repo answers; a toolchain module such as [PLX-JS](../approaches/js.md) specifies the incantations behind them for one stack.
 The shared pipeline ([PLX-CI](../approaches/ci.md)) invokes a repo only through these names, so the names are load-bearing and the incantations are not.

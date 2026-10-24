@@ -41,6 +41,7 @@ The platform repo itself needs no environment branches because it has no release
 > - CI MUST be path-scoped per app: an app's own directory plus every workspace package it depends on.
 > - `develop` MUST stay promotable; unfinished or still-soaking work lives on feature branches, never parked on `develop`.
 > - Selective promotion (cherry-picks, path-restricted merges) MUST NOT be used.
+> - A tenant SHOULD start with a single web monorepo (one repo holding `apps/` and `packages/` for one web ecosystem) and add a further app repo only for a product that persistently needs a release cycle of its own.
 
 The model: **the unit of deployment is the app; the unit of promotion is the repo.**
 A merge to an environment branch releases into that environment exactly the apps whose sources changed in the merge: a docs-only merge deploys nothing, a `packages/ui` change redeploys its dependents, unchanged apps are neither rebuilt nor redeployed.

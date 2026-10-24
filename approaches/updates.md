@@ -53,6 +53,7 @@ A tenant choosing differently overrides the shared rules in its own `renovate.js
 
 ## § 3 Templates
 
+> - A tenant's repos SHOULD be generated from the presets: app repos from `plexus-ms/preset-repo-web`, apps within them from `plexus-ms/preset-app-nextjs`, the platform repo from `plexus-ms/preset-repo-platform`.
 > - A repo generated from a preset SHOULD stay current with it through `copier update`, taken on the train like a dependency bump.
 
 Scaffolding is the last resort, chosen per artifact in three tiers, and a generated repo is where the tiers meet.

@@ -126,6 +126,12 @@ modules: [PLX-Repo, PLX-JS, PLX-Release, PLX-CI, PLX-Updates]
 `plexus` is the Plexus version the repo or app was last brought up to; `modules` is the list of module codes it follows.
 Machine checks read only the frontmatter; the body is for humans, and it is where a deviation from a requirement is owned in a sentence of rationale..
 
+**Dependencies.**
+A module's `depends` (§ 1.3) names what a declaration of it builds on, and how a dependency is satisfied follows the seams.
+A dependency on a module on the same side is satisfied by the declaring unit itself or by an enclosing declaration: an app's by its own list or its repo's, a repo's by its own or the tenant's platform repo.
+A dependency across a seam is satisfied by the other side declaring the contract: PLX-Ingress depends on PLX-App, and it is the apps that declare PLX-App, never the platform repo.
+The staleness check (§ 13.4) verifies both readings.
+
 **Staleness is per module.**
 A declaration is stale for exactly those modules it lists whose `changed` is newer than its `plexus`; nothing else about it is stale.
 There is no global verdict.

@@ -5,6 +5,21 @@ shellcheck = "0.11.0"        # the check script's own static check
 [hooks]
 postinstall = "hk install --mise"
 
+# Contract verbs (§ 3 PLX-Repo). The compendium is prose and a checker: verify
+# is check, and the verbs it has no use for exist and pass.
+
+[tasks.verify]
+description = "Perform all steps that verify the standard: the check, nothing to test"
+run = ["mise run check"]
+
 [tasks.check]
 description = "Lint the standard: no keyword outside a requirement, no requirement in the map or below standard maturity, module frontmatter well-formed"
 run = ["shellcheck essentials/requirements.sh", "./essentials/requirements.sh --check"]
+
+[tasks.dev]
+description = "No-op: the compendium is prose; edit the files"
+run = 'echo "dev: nothing to start in the compendium"'
+
+[tasks.build]
+description = "No-op: the compendium produces no artifact; the website renders it"
+run = 'echo "build: nothing to build in the compendium"'

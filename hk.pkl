@@ -12,8 +12,8 @@ hooks {
   }
   ["pre-push"] {
     steps {
-      ["check"] {
-        check = "mise check"
+      ["verify"] {
+        check = "mise verify"
       }
     }
   }

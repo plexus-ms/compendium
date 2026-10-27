@@ -17,7 +17,7 @@ Nothing on this page changes what a repo runs today.
 
 The verbs and helpers are bash, split by where they run.
 The maintainers' toolbox holds the release train (`ship`), the workspace map (`overview`) and the staleness check (`staleness`, § 13.4 PLX), with an offline harness for the first and the last.
-`ci-cd` holds the ops verbs `deploy`, `changed-apps` and `deploy-targets`, mounted on the forge by thin workflow wrappers and run by hand from a checkout otherwise ([PLX-Deploy](deploy.md), [PLX-CI](ci.md)).
+`ci-cd` holds the ops verbs `deploy`, `changed-apps` and `deploy-targets`, mounted on the forge by thin reusable workflows and run by hand from a checkout otherwise ([PLX-Delivery](delivery.md)).
 The compendium holds `requirements.sh`, the linter and extractor for the standard's requirement lines (§ 1.8 PLX).
 The platform preset ships a playbook wrapper that prefixes the vault's CLI, and both repo presets ship the contract verbs and `sync` as mise tasks.
 
@@ -38,7 +38,7 @@ A tool with a YAML library and one frontmatter reader gives Plexus a single defi
 **Rung one of the ladder for the verbs themselves.**
 The deploy verb reaches a tenant's CI as a checkout of `ci-cd` at a train tag, the movable-tag edge § 1.6 PLX names and accepts.
 The playbook wrapper and the `promote` and `sync` tasks reach a tenant by copier, the second rung of § 4.3 PLX.
-A published `@plexus-ms/cli` is immutable and provenance-attested ([PLX-Packages](packages.md)), pinned in a repo's `mise.toml`, and bumped by the update bot under the stratification of [§ 2 PLX-Updates](updates.md).
+A published `@plexus-ms/cli` is immutable and provenance-attested ([§ 5 PLX-Delivery](delivery.md)), pinned in a repo's `mise.toml`, and bumped by the update bot under the stratification of [§ 2 PLX-Updates](updates.md).
 For the verbs that is a tighter supply chain, not only better ergonomics.
 
 **The verbs not written yet.**
@@ -98,4 +98,4 @@ The trigger that reopens this page is any of the three in § 2 becoming acute: a
 Until then the debts of § 2 are paid in place: the marker and record shapes the parsers assume are stated in [§ 1.4 PLX](../essentials/standard.md) and [§ 3 PLX-Platform](platform.md), the preset's playbook wrapper is brought under the same check as every other script or dissolved into its mise tasks, and the offline fixtures of the toolbox harness cover the compendium's modules and the preset's inventory.
 
 The page becomes a candidate module when the first subcommand ships from `packages` and one repo pins it; it becomes standard when two tenants' repos do.
-The tool is a primitive of several modules, [PLX-Deploy](deploy.md), [PLX-Release](release.md), [PLX-CI](ci.md), [PLX-Updates](updates.md) and § 13.4 PLX, and each of their Maintaining sections points here once a verb of theirs has moved.
+The tool is a primitive of several modules, [PLX-Delivery](delivery.md), [PLX-Updates](updates.md) and § 13.4 PLX, and each of their Maintaining sections points here once a verb of theirs has moved.

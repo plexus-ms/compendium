@@ -27,7 +27,7 @@ The two playbooks, the host baseline, and the app record with the app lifecycle 
 
 The split is by change cadence, not by component: the provision playbook is for fresh hosts and deep-reaching changes, the configure playbook is the everyday pass.
 Where one component spans both cadences (the ingress server), it is split into two roles rather than sliced with tags.
-The configure playbook is deliberately not called a deploy: deploying is the verb's act ([PLX-Deploy](deploy.md)), keyed by an image, while the playbook binds apps to a host and hands them their environment.
+The configure playbook is deliberately not called a deploy: deploying is the verb's act ([§ 6 PLX-Delivery](delivery.md)), keyed by an image, while the playbook binds apps to a host and hands them their environment.
 
 A fresh host is reached as root once (`mise provision -- -u root`), which creates the admins; every later run connects as an admin, and the first of those closes root logins.
 Ops changes are applied by `mise configure` (or `mise provision`) in the tenant's platform repo, dry-run first with `--check --diff`; Ansible skips `command` tasks in check mode, so pull, up, and login only show in the real run.
@@ -49,7 +49,7 @@ Runtime truth is the host, never a file: what runs is what `docker ps` says, and
 > - Non-secret values the platform provides to an app MUST be declared in its record (`apps[].env`) and written by the configure playbook to `.env` in the app's directory on the host; the playbook is that file's only writer.
 
 The record is the platform's whole knowledge of an app, and the app name is the join key across repos: the inventory record, the compose project, and the host directory all key on it, which is why it is unique per tenant rather than per repo.
-From the record the configure playbook lays out the app's directory on the host, `<deploy root>/<tenant>/<app>` (e.g. `/opt/stacks/plexus/website`), writes `.env` there, logs the deploy user in to the registry, and pulls and starts the app once the deploy verb has placed its `compose.yaml`; a fresh host stays provisioned-but-empty until the first deploy ([PLX-Deploy](deploy.md)).
+From the record the configure playbook lays out the app's directory on the host, `<deploy root>/<tenant>/<app>` (e.g. `/opt/stacks/plexus/website`), writes `.env` there, logs the deploy user in to the registry, and pulls and starts the app once the deploy verb has placed its `compose.yaml`; a fresh host stays provisioned-but-empty until the first deploy ([§ 6 PLX-Delivery](delivery.md)).
 `.env` is written in three sections, compose's own setting, the reserved `PLEXUS_` bindings, then the values from `apps[].env`, each under a header line naming its origin, so the first file an operator opens explains itself.
 The compose setting pins the project name to `<tenant>-<app>`: container and network names derive from the project name, and its directory-basename default would collide the moment two co-hosted tenants deploy an app with the same name.
 The `PLEXUS_` bindings carry the loopback port the inventory assigned, interpolated by compose ([§ 4 PLX-App](../contracts/app.md)), so the deploy verb stays port-unaware; because the app's compose file lists `.env` under `env_file`, the setting and the bindings also appear inside the container, harmless by construction since the prefix is reserved.

@@ -10,9 +10,7 @@ A consumer lists the approaches it follows in its `PLEXUS.md` marker (§ 1.4 PLX
 | Code | Page | Maturity | Binds | Depends on | Consumes |
 |---|---|---|---|---|---|
 | PLX-JS | [the JS/TS toolchain](js.md) | standard | repo | PLX-Repo | – |
-| PLX-Release | [the release model](release.md) | standard | repo | PLX-App | – |
-| PLX-CI | [the shared pipeline](ci.md) | standard | repo | PLX-Repo, PLX-App, PLX-Release, PLX-Deploy | – |
-| PLX-Deploy | [deploy semantics](deploy.md) | candidate | app | – | PLX-App, PLX-Host |
+| PLX-Delivery | [from a verified commit to a running or published artifact](delivery.md) | standard | repo | PLX-Repo | PLX-App, PLX-Host |
 | PLX-Platform | [the operations platform](platform.md) | standard | host | PLX-Tenancy | PLX-Host, PLX-App |
 | PLX-Ingress | [ingress](ingress.md) | standard | host | PLX-Platform | PLX-App |
 | PLX-Secrets | [secrets delivery](secrets.md) | standard | host | PLX-Platform | PLX-App |
@@ -21,7 +19,6 @@ A consumer lists the approaches it follows in its `PLEXUS.md` marker (§ 1.4 PLX
 | – | [host lifecycle](host-lifecycle.md) | note | host | PLX-Platform | – |
 | PLX-Infrastructure | [the infrastructure layer](infrastructure.md) | candidate | host | PLX-Tenancy | – |
 | PLX-Updates | [propagation and the update bot](updates.md) | standard | repo | PLX-Repo | – |
-| PLX-Packages | [releasing packages](packages.md) | candidate | repo | PLX-Repo, PLX-JS | – |
 | – | [a Plexus CLI](cli.md) | note | repo | PLX-Repo | – |
 
 Section numbers inside an approach are append-only within a major train, like the map's; a section is cited by number and code, "§ 2 PLX-Updates".

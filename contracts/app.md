@@ -22,7 +22,7 @@ The backup job only needs *"which services hold state and of what type"*, answer
 
 An **app** is one deployable unit satisfying this contract.
 Its **source repo**, the repo holding its `compose.yaml` and marker, is an app repo for software the tenant builds, or the tenant's platform repo for third-party software the tenant merely operates (§ 2).
-The repo answers [PLX-Repo](repo.md); the four verbs the pipeline calls on an app are that contract's.
+The repo answers [PLX-Repo](repo.md); the verbs the pipeline calls on an app are that contract's.
 
 
 ## § 1 The declaration marker
@@ -66,7 +66,7 @@ Same verb, two mounts.
 
 The seam is "the platform hands the app an environment", and nothing more is said about it.
 What the app reads is recorded in its code; what the platform provides is recorded on the platform side, one record per app ([§ 3 PLX-Platform](../approaches/platform.md), [PLX-Secrets](../approaches/secrets.md)).
-No file in between declares or validates the variables: whether an app checks its environment at startup is its interior, and a process that cannot start fails the readiness poll and is rolled back like any other bad release ([PLX-Deploy](../approaches/deploy.md)).
+No file in between declares or validates the variables: whether an app checks its environment at startup is its interior, and a process that cannot start fails the readiness poll and is rolled back like any other bad release ([§ 6 PLX-Delivery](../approaches/delivery.md)).
 
 The reserved vocabulary is small, and each name has one provider:
 
@@ -119,13 +119,13 @@ Shipping and retention are the platform's job.
 
 ## § 7 CI reference
 
-> - The app's CI MUST run check, then test, then build and push the image, each stage reaching the app only through its repo's standard verbs.
+> - The app's pipeline MUST verify, then release the image, then deploy it, each stage reaching the app only through its repo's standard verbs.
 > - The app MUST provide a multi-stage Dockerfile whose build stage invokes the same entry as the `build` verb.
 
-In practice the first line is a ~5-line reference to the shared reusable workflow ([PLX-CI](../approaches/ci.md)); in a multi-app monorepo the reference is path-scoped per app ([PLX-Release](../approaches/release.md)).
+In practice the first line is the generated `deploy.yml` referencing the shared pipeline ([§ 2 PLX-Delivery](../approaches/delivery.md)); in a multi-app monorepo the pipeline is path-scoped per app ([§ 3 PLX-Delivery](../approaches/delivery.md)).
 The image build is hermetic: it runs inside the Dockerfile, so the artifact is correct from any host, macOS included, and a local `docker build --platform` can produce an image for any target.
 Hermeticity does not duplicate the build: what *build* means is encoded once, in the task graph, and the Dockerfile is a second invocation context, the same relationship CI has to the verbs.
-CI publishes for the deploy hosts' platform (amd64 today); multi-arch publishing is a deferred decision with a trigger, an ARM deploy host or the routine need to run production images on ARM laptops, and when triggered it is a workflow change (a per-platform matrix on native runners plus a manifest merge), not an architecture change.
+The release publishes for the deploy hosts' platform (amd64 today); multi-arch publishing is a deferred decision with a trigger, an ARM deploy host or the routine need to run production images on ARM laptops, and when triggered it is a workflow change (a per-platform matrix on native runners plus a manifest merge), not an architecture change.
 
 
 ## Maintaining
@@ -134,5 +134,5 @@ The contract stays interior-blind; a requirement that names a database, a framew
 The preset `plexus-ms/preset-app-nextjs` ships the arrangement that satisfies this page for a Next.js app: the Dockerfile, `compose.yaml` with the `web` service and the contract labels, the healthz route.
 When this page changes, the preset changes in the same train.
 
-Approaches on the platform side: [PLX-Platform](../approaches/platform.md), [PLX-Ingress](../approaches/ingress.md), [PLX-Secrets](../approaches/secrets.md), [PLX-Deploy](../approaches/deploy.md), [backups per service](../approaches/backup.md).
-On the app side: [PLX-CI](../approaches/ci.md), [PLX-Release](../approaches/release.md), and the preset.
+Approaches on the platform side: [PLX-Platform](../approaches/platform.md), [PLX-Ingress](../approaches/ingress.md), [PLX-Secrets](../approaches/secrets.md), [§ 6 PLX-Delivery](../approaches/delivery.md), [backups per service](../approaches/backup.md).
+On the app side: [PLX-Delivery](../approaches/delivery.md) and the preset.

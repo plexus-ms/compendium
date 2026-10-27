@@ -84,7 +84,7 @@ The modules' kind divides them into `contracts/` and `approaches/`.
 - One seam, one contract; a contract may have profiles, which are parts of it and not seams of their own.
   A new contract needs a new named seam with two owners, and a page that cannot name its seam is an approach.
 - A module reaches across a seam only through a contract, and says so in `consumes`; `depends` stays on its own side and is composition: you took this piece, so you have the whole it belongs to.
-  `mise check` refuses a `consumes` entry that is not a contract, a `depends` entry that crosses the dev/ops seam (`repo` and `app` against `host` and `organisation`), and any dependency of a contract on an approach.
+  `mise verify` refuses a `consumes` entry that is not a contract, a `depends` entry that crosses the dev/ops seam (`repo` and `app` against `host` and `organisation`), and any dependency of a contract on an approach.
 - A contract page is two-sided: its sections say which side they bind, and its Maintaining section lists the approaches on each side.
   A guarantee that one side relies on from an approach on the other side moves into the contract at that seam, and the approach keeps the how.
 
@@ -97,9 +97,10 @@ Only candidate and standard modules carry a code, `PLX-` plus one capitalised wo
 Notes have titles and no code.
 
 #### Granularity
-One module per thing a consumer could adopt or reject on its own.
-Ingress, secrets delivery, and backups are therefore separate modules although one playbook mounts them; the four standard verbs are one module with the marker because no repo takes one without the other.
-Granularity is revisited while pages are written and when a consumer wants half a module.
+Modules are cut for understanding: one module per concern a reader can hold in their head, so that someone who needs to know how delivery works reads one page and not four.
+A module says at each section which kind of consumer it binds, and a consumer that follows a module without one of its sections owns that in its marker body.
+Ingress, secrets delivery, and backups are separate modules because they are separate concerns to the reader, although one playbook mounts them; the delivery verbs, the branch model and the deploy semantics are one module because a reader of any of them needs the others.
+Granularity is revisited while pages are written and when a reader has to hold two pages open.
 
 #### Frontmatter
 Every module page carries `code` (except for notes), `maturity`, `binds` (what the module is declared for: `repo`, `app`, `host`, or `organisation`), `depends` (the codes on the same side of every seam that a declaration of this module has to accompany), on approaches `consumes` (the contracts on the other side of a seam this module relies on, declared by that side), and, on standard modules only, `changed`, the train in which the module's requirements last changed.
@@ -116,7 +117,7 @@ A consumer says what it follows in a `PLEXUS.md` marker at the root of each repo
 ```markdown
 ---
 plexus: 0.60.0
-modules: [PLX-Repo, PLX-JS, PLX-Release, PLX-CI, PLX-Updates]
+modules: [PLX-Repo, PLX-JS, PLX-Delivery, PLX-Updates]
 ---
 
 - Free-form prose: what this repo is, how to find your way.
@@ -127,7 +128,7 @@ modules: [PLX-Repo, PLX-JS, PLX-Release, PLX-CI, PLX-Updates]
 Machine checks read only the frontmatter; the body is for humans, and it is where a deviation from a requirement is owned in a sentence of rationale..
 
 **Dependencies.**
-A module's `depends` (§ 1.3) is satisfied by the declaring unit itself, by an enclosing declaration (an app's by its repo, a repo's by the tenant's platform repo), or by a contained one (a repo's by an app inside it, as PLX-CI's dependency on PLX-Deploy is met by the apps the pipeline deploys).
+A module's `depends` (§ 1.3) is satisfied by the declaring unit itself, by an enclosing declaration (an app's by its repo, a repo's by the tenant's platform repo), or by a contained one (a repo's by an app inside it).
 What a module `consumes` is never the declaring unit's to satisfy: PLX-Ingress consumes PLX-App, and it is the apps that declare PLX-App; PLX-Platform consumes PLX-Host, and the side that provides the host declares it, or, for a rented machine, nobody does.
 The staleness check (§ 13.4) verifies the first and leaves the second to the other side.
 
@@ -143,8 +144,8 @@ The train is the tested set: the only combination ever validated is the one the 
 Because an unchanged repo still gets the tag, every cross-repo pin can cite the train version and be right by construction.
 
 The train repos are `platform`, `ci-cd`, `preset-repo-web`, `preset-app-nextjs`, `preset-repo-platform`, and `compendium`.
-`packages` (npm semver via changesets, [PLX-Packages](../approaches/packages.md)) and `renovate-config` (read from its default branch) ride outside the train.
-Within the train, `ci-cd` tags verbs and workflow wrappers together, so a wrapper always checks out its verb at the same tag; `platform` tags the Ansible collection and the Terraform modules together, and its `galaxy.yml` version mirrors the tag exactly.
+`packages` (npm semver via changesets, [§ 5 PLX-Delivery](../approaches/delivery.md)) and `renovate-config` (read from its default branch) ride outside the train.
+Within the train, `ci-cd` tags verbs and reusable workflows together, so a workflow always checks out its verb at the same tag; `platform` tags the Ansible collection and the Terraform modules together, and its `galaxy.yml` version mirrors the tag exactly.
 The pre-train per-repo `vN` lines and the itops-era tags live on frozen in history, kept for existing pins and never retargeted.
 
 **Semver attaches to maturity.**
@@ -155,7 +156,7 @@ The train reaches 1.0.0 once the modular standard with its first standard module
 
 **What `ship` writes.**
 The umbrella `ship` task in the maintainers' `toolbox` writes the bookkeeping, tags every train repo, pushes, and copier-updates the consumers in one pass.
-For the compendium it writes the version and timestamp in this document's frontmatter (a draft carries `v0` until its first train) and stamps `changed` on each standard module whose extracted requirement lines differ from the previous train's, using the same extractor `mise check` runs.
+For the compendium it writes the version and timestamp in this document's frontmatter (a draft carries `v0` until its first train) and stamps `changed` on each standard module whose extracted requirement lines differ from the previous train's, using the same extractor `mise verify` runs.
 
 ### § 1.6 Upstream guarantees
 
@@ -182,7 +183,7 @@ The repos that ship the methodology:
 |---|---|
 | `packages` | The published `@plexus-ms/*` packages for the web/Node/TypeScript world: shared tool configs, the `std` utilities, and over time the reusable application plumbing that keeps each app's domain core small. |
 | `platform` | The `plexus.platform` Ansible collection: the host baseline, the roles that make a host a tenant's app host, the roles of the infrastructure layer; plus reusable Terraform modules. |
-| `ci-cd` | The portable bash verbs (`deploy.sh`, `changed-apps.sh`) and the thin reusable workflow wrappers that mount them on the forge. |
+| `ci-cd` | The portable bash verbs (`deploy.sh`, `changed-apps.sh`, `deploy-targets.sh`) and the thin reusable workflows that mount them on the forge. |
 | `preset-repo-web` | The copier template for a tenant app repo: a web monorepo with `apps/` consuming the packages, re-syncable via `copier update`. |
 | `preset-app-nextjs` | The copier template for a Next.js app inside an app repo: contract-verb scripts, Dockerfile, `compose.yaml` with the contract labels. |
 | `preset-repo-platform` | The copier template for a tenant's platform repo: the two playbooks, on request a third for the infrastructure layer, inventory, the `op://`-pointer env files, the collection pin, the `apps/` directory and workflow for third-party apps. |
@@ -230,7 +231,7 @@ The structural conventions are self-policing, and the machinery is small:
 - Section numbers are append-only within a major train; insertions wait for a major.
 - Module pages live at `contracts/<slug>.md` or `approaches/<slug>.md`, the folder being the kind (§ 1.3), and a new module is added to the map section that owns its concern in the same commit.
 
-The compendium follows the repo contract it documents: tools pinned in `mise.toml`, `check` as a verb, hooks through hk.
+The compendium follows the repo contract it documents: tools pinned in `mise.toml`, `verify` as a verb, hooks through hk.
 
 
 ## § 2 Organisation
@@ -319,7 +320,7 @@ Everything a repo does before an artifact exists: the one way to run it, the too
 
 ### § 4.1 Repo contract
 
-A declaration marker, mise and hk as the one executable answer to "how do I run you", and the four standard verbs `dev`, `build`, `check`, `test`, each answering from a fresh checkout.
+A declaration marker, mise and hk as the one executable answer to "how do I run you", and the three standard verbs `dev`, `build`, `verify`, each answering from a fresh checkout, with `lint`, `check` and `test` as the recommended decomposition of `verify`.
 [PLX-Repo](../contracts/repo.md) is the contract every other repo- and app-level module depends on.
 
 ### § 4.2 Toolchains
@@ -340,12 +341,12 @@ This is not possible in all cases, and the fallback is a template synced up with
 
 In a JS monorepo, code that does not need to cross repo boundaries can just be an unpublished package in that monorepo.
 
-[§ 1 PLX-Updates](../approaches/updates.md) states the rule; [PLX-Packages](../approaches/packages.md) is how a JS package repo publishes.
+[§ 1 PLX-Updates](../approaches/updates.md) states the rule; [§ 5 PLX-Delivery](../approaches/delivery.md) is how a JS package repo publishes.
 
 ### § 4.4 Testing
 
 Not covered beyond the verb.
-`test` runs whatever gates a deploy and provides its own environment ([§ 3 PLX-Repo](../contracts/repo.md)); what a good test suite for a Plexus app looks like, and how the domain core is engineered test-first while the edges are shared, is still to be written.
+`verify` runs whatever gates a release and provides its own environment ([§ 3 PLX-Repo](../contracts/repo.md)); what a good test suite for a Plexus app looks like, and how the domain core is engineered test-first while the edges are shared, is still to be written.
 
 More approaches to testing will follow in the future.
 
@@ -358,7 +359,7 @@ More approaches to local development environment standardization may follow in t
 
 ### § 4.6 Application plumbing
 
-The "standardize boundaries" edges, framework glue, common auth concerns, repeatable non-domain features, are to become published `@plexus-ms/*` packages, extracted when a second app needs the same plumbing ([§ 2 PLX-Packages](../approaches/packages.md)).
+The "standardize boundaries" edges, framework glue, common auth concerns, repeatable non-domain features, are to become published `@plexus-ms/*` packages, extracted when a second app needs the same plumbing ([§ 5 PLX-Delivery](../approaches/delivery.md)).
 Until then the plumbing lives in the app that needs it.
 
 General re-use of plumbing and boilerplate is encouraged per the DRY principle.
@@ -394,37 +395,38 @@ More approaches to background jobs and centralized orchestration may follow in t
 
 ## § 6 Delivery
 
-From a merge to a running container: branches, the release model, the pipeline, the verb, and what happens when it fails.
+From a verified commit to a running container or a published package: three verbs, the workflows that mount them, branches and promotion, and what happens when a deploy fails.
+One module covers the span, [PLX-Delivery](../approaches/delivery.md); the subsections below point into it.
 
 ### § 6.1 Branch model
 
-`main`→prod, `develop`→staging, a release is a deploy keyed by SHA, hotfixes back-merge immediately, no changesets in app repos.
-[§ 1 PLX-Release](../approaches/release.md).
+`main`→prod, `develop`→staging, a release is an image keyed by SHA, hotfixes back-merge immediately, no changesets in app repos.
+[§ 3 PLX-Delivery](../approaches/delivery.md).
 
 ### § 6.2 Deployment and promotion
 
 The app is the unit of deployment, the repo the unit of promotion: a merge deploys exactly the apps whose sources changed, and promotion is the whole repo, never selective.
-[§ 2 PLX-Release](../approaches/release.md).
+[§ 3 PLX-Delivery](../approaches/delivery.md).
 
-### § 6.3 CI pipeline
+### § 6.3 Verbs, workflows and the pipeline
 
-One reusable workflow mounts the verbs on the forge, check → test → hermetic image build → deploy, fanned out per changed app; no tenant operates a CI control plane.
-[PLX-CI](../approaches/ci.md).
+Three verbs, `verify`, `release`, `deploy`, each a job; a workflow is the occasion that mounts them: `verify.yml` on every push, `deploy.yml` or `release.yml` on the environment branches, verifying first within the same run, fanned out per changed app through one reusable pipeline; no tenant operates a CI control plane.
+[§§ 1 and 2 PLX-Delivery](../approaches/delivery.md).
 
 ### § 6.4 Deploy semantics
 
 Render the compose file with the image pinned, pull, migrate, swap, up, poll readiness, roll back on failure, store nothing.
-[PLX-Deploy](../approaches/deploy.md), an approach at candidate maturity, with the fence around the verb in its Maintaining section.
+[§ 6 PLX-Delivery](../approaches/delivery.md), prose without requirements until a second deploy verb exists, with the fence around the verb in the module's Maintaining section.
 
 ### § 6.5 Failed deploys and recovery
 
 A red staging deploy parks promotion; recovery is a re-run of the failed job or a hand-run verb, never an empty commit.
-[§ 3 PLX-Release](../approaches/release.md).
+[§ 7 PLX-Delivery](../approaches/delivery.md).
 
 ### § 6.6 Releasing libraries
 
 Trunk-based, versioned by changesets, published token-less through OIDC trusted publishing with provenance.
-[PLX-Packages](../approaches/packages.md).
+[§ 5 PLX-Delivery](../approaches/delivery.md); releasing an image is [§ 4 PLX-Delivery](../approaches/delivery.md).
 
 ### § 6.7 Image registry
 

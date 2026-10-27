@@ -1,7 +1,7 @@
 ---
 title: PLX-Repo – the repo contract
 short_title: PLX-Repo
-description: What Plexus asks of every repo — a declaration marker, mise and hk as the one executable answer to "how do I run you", and the four standard verbs.
+description: What Plexus asks of every repo — a declaration marker, mise and hk as the one executable answer to "how do I run you", and the three standard verbs.
 code: PLX-Repo
 maturity: standard
 binds: repo
@@ -15,7 +15,7 @@ It asks three things of a repo, and nothing about what the repo contains: that i
 A JS/TS monorepo, a Python service, an Ansible platform repo and the compendium itself take the same contract with different incantations behind the same names.
 The sections bind the repo, the authors' side; what the operating side owes in return is stated where it applies.
 
-Every other module that binds a repo or an app depends on this one: [PLX-App](app.md) asks for its verbs, [PLX-CI](../approaches/ci.md) calls them, [PLX-Updates](../approaches/updates.md) bumps the pins that live where this contract says facts live.
+Every other module that binds a repo or an app depends on this one: [PLX-App](app.md) asks for its verbs, [PLX-Delivery](../approaches/delivery.md) calls them, [PLX-Updates](../approaches/updates.md) bumps the pins that live where this contract says facts live.
 
 
 ## § 1 The declaration marker
@@ -31,7 +31,7 @@ Machine checks read only the frontmatter; the body is for humans, and it is wher
 ```markdown
 ---
 plexus: 0.60.0
-modules: [PLX-Repo, PLX-JS, PLX-Release, PLX-CI, PLX-Updates]
+modules: [PLX-Repo, PLX-JS, PLX-Delivery, PLX-Updates]
 ---
 
 - Free-form prose.
@@ -46,12 +46,12 @@ What the marker buys is a precise answer to "is this repo behind": for each list
 
 > - Every repo MUST expose its verbs as mise tasks at the repo root, and MUST bootstrap its stack's entry-point tools in `mise.toml`.
 > - A fact with an ecosystem-canonical home MUST live in that home and MUST NOT be restated elsewhere; mise pins only facts that have no such home.
-> - Every repo MUST wire its checks through hk git hooks: format and lint on pre-commit, `check` and `test` on pre-push, with stack-appropriate checks behind the same hook names.
+> - Every repo MUST wire its checks through hk git hooks: `lint` on pre-commit, `check` on pre-push, with stack-appropriate checks behind the same hook names; `test` on pre-push is the repo's choice.
 > - Git hooks SHOULD delegate to mise tasks.
 > - mise tasks MUST NOT encode cross-project ordering; the task graph belongs to the stack's graph-aware tool, to which the verbs delegate.
 
 Plexus mandates the language-neutral [mise-en-place](https://mise.jdx.dev/) for toolchain management and [hk](https://hk.jdx.dev/) for git-hook wiring, and these are the two tools this contract names.
-Both are hard requirements rather than suggested defaults because the contract's whole point is one executable answer to "how do I run you": the CI approach calls `mise :check` and nothing else, a second reader at any Plexus repo types the same four verbs, and a hook that bypasses mise would be a second encoding of the same check.
+Both are hard requirements rather than suggested defaults because the contract's whole point is one executable answer to "how do I run you": the pipeline calls `mise :verify` and nothing else, a second reader at any Plexus repo types the same three verbs, and a hook that bypasses mise would be a second encoding of the same check.
 
 mise is the front door, not the landlord: it bootstraps the stack's entry point onto the PATH, exports env, wires hooks, and names the verbs, then hands off to the stack's own machinery, and every fact past the bootstrap lives where its ecosystem natively binds it.
 The canonical home matters twice over: it is where a developer of that stack already looks, and it is the API the machine ecosystem reads.
@@ -67,15 +67,18 @@ The verbs live only at the root; a per-app `mise.toml` would be a second encodin
 
 ## § 3 The standard verbs
 
-> - Every repo MUST answer the standard verbs as root mise tasks, each taking an optional app argument: `dev`, `build`, `check`, `test`.
-> - `dev` MUST take a fresh checkout to a running development environment; `build` MUST produce the production artifact; `check` MUST run every static check that gates a deploy; `test` MUST run the tests that gate a deploy, providing whatever environment they need.
+> - Every repo MUST answer the standard verbs as root mise tasks, each taking an optional app argument: `dev`, `build`, `verify`.
+> - `dev` MUST take a fresh checkout to a running development environment; `build` MUST produce the production artifact; `verify` MUST perform every automated step that ascertains code quality, providing whatever environment those steps need.
+> - `verify` SHOULD be composed of three named sub-verbs, each a root mise task: `lint` (style and formatting, seconds, fixable in place), `check` (every static check, lint included) and `test` (everything that executes code); `verify` is then `check` followed by `test`.
 > - Every verb MUST succeed from a fresh checkout; installing dependencies and building internal workspace packages first is the repo's own business, never the caller's.
 > - A verb a given stack has no use for MUST still exist and pass (a documented no-op), never as a missing verb.
-> - Whatever operates on a repo without having written it, CI first, MUST reach it only through the standard verbs and the image build of [§ 7 PLX-App](app.md); this line binds the operating side.
+> - Whatever operates on a repo without having written it, the pipeline first, MUST reach it only through the standard verbs and the image build of [§ 7 PLX-App](app.md); this line binds the operating side.
 
 The verbs are the stack-neutral layer every repo answers; a toolchain module such as [PLX-JS](../approaches/js.md) specifies the incantations behind them for one stack.
-The shared pipeline ([PLX-CI](../approaches/ci.md)) invokes a repo only through these names, so the names are load-bearing and the incantations are not.
-They are deliberately stack-neutral: `check` subsumes what a JS/TS repo answers with biome and tsc and a Go repo answers with vet; *typecheck* and *lint* were incantations posing as contract.
+The pipeline ([§ 1 PLX-Delivery](../approaches/delivery.md)) invokes a repo only through these names, so the names are load-bearing and the incantations are not.
+They are deliberately stack-neutral: `verify` subsumes what a JS/TS repo answers with biome, tsc and vitest and a Go repo answers with vet and `go test`; *typecheck* was an incantation posing as contract.
+The sub-verbs nest by cost, which is what places them on the hooks: `lint` is cheap enough to run on every commit, `check` on every push, and `test` wherever the repo can afford the environment it needs, the pipeline at the latest.
+`verify` is the one name the pipeline knows; it answers repo-wide, or scoped to one app and its dependencies when the pipeline gates that app alone.
 Migration is deliberately not a verb: at deploy time the repo is absent and the artifact is what is present, so migrating is a capability of the image, declared in the app's `compose.yaml` ([PLX-AppStateful](app-stateful.md)) and invoked by the deploy verb through docker.
 Toolchain pinning follows § 2, so setup is `git clone && mise :dev` everywhere.
 
@@ -88,5 +91,5 @@ If not, it belongs in a toolchain module.
 
 The marker's frontmatter is read by the staleness check (§ 13.4 PLX) once it ships, and by `ship` when it stamps `changed` on the modules; the format changes only with a major train.
 
-Approaches on the authors' side: [PLX-JS](../approaches/js.md), [PLX-Packages](../approaches/packages.md), [PLX-Updates](../approaches/updates.md).
-On the operating side: [PLX-CI](../approaches/ci.md), the hooks, the staleness check (§ 13.4 PLX).
+Approaches on the authors' side: [PLX-JS](../approaches/js.md), [§ 5 PLX-Delivery](../approaches/delivery.md), [PLX-Updates](../approaches/updates.md).
+On the operating side: [PLX-Delivery](../approaches/delivery.md), the hooks, the staleness check (§ 13.4 PLX).

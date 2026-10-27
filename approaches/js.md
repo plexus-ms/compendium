@@ -10,7 +10,7 @@ depends: [PLX-Repo]
 order: 16
 ---
 
-[PLX-Repo](../contracts/repo.md) names four verbs and says nothing about what runs behind them.
+[PLX-Repo](../contracts/repo.md) names three verbs and says nothing about what runs behind them.
 This module is the arrangement behind them for one stack, JS/TS, the first toolchain the standard has specified.
 A Python or Go repo takes the same repo contract with a toolchain module of its own, when one is written.
 
@@ -39,4 +39,4 @@ The concrete arrangement, the `mise.toml`, `turbo.json`, root `package.json`, ho
 ## Maintaining
 
 `plexus-ms/preset-repo-web` is the arrangement authority for this module: the template's `mise.toml`, `turbo.json`, `biome.json`, root `package.json`, and `hk.pkl` are the one encoding of § 1, and a change to the requirements here is a change to the template in the same train.
-The shared configs a generated repo extends (`@plexus-ms/config/biome`, `/tsconfig`) are published from `plexus-ms/packages` ([PLX-Packages](packages.md)); the template carries only the one-line `extends`.
+The shared configs a generated repo extends (`@plexus-ms/config/biome`, `/tsconfig`) are published from `plexus-ms/packages` ([§ 5 PLX-Delivery](delivery.md)); the template carries only the one-line `extends`.

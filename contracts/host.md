@@ -43,4 +43,4 @@ Keep this page a list of assumptions the platform roles actually make, verified 
 A requirement arrives here when two implementations of the lower side disagree about something the roles depend on, and the page is promoted to standard maturity in that train.
 
 Below the seam: [PLX-Infrastructure](../approaches/infrastructure.md), or a provider with nothing to declare.
-Above it: [PLX-Platform](../approaches/platform.md), and [PLX-Deploy](../approaches/deploy.md), which reaches the host over the same SSH.
+Above it: [PLX-Platform](../approaches/platform.md), and the deploy verb ([§ 6 PLX-Delivery](../approaches/delivery.md)), which reaches the host over the same SSH.

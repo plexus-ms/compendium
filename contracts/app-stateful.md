@@ -35,7 +35,7 @@ Extending the backup vocabulary means adding one handler upstream, after which e
 > - A genuinely breaking migration, one that cannot honor expand/contract, MUST be deployed as a deliberate act: fresh backup taken first, and the operator aware that reverting means restoring, not re-upping the previous tag.
 
 `migrate` is the one contract step the deploy pipeline invokes against production data, hence the precision.
-It runs as a container from the very image being deployed (`docker compose run --rm migrate`, [PLX-Deploy](../approaches/deploy.md)): the image carries its own migration tooling, dev runs the identical step with the identical command, and the deploy host needs docker and nothing else.
+It runs as a container from the very image being deployed (`docker compose run --rm migrate`, [§ 6 PLX-Delivery](../approaches/delivery.md)): the image carries its own migration tooling, dev runs the identical step with the identical command, and the deploy host needs docker and nothing else.
 The deploy flow has no down-migration step, and its rollback path re-launches the *previous* image against the *already-migrated* schema.
 That is sound only if additive changes (new tables, nullable columns, backfills) ship first and destructive ones (drops, renames, constraint tightening) ship only in a later release, once no deployed code depends on the old shape.
 Mainstream migration tools provide locking out of the box, so that requirement is usually just *don't disable it*.
@@ -53,5 +53,5 @@ Production data arrives by restore or by real use, never by seed.
 ## Maintaining
 
 The profile is written against the one migration path the deploy verb has.
-A change to how the verb runs `migrate` ([PLX-Deploy](../approaches/deploy.md)) is a change to § 2 here, in the same train.
+A change to how the verb runs `migrate` ([§ 6 PLX-Delivery](../approaches/delivery.md)) is a change to § 2 here, in the same train.
 The approaches on each side are those of [PLX-App](app.md).

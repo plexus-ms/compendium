@@ -50,7 +50,7 @@ The label makes the boundary visible exactly where it otherwise blurs: staring a
 Org membership governs code access; a person in tenant A's org is simply not in tenant B's.
 Inside the org, the layout follows three cardinalities: one trust domain, N release cycles, one platform repo.
 A **repo** is one release cycle and one toolchain contract ([PLX-Repo](../contracts/repo.md)) inside a tenant.
-The ops side gets a repo of its own because everything about it is repo-level and unlike an app's: it has no release cycle ([PLX-Release](../approaches/release.md)), it is applied by playbook runs on its own occasions ([PLX-Platform](../approaches/platform.md)), its dependency bumps are human-reviewed because they run as root ([PLX-Updates](../approaches/updates.md)), and it holds the root playbooks and the vault pointers, so its access list is naturally the shortest in the org.
+The ops side gets a repo of its own because everything about it is repo-level and unlike an app's: it has no release cycle ([§ 3 PLX-Delivery](../approaches/delivery.md)), it is applied by playbook runs on its own occasions ([PLX-Platform](../approaches/platform.md)), its dependency bumps are human-reviewed because they run as root ([PLX-Updates](../approaches/updates.md)), and it holds the root playbooks and the vault pointers, so its access list is naturally the shortest in the org.
 Co-locating it in one arbitrary app repo would be an asymmetry every second reader has to be told about.
 
 Within an app repo, the monorepo's benefits remain direct: apps and the packages they share version together, cross-cutting changes land as one atomic commit, and it is safe because a repo is one access boundary.

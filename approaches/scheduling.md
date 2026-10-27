@@ -15,7 +15,7 @@ It is a note: the stance is settled and in use, but the dead-man's-switch has no
 ## § 1 No orchestrator
 
 Plexus stands up no workflow orchestrator (Kestra, Airflow, …) as platform infrastructure.
-The jobs one would do are already covered: deploys by the forge's CI ([PLX-CI](ci.md)), backups by systemd timers (`Restart=on-failure`, journald logging), app-internal pipelines by a job queue *inside* the app (BullMQ, pg-boss), deployed as a worker container in the same compose file, so product logic stays out of platform-level infrastructure.
+The jobs one would do are already covered: deploys by the forge's CI ([§ 2 PLX-Delivery](delivery.md)), backups by systemd timers (`Restart=on-failure`, journald logging), app-internal pipelines by a job queue *inside* the app (BullMQ, pg-boss), deployed as a worker container in the same compose file, so product logic stays out of platform-level infrastructure.
 A tenant that finds itself with an orchestrator that barely runs anything migrates its jobs onto those mechanisms or retires it.
 
 Revisit an orchestrator only when workflows span multiple hosts with inter-step dependencies, human-in-the-loop approvals appear, scheduled-job interrelations become hard to track, or backfill or replay matters; if reached, prefer a single vanilla shared instance over a fork.

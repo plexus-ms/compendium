@@ -662,5 +662,5 @@ Mounting it on a schedule in each tenant, so that a tenant sees its own stalenes
 
 ### § 13.5 Tooling
 
-The verbs and the maintainers' helpers are bash today, each hand-runnable and checked.
-Whether they fold into one published command-line tool, and what would justify that, is recorded in the [CLI note](../approaches/cli.md); nothing ships from it yet.
+The maintainers' helpers are commands of `plx`, the published `@plexus-ms/cli`: the workspace map, the staleness check (§ 13.4), the train (§ 1.5) and the requirements check (§ 1.8); the ops verbs are bash still, each hand-runnable and checked.
+The case for the tool, what it must not become, and the order in which the remaining verbs move is recorded in the [CLI note](../approaches/cli.md).

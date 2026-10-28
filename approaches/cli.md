@@ -61,6 +61,11 @@ A few hundred lines of TypeScript with a YAML dependency read in half an hour at
 The train pins the workflows and the tenant pins the verbs, and the two move independently through reviewed pull requests.
 A workflow that asks for a verb the pinned `plx` lacks fails as a usage error, loudly; no compatibility floor is checked, because no incident has asked for one.
 
+The maintainers' workspace is the exception that takes no pin: its `mise.toml` asks for the newest release, because the release tool has to be newer than anything it releases.
+From 0.7.0, `ship` and `propagate` hold the running `plx` against the registry (`npm view @plexus-ms/cli version`) and refuse to run behind it; an unreachable registry only warns.
+mise caches version lists, so an update right after a publish is `mise cache clear` followed by `mise up npm:@plexus-ms/cli`.
+The copier a propagation runs is pinned inside `plx` and run as `mise exec copier@<version> -- copier`, which the dry run prints like every other step: the copier a consumer is updated with travels with the tool, and the operator's `PATH` has no say in it.
+
 
 ## § 4 What it must not become
 
@@ -106,5 +111,5 @@ The verbs move in order of risk, each replacing one script and leaving the rest 
 `plexus-ms/packages` ships the tool as `@plexus-ms/cli` with `@plexus-ms/lib` as its core, versioned by changesets and published with provenance ([§ 5 PLX-Delivery](delivery.md)); the repo presets write the pin into every tenant repo and the update bot moves it.
 The page became a candidate with the train that moved the deploy verb, once the tool described was one a tenant's CI runs and not only the maintainers' helpers; it becomes standard, with the rules of § 4 as its requirements, when two tenants' repos that are not the maintainers' pin it.
 
-Debts: the preset's playbook wrapper is still shell outside the tool and is brought under a check or dissolved into its mise tasks; `new` and a `doctor` without a compendium checkout (§ 6) are not written; whether the update bot bumps the `npm:` pin in a tenant's `mise.toml` is confirmed by the first bump it opens.
+Debts: the preset's playbook wrapper is still shell outside the tool and is brought under a check or dissolved into its mise tasks; `new` and a `doctor` without a compendium checkout (§ 6) are not written; whether the update bot bumps the `npm:` pin in a tenant's `mise.toml` is confirmed by the first bump it opens; the copier version `plx` pins (`COPIER_VERSION` in `packages/lib/src/copier.ts`) is a constant no bot watches, and moves by hand.
 The tool is a primitive of [PLX-Delivery](delivery.md), [PLX-Updates](updates.md) and § 13.4 PLX, and each of their Maintaining sections points here.

@@ -37,5 +37,5 @@ Build the CLI application for humans and agents i.e. for interactive use and for
 
 ## Delivery
 
-- Package the CLI application as a single binary, or a single script with no dependencies.
+- Publish the CLI application the way its ecosystem publishes a package, with its runtime dependencies declared and nothing bundled in: the install knows what it carries, and a dependency's release reaches the CLI through the dependency graph.
 

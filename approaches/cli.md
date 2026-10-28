@@ -15,13 +15,12 @@ Nothing on this page changes what a repo runs today.
 
 ## § 1 What exists
 
-The verbs and helpers are bash, split by where they run.
-The maintainers' toolbox holds the release train (`ship`), the workspace map (`overview`) and the staleness check (`staleness`, § 13.4 PLX), with an offline harness for the first and the last.
-`ci-cd` holds the ops verbs `deploy`, `changed-apps` and `deploy-targets`, mounted on the forge by thin reusable workflows and run by hand from a checkout otherwise ([PLX-Delivery](delivery.md)).
-The compendium holds `requirements.sh`, the linter and extractor for the standard's requirement lines (§ 1.8 PLX).
+The maintainers' helpers have moved: `plx`, published as `@plexus-ms/cli` from `packages` with `@plexus-ms/lib` as its core, carries the workspace map (`overview`), the staleness check (`doctor`, § 13.4 PLX), the release train (`ship`, `propagate`) and the standard's requirements check (`requirements`, § 1.8 PLX).
+The toolbox and the compendium pin it in their `mise.toml`; the toolbox's tasks only name the workspace and map the flags.
+The ops verbs are bash still: `ci-cd` holds `deploy`, `changed-apps` and `deploy-targets`, mounted on the forge by thin reusable workflows and run by hand from a checkout otherwise ([PLX-Delivery](delivery.md)).
 The platform preset ships a playbook wrapper that prefixes the vault's CLI, and both repo presets ship the contract verbs and `sync` as mise tasks.
 
-The volume is small, about two thousand lines upstream, and the discipline is uniform: a header stating what the script does and how to run it by hand, strict mode, shellcheck clean, a `check` verb that enforces both.
+The discipline of the remaining scripts is uniform: a header stating what the script does and how to run it by hand, strict mode, shellcheck clean, a `check` verb that enforces both.
 Every script passes the second-reader and degradation tests of the [manifesto](../essentials/manifesto.md).
 Volume alone is no reason to replace it.
 
@@ -31,9 +30,9 @@ Volume alone is no reason to replace it.
 Three things in the current surface are debts a shell script cannot pay, and all three are answered by the same tool.
 
 **One parser instead of five.**
-The declaration marker (§ 1.4 PLX), a module's frontmatter (§ 1.3 PLX), copier's answers file, the app record in a tenant's inventory ([§ 3 PLX-Platform](platform.md)) and the labels in `compose.yaml` ([PLX-App](../contracts/app.md)) are each read today by whichever awk or sed last touched them: `ship` edits markers and frontmatter, `staleness` reads frontmatter, `deploy-targets` reads inventory records, `requirements.sh` reads module pages, `overview` reads answers files.
-Each is honest about its limits, and together they are an unwritten contract: a quoted value, an indented list or a reordered key breaks one of them silently.
-A tool with a YAML library and one frontmatter reader gives Plexus a single definition of its own file shapes, which the modules can then point at.
+The declaration marker (§ 1.4 PLX), a module's frontmatter (§ 1.3 PLX), copier's answers file, the app record in a tenant's inventory ([§ 3 PLX-Platform](platform.md)) and the labels in `compose.yaml` ([PLX-App](../contracts/app.md)) were each read by whichever awk or sed last touched them: `ship` edited markers and frontmatter, `staleness` read frontmatter, `deploy-targets` reads inventory records, `requirements.sh` read module pages, `overview` read answers files.
+Each was honest about its limits, and together they were an unwritten contract: a quoted value, an indented list or a reordered key broke one of them silently.
+`@plexus-ms/lib` now holds one reader of the marker, the module frontmatter and the answers file, and one line-based editor of frontmatter; the inventory record and the compose labels are still read by the ops verbs' own sed.
 
 **Rung one of the ladder for the verbs themselves.**
 The deploy verb reaches a tenant's CI as a checkout of `ci-cd` at a train tag, the movable-tag edge § 1.6 PLX names and accepts.
@@ -50,7 +49,7 @@ Those are the primitives that move the marginal tenant's cost toward zero.
 ## § 3 Where it would live and what would run it
 
 TypeScript in the `packages` repo, as `@plexus-ms/cli`, versioned by changesets and published through trusted publishing like every other package there, outside the train like the rest of `packages`.
-The compendium's `requirements.sh` and the toolbox's `ship` are maintainer helpers and stay public all the same: they are methodology, and they carry no tenant's substance.
+The requirements check and `ship` are maintainer helpers and are public all the same: they are methodology, and they carry no tenant's substance.
 
 The runtime is no objection.
 mise installs npm tools directly, which is how `renovate-config` pins its validator today, and every repo and every CI runner already goes through mise ([§ 2 PLX-Repo](../contracts/repo.md)).
@@ -81,15 +80,16 @@ A tenant's restore drill scripts and per-app backup hooks are the prototypes of 
 
 ## § 6 Order of migration
 
-If the decision falls for the tool, the verbs move in order of risk, each replacing one script and leaving the rest as they are:
+The verbs move in order of risk, each replacing one script and leaving the rest as they are:
 
-1. The parser library, with `staleness` and the compendium's requirement check on top of it.
-   Read-only, maintainer-side, and `ship` can call both while it is still bash.
-2. `changed-apps` and `deploy-targets`.
-   Read-only, run in CI, where each `ci-cd` wrapper changes one line.
-3. `deploy`, with the remote half carried verbatim, run against the existing offline harness of fake `docker` and `curl` before the dogfood tenant takes it.
-4. `ship` last: the largest script, the best harness to diff against, and the one that loses the most sed.
-5. `new` and `doctor`, new ground, after the parser has settled on the formats above.
+1. Done: the parser library, with `overview` and `doctor` (the staleness check) on top of it.
+2. Done, pulled ahead of the ops verbs because it is maintainer-only and had the best harness to diff against: `ship`, with `propagate` as a verb of its own and the compendium's requirements check as `requirements`, so that the `changed` comparator and `mise check` share one extractor.
+   The ten scenarios of the toolbox's harness run as an integration test against real git in `packages`.
+   The dry run keeps its honest preview in scratch clones; that scratch work is the one documented exception to "a dry run performs no effect", performed in every mode because nothing the operator owns changes.
+3. `changed-apps` and `deploy-targets`.
+   Read-only, run in CI, where each `ci-cd` wrapper changes one line and the runner takes `plx` as one line in its tools table.
+4. `deploy`, with the remote half carried verbatim, run against the existing offline harness of fake `docker` and `curl` before the dogfood tenant takes it.
+5. `new`, new ground, and `doctor` without a compendium checkout, so that a tenant runs its own staleness check.
 
 
 ## Maintaining
@@ -97,5 +97,6 @@ If the decision falls for the tool, the verbs move in order of risk, each replac
 The trigger that reopens this page is any of the three in § 2 becoming acute: a format change that breaks one of the five parsers, a decision to close the movable-tag edge of § 1.6 PLX, or a tenant that is not the maintainer asking for `doctor` or `new`.
 Until then the debts of § 2 are paid in place: the marker and record shapes the parsers assume are stated in [§ 1.4 PLX](../essentials/standard.md) and [§ 3 PLX-Platform](platform.md), the preset's playbook wrapper is brought under the same check as every other script or dissolved into its mise tasks, and the offline fixtures of the toolbox harness cover the compendium's modules and the preset's inventory.
 
-The page becomes a candidate module when the first subcommand ships from `packages` and one repo pins it; it becomes standard when two tenants' repos do.
+The first subcommands have shipped from `packages` and two maintainers' repos pin the tool, which is the trigger for this page to become a candidate module; it becomes standard when two tenants' repos pin it.
+Promotion waits for the first ops verb to move, so that the module describes a tool a tenant runs and not only the maintainers' helpers.
 The tool is a primitive of several modules, [PLX-Delivery](delivery.md), [PLX-Updates](updates.md) and § 13.4 PLX, and each of their Maintaining sections points here once a verb of theirs has moved.

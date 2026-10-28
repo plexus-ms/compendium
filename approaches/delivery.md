@@ -45,7 +45,7 @@ A `release` job runs after a `verify` job it depends on, in the same run, for th
 
 > - A tenant MUST NOT operate its own CI control plane.
 > - The forge SHOULD be GitHub; a tenant SHOULD NOT self-host a forge.
-> - Every repo MUST carry `.github/workflows/verify.yml`, triggered on every push, with one job `verify` that answers the verb repo-wide.
+> - Every repo MUST carry `.github/workflows/verify.yml` with one job `verify` that answers the verb repo-wide, triggered so that every commit is verified before it reaches an environment branch: on every push where the repo takes direct pushes to such a branch, on pull requests where its branch rules admit nothing but pull requests.
 > - A repo that deploys MUST carry `deploy.yml`, and a repo that releases packages MUST carry `release.yml`, each triggered by pushes to the branches that name its environments and each verifying first within the same run.
 > - A job MUST be named after the verb it mounts; a workflow is named after the occasion it mounts the verbs on.
 > - Reusable workflows live in `plexus-ms/ci-cd`, named with a leading underscore; a tenant repo SHOULD carry only the generated workflows and MUST NOT carry logic in workflow YAML.
@@ -53,7 +53,9 @@ A `release` job runs after a `verify` job it depends on, in the same run, for th
 
 A job is a verb; a workflow is a mount: the trigger that runs the verbs on an occasion.
 Three verbs therefore do not need three files.
-`verify.yml` runs on every push and answers the question "is the repo sound" for every commit, whatever branch it lands on.
+`verify.yml` answers the question "is the repo sound" for every commit before it reaches an environment branch, and the trigger follows the repo's branch rules.
+An app repo's `develop` takes direct pushes, the ones `propagate` makes among them, so its `verify.yml` runs on every push.
+A package repo's `main` admits nothing but pull requests, so its `verify.yml` runs on `pull_request`, which also tests the merge result rather than the branch tip; a push trigger would in any case never fire for the "version packages" PR, whose branch the release job pushes with the workflow token, and pushes made with that token start no workflow.
 `deploy.yml` runs on pushes to an environment branch and answers "may this ship", per app: verify the app, release its image, deploy it.
 `release.yml` does the same for a package repo on its trunk: verify, release.
 On an environment branch both files run, and the two verifies are not the same thing: one is repo-wide, the other is scoped to one app and is the gate for that app alone.

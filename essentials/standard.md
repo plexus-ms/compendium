@@ -155,8 +155,8 @@ Section numbers in the map and in every module are append-only within a major tr
 The train reaches 1.0.0 once the modular standard with its first standard modules has shipped and settled; until then `0.x` promises nothing, and any train can change anything.
 
 **What `ship` writes.**
-The umbrella `ship` task in the maintainers' `toolbox` writes the bookkeeping, tags every train repo, pushes, and copier-updates the consumers in one pass.
-For the compendium it writes the version and timestamp in this document's frontmatter (a draft carries `v0` until its first train) and stamps `changed` on each standard module whose extracted requirement lines differ from the previous train's, using the same extractor `mise verify` runs.
+`plx ship`, run from the maintainers' `toolbox`, writes the bookkeeping, tags every train repo, pushes, and copier-updates the consumers in one pass.
+For the compendium it writes the version and timestamp in this document's frontmatter (a draft carries `v0` until its first train) and stamps `changed` on each standard module whose extracted requirement lines differ from the previous train's, using the same extractor `mise check` runs.
 
 ### § 1.6 Upstream guarantees
 
@@ -226,7 +226,7 @@ The structural conventions are self-policing, and the machinery is small:
 - The map carries no requirement and no normative keyword.
 - A standard module carries its requirements as `> - ` lines under numbered headings; blockquotes are reserved for them.
 - A module below standard maturity carries neither keyword nor blockquote.
-- `essentials/requirements.sh` checks all of that over the map and every module, validates module frontmatter, and prints a module's requirement lines on demand; `mise check` runs it, and the pre-commit and pre-push hooks run `mise check`.
+- `plx requirements` checks all of that over the map and every module, validates module frontmatter, and prints a module's requirement lines on demand; `mise check` runs it, and the pre-commit and pre-push hooks run `mise check`.
   It writes no file: there is no generated requirements list to keep current.
 - Section numbers are append-only within a major train; insertions wait for a major.
 - Module pages live at `contracts/<slug>.md` or `approaches/<slug>.md`, the folder being the kind (§ 1.3), and a new module is added to the map section that owns its concern in the same commit.

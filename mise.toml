@@ -1,6 +1,9 @@
 [tools]
 hk = "latest"               # Git hooks
-shellcheck = "0.11.0"        # the check script's own static check
+# plx: the requirements check (§ 1.8 PLX), the initiative's own package from
+# plexus-ms/packages; the trust-policy approval only waives npm's
+# new-name/low-download heuristics, which it trips by being young.
+"npm:@plexus-ms/cli" = { version = "0.3.0", allow_low_downloads = true }
 
 [hooks]
 postinstall = "hk install --mise"
@@ -13,8 +16,8 @@ description = "Perform all steps that verify the standard: the check, nothing to
 run = ["mise run check"]
 
 [tasks.check]
-description = "Lint the standard: no keyword outside a requirement, no requirement in the map or below standard maturity, module frontmatter well-formed"
-run = ["shellcheck essentials/requirements.sh", "./essentials/requirements.sh --check"]
+description = "Lint the standard: no keyword outside a requirement, no requirement in the map or below standard maturity, module frontmatter well-formed; runs `plx requirements`"
+run = "plx requirements ."
 
 [tasks.dev]
 description = "No-op: the compendium is prose; edit the files"

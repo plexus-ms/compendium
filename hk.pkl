@@ -5,7 +5,7 @@ hooks {
     stash = true
     steps {
       ["check"] {
-        glob = List("essentials/standard.md", "contracts/*.md", "approaches/*.md", "essentials/requirements.sh")
+        glob = List("essentials/standard.md", "contracts/*.md", "approaches/*.md")
         check = "mise check"
       }
     }

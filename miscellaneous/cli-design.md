@@ -19,6 +19,7 @@ Layer the application into:
 
 - Inject I/O (stdout/stderr/stdin, filesystem, clock, HTTP) so tests can run without trickery and dry runs cover the same code paths as real runs.
 - Validate early, fail fast, then do side effects. Follow a plan->apply pattern.
+- A dry run performs no effect, with one documented exception: work on scratch state the run owns (a preview clone, a temporary directory) may be performed in every mode when the preview would be dishonest without it, because nothing the operator owns changes. Keep that work on a separate code path (`stage`, not `apply`) so the exception is visible.
 - Operate on explicit targets (--id, --path), not implicit "current" state
 
 ## Dual operation

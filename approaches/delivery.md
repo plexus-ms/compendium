@@ -224,6 +224,26 @@ Closing it is the operator's move, using mechanisms that already exist: re-run t
 A red staging deploy directly falsifies `develop`'s prod-readiness, hence the promotion freeze.
 
 
+## § 8 Where the jobs run
+
+This section binds every repo that mounts a verb on the forge.
+By default the jobs run on the forge's own runners: a fresh machine per job, destroyed afterwards, nothing for the tenant to operate, minutes billed beyond the free allowance, and every cache round-tripping through the forge.
+A tenant that wants faster or cheaper CI runs a runner of its own, and the choice is two repo variables: a label that selects the runner (`CI_RUNNER`), and whether it keeps its disk between jobs (`CI_RUNNER_PERSISTENT`), which the mounts take as the inputs `runner` and `persistent`.
+Unsetting the label moves CI back to the forge's runners at once, without a playbook run, which is also the fallback while the tenant's runner host is down.
+
+A runner of the tenant's own is a host of the tenant, set up like every other by the collection ([§ 2 PLX-Platform](platform.md)): the `github_runner` role installs the official runner as N instances, each a systemd service with a home of its own, registered at the tenant's forge organisation with a short-lived token minted from a vault secret at registration time and never stored.
+Jobs run directly on the host, with Docker for image builds, so one host serves one tenant and runs nothing else: a runner holds job secrets in flight, and the docker group is root on that machine.
+Only the tenant's private repos use it, since a public repo lets a stranger's pull request run on it.
+A nightly housekeeping timer prunes working directories, images and build cache older than a week and fails loudly, into the host's mail, when the disk fills regardless.
+
+Three trade-offs are named rather than implied.
+The runner persists between jobs, against "primitives should rarely remember anything": the caches are the speed gain, and the housekeeping bounds what jobs leave behind.
+The runner binary updates itself, the one unpinned executable on a tenant host, because the forge stops scheduling onto a runner that falls far behind.
+And where the runner host shares a hypervisor with production, CI is down whenever production is, and the fix that would rescue production cannot pass it; the deploy verb being hand-runnable and the fallback being one variable away is what makes that acceptable.
+
+A runner inside the tenant's network reaches the app hosts by their overlay names, so the deploy target stops being a public forward; the overlay's policy has to allow the runner host to reach the app hosts on SSH.
+
+
 ## Maintaining
 
 The module folds what were four pages, PLX-CI, PLX-Release, PLX-Deploy and PLX-Packages, into one, because a reader of any of them needed the other three; the section numbers of the old pages are retired with their codes, and a citation of one of them is rewritten to the section here that carries the same content.
@@ -249,7 +269,8 @@ Outside it, it is either an existing tool's job or an architecture change, not f
 Zero-downtime deploys (blue-green, rolling) stay outside until an app has traffic for which a blink is a real cost; whatever the answer, it stays a verb, not a reconciler.
 
 A web repo's deploy target is one `DEPLOY_HOST` variable for all its apps, while the platform repo looks each app's target up in its inventory (§ 3 PLX-Platform).
-Publishing the inventory's targets into the app repos as a variable was designed and deliberately not built; the trigger that reopens it is a tenant whose runners sit on its overlay network, where the target stops being a public forward and could stop being a forge variable altogether.
+Publishing the inventory's targets into the app repos as a variable was designed and deliberately not built.
+The trigger that reopens it, a tenant whose runners sit on its overlay network (§ 8), has arrived: the target there is the overlay name, still held in the repo variable, and the variable is kept until a second such tenant shows the pattern.
 
 Preview environments per PR are deliberately absent: a single staging per app covers most of the value, and the decision is revisited when a product has real customers (§ 6.8 PLX).
 

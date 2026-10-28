@@ -37,6 +37,7 @@ Ops changes are applied by `mise configure` (or `mise provision`) in the tenant'
 
 Every host the collection touches gets the same baseline, whichever playbook mounts it: packages and a local record of system activity (`configure_base`), personal admin accounts with key-only SSH and passwordless sudo (`configure_iam`), unattended security upgrades (`configure_unattended_upgrades`), a default-drop firewall assembled from fragments the other roles hand it (`configure_firewall`), and sshd closed to root and passwords once an admin has logged in (`configure_sshd`).
 An app host adds the deploy user and the container engine (`configure_deploy_user`, `install_docker`); the proxy is [PLX-Ingress](ingress.md)'s, and opt-in roles add a hostname, an overlay network, local mail to a mailbox, and an observability agent.
+A host that runs the tenant's own CI runners instead of apps takes the baseline, the container engine, and the `github_runner` role ([§ 8 PLX-Delivery](delivery.md)).
 The roles are the one encoding of how a host is set up; nothing is done by hand before the first run, and a machine image carries only what has to exist before the first SSH login.
 
 Runtime truth is the host, never a file: what runs is what `docker ps` says, and a `.env` on the host can be stale.

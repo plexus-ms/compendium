@@ -412,6 +412,7 @@ The app is the unit of deployment, the repo the unit of promotion: a merge deplo
 
 Three verbs, `verify`, `release`, `deploy`, each a job; a workflow is the occasion that mounts them: `verify.yml` on every push, `deploy.yml` or `release.yml` on the environment branches, verifying first within the same run, fanned out per changed app through one reusable pipeline; no tenant operates a CI control plane.
 [§§ 1 and 2 PLX-Delivery](../approaches/delivery.md).
+Where the jobs run, the forge's runners or a runner host of the tenant's own, is [§ 8 PLX-Delivery](../approaches/delivery.md).
 
 ### § 6.4 Deploy semantics
 

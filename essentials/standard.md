@@ -155,7 +155,7 @@ Section numbers in the map and in every module are append-only within a major tr
 The train reaches 1.0.0 once the modular standard with its first standard modules has shipped and settled; until then `0.x` promises nothing, and any train can change anything.
 
 **What `ship` writes.**
-`plx ship`, run from the maintainers' `toolbox`, writes the bookkeeping, tags every train repo, pushes, and copier-updates the consumers in one pass.
+`plx ship`, run from the root of the maintainers' workspace, writes the bookkeeping, tags every train repo, pushes, and copier-updates the consumers in one pass.
 For the compendium it writes the version and timestamp in this document's frontmatter (a draft carries `v0` until its first train) and stamps `changed` on each standard module whose extracted requirement lines differ from the previous train's, using the same extractor `mise check` runs.
 
 ### § 1.6 Upstream guarantees
@@ -656,7 +656,7 @@ What cannot be a dependency arrives through a copier template and is re-synced o
 
 ### § 13.4 Staleness check
 
-A hand-runnable verb in the maintainers' toolbox, `mise run staleness`, reads every marker in the workspace, compares each declared module's `changed` with the marker's `plexus`, verifies that every dependency is declared where § 1.4 says it is satisfied, and prints what is behind; it fixes nothing.
+A hand-runnable verb run from the root of the maintainers' workspace, `plx doctor`, reads every marker in the workspace, compares each declared module's `changed` with the marker's `plexus`, verifies that every dependency is declared where § 1.4 says it is satisfied, and prints what is behind; it fixes nothing.
 It ships with train 0.61.0, after the first stamps of 0.60.0 gave it something to compare.
 Mounting it on a schedule in each tenant, so that a tenant sees its own staleness without the maintainers' workspace, is the next step and waits for a tenant that is not also the maintainer.
 

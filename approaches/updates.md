@@ -87,4 +87,4 @@ That makes every edit a change to every tenant's merge policy at once, and it is
 The galaxy manager needs a `packageName` override because it hands a github.com URL to the tags datasource verbatim; the preset carries that fix so no tenant repeats it.
 `gitIgnoredAuthors` names the one author that commits to the bot's branches, `plx changeset`'s; a second such author is added here, never in a tenant's own config, because a branch the bot stops rebasing is stale in every repo at once.
 
-Propagation runs from the `toolbox` repo: `mise run ship -- -n -y` previews the train in scratch clones of the consumers, `mise run ship -- -y` tags it and copier-updates every consumer; the consumer diffs are reviewed and committed by hand (app repos on `develop`, platform repos on `main`).
+Propagation runs from the root of the maintainers' workspace: `plx -n -y ship` previews the train in scratch clones of the consumers, `plx -y ship` tags it and copier-updates every consumer; the consumer diffs are reviewed and committed by hand (app repos on `develop`, platform repos on `main`).

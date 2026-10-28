@@ -17,7 +17,7 @@ The page keeps the case that was made for the tool and the rules that keep it a 
 ## § 1 What exists
 
 The maintainers' helpers have moved: `plx`, published as `@plexus-ms/cli` from `packages` with `@plexus-ms/lib` as its core, carries the workspace map (`overview`), the staleness check (`doctor`, § 13.4 PLX), the release train (`ship`, `propagate`), the standard's requirements check (`requirements`, § 1.8 PLX) and the changeset a dependency bump owes (`changeset`, [§ 5 PLX-Delivery](delivery.md)).
-The toolbox and the compendium pin it in their `mise.toml`; the toolbox's tasks only name the workspace and map the flags.
+The maintainers run the workspace verbs as plain `plx` commands from the root of their workspace, whose `mise.toml` takes the newest release; the compendium pins it in its own `mise.toml` for `requirements`.
 The ops verbs have followed: `changed-apps`, `deploy-targets` and `deploy` are commands of the tool ([PLX-Delivery](delivery.md)), mounted on the forge by `ci-cd`'s thin reusable workflows, which call the `plx` the tenant repo pins in its `mise.toml`, and run by hand from a checkout otherwise.
 `ci-cd` carries no logic any more, only the mounts.
 The platform preset ships a playbook wrapper that prefixes the vault's CLI, and both repo presets ship the contract verbs and `sync` as mise tasks; those are the shell that remains.

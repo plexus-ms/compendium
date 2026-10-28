@@ -20,7 +20,7 @@ Ansible installs a nightly unit per VM: `pg_dump`/`mongodump` per labelled data 
 The job discovers what to dump by reading the `plexus.backup` labels, so a newly deployed app is automatically backed up, with zero bookkeeping; a `plexus.backup` value is valid exactly when the collection ships a handler for it, and extending the vocabulary means adding one handler upstream.
 A nightly unit that fails or never runs raises an alert ([the scheduling note](scheduling.md)).
 
-Untested backups are not backups, and the rule is to be encoded rather than aspirational: a `restore` verb (`plexus-ms/ci-cd`, `scripts/restore.sh`, not yet shipped) restores hand-runnably with no platform present, a scheduled restore test exercises it at least monthly, restoring the latest snapshot of each labelled data service into a scratch container, running a sanity check, and raising its own missed-job alert separate from the backup job's.
+Untested backups are not backups, and the rule is to be encoded rather than aspirational: a `restore` verb (a command of `plx`, [PLX-CLI](cli.md), not yet shipped) restores hand-runnably with no platform present, a scheduled restore test exercises it at least monthly, restoring the latest snapshot of each labelled data service into a scratch container, running a sanity check, and raising its own missed-job alert separate from the backup job's.
 Its first run against a new backup path *is* the first-use verification, and the path is re-verified after any material change to it.
 A backup without a hand-runnable restore is write-only storage; a restore test that silently stops running alerts exactly like a backup that silently stops running.
 

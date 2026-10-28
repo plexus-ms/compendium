@@ -64,6 +64,7 @@ A workflow that asks for a verb the pinned `plx` lacks fails as a usage error, l
 The maintainers' workspace is the exception that takes no pin: its `mise.toml` asks for the newest release, because the release tool has to be newer than anything it releases.
 From 0.7.0, `ship` and `propagate` hold the running `plx` against the registry (`npm view @plexus-ms/cli version`) and refuse to run behind it; an unreachable registry only warns.
 The workspace exempts the tool from mise's minimum release age (`minimum_release_age_excludes`), as pnpm and the update bot already exempt `@plexus-ms`: without that, `mise up` holds a fresh release back for a day while `ship` refuses to run behind it.
+mise also caches a tool's version list, so the update the refusal names is `mise cache clear npm:@plexus-ms/cli && mise up npm:@plexus-ms/cli`.
 The copier a propagation runs is pinned inside `plx` and run as `mise exec copier@<version> -- copier`, which the dry run prints like every other step: the copier a consumer is updated with travels with the tool, and the operator's `PATH` has no say in it.
 
 

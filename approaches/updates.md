@@ -88,3 +88,11 @@ The galaxy manager needs a `packageName` override because it hands a github.com 
 `gitIgnoredAuthors` names the one author that commits to the bot's branches, `plx changeset`'s; a second such author is added here, never in a tenant's own config, because a branch the bot stops rebasing is stale in every repo at once.
 
 Propagation runs from the root of the maintainers' workspace: `plx -n -y ship` previews the train in scratch clones of the consumers, `plx -y ship` tags it and copier-updates every consumer; the consumer diffs are reviewed and committed by hand (app repos on `develop`, platform repos on `main`).
+
+Deferred: self-hosting the update bot.
+The hosted bot runs each repo every few hours, and it merges a green pull request only on its own run, unless the forge's native auto-merge takes over; that needs a required check on the default branch, which blocks the direct pushes the train makes, and on a free plan a private repo has no auto-merge at all.
+Requiring checks and listing bypasses is rejected as machinery out of proportion to the wait; the interim lever is the dashboard's "run again" checkbox, which starts a run within minutes.
+Self-hosting is the sketch on file: a reusable `_renovate.yml` in `ci-cd` running Renovate for the calling repo only, mounted by every repo on three occasions: `workflow_run` when `verify` finishes on a bot branch, so a green bump merges at once, `workflow_dispatch` for a run on demand, and a schedule as the fallback.
+Renovate's `postUpgradeTasks` would then write the changeset a bump owes inside the bot's own commit, retiring `_changeset.yml` and the ignored author.
+Its costs are named up front: one GitHub App per tenant, since a token that writes to every repo it serves cannot cross a trust boundary; no release-triggered runs in tenants, because the upstream never reaches into a tenant's repos; Actions minutes on private repos unless the tenant's own runner takes the job; the hosted app uninstalled wherever the workflow runs; and a bot that is the tenant's to operate.
+Reopened when waiting on the hosted bot still costs time after the checkbox has been tried, piloted first in `plexus-ms`, whose repos are public and run on the forge's runners.

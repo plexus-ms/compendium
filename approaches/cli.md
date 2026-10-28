@@ -17,12 +17,13 @@ Nothing on this page changes what a repo runs today.
 
 The maintainers' helpers have moved: `plx`, published as `@plexus-ms/cli` from `packages` with `@plexus-ms/lib` as its core, carries the workspace map (`overview`), the staleness check (`doctor`, § 13.4 PLX), the release train (`ship`, `propagate`), the standard's requirements check (`requirements`, § 1.8 PLX) and the changeset a dependency bump owes (`changeset`, [§ 5 PLX-Delivery](delivery.md)).
 The toolbox and the compendium pin it in their `mise.toml`; the toolbox's tasks only name the workspace and map the flags.
-The ops verbs are bash still: `ci-cd` holds `deploy`, `changed-apps` and `deploy-targets`, mounted on the forge by thin reusable workflows and run by hand from a checkout otherwise ([PLX-Delivery](delivery.md)).
+The first ops verbs have followed: `changed-apps` and `deploy-targets` are commands of the tool, mounted on the forge by `ci-cd`'s thin reusable workflows, which call the `plx` the tenant repo pins in its `mise.toml`.
+The deploy verb is bash still, in `ci-cd`, mounted the same way and run by hand from a checkout otherwise ([PLX-Delivery](delivery.md)).
 The platform preset ships a playbook wrapper that prefixes the vault's CLI, and both repo presets ship the contract verbs and `sync` as mise tasks.
 
-The discipline of the remaining scripts is uniform: a header stating what the script does and how to run it by hand, strict mode, shellcheck clean, a `check` verb that enforces both.
-Every script passes the second-reader and degradation tests of the [manifesto](../essentials/manifesto.md).
-Volume alone is no reason to replace it.
+The discipline of the remaining script is what it was for all of them: a header stating what it does and how to run it by hand, strict mode, shellcheck clean, a `check` verb that enforces both.
+Each passed the second-reader and degradation tests of the [manifesto](../essentials/manifesto.md), and volume alone was no reason to replace them.
+What tipped the decision was the maintainers' own fog: dense bash with its quoting and its heredocs is harder for a human to maintain than TypeScript of the same portability, and the verbs moved for that reason, with the tighter supply chain of § 2 as a benefit that came along.
 
 
 ## § 2 What would justify a CLI
@@ -66,9 +67,8 @@ Three rules keep a CLI a bag of verbs rather than a system:
   A stranded operator copies the printed commands; that is the degradation test, kept.
 - The tool has no configuration file of its own.
   It reads the artifacts that already exist: markers, inventory, answers files, `compose.yaml`, module pages.
-- The host side stays bash.
-  The remote half of the deploy verb, the script ssh feeds to the host, is a string the tool carries verbatim and shellchecks in its own tests.
-  Hosts have bash and docker and nothing else, and that stays true.
+- The host side needs bash, docker and curl, and nothing else; that stays true.
+  Every command the deploy verb sends over ssh is a one-liner the dry run prints verbatim, so what reaches a host is readable in the plan, not in a script shipped alongside.
 
 
 ## § 5 What it would not solve
@@ -87,9 +87,11 @@ The verbs move in order of risk, each replacing one script and leaving the rest 
    The ten scenarios of the toolbox's harness run as an integration test against real git in `packages`.
    The dry run keeps its honest preview in scratch clones; that scratch work is the one documented exception to "a dry run performs no effect", performed in every mode because nothing the operator owns changes.
    Done, and the first verb a repo's CI runs rather than the maintainers' workspace: `changeset`, mounted on the update bot's pull requests by `ci-cd`'s `_changeset.yml`, with the runner taking `plx` as one line in the repo's tools table.
-3. `changed-apps` and `deploy-targets`.
-   Read-only, run in CI, where each `ci-cd` wrapper changes one line and the runner takes `plx` as one line in its tools table.
-4. `deploy`, with the remote half carried verbatim, run against the existing offline harness of fake `docker` and `curl` before the dogfood tenant takes it.
+3. Done: `changed-apps` and `deploy-targets`.
+   Read-only, run in CI: each `ci-cd` wrapper calls `plx` after `mise install`, and the tenant repo takes `plx` as one line in its tools table, written by the repo presets and bumped by the update bot.
+   The train pins the workflows and the tenant pins the verbs; a workflow that asks for a verb the pinned `plx` lacks fails as a usage error, loudly, and no compatibility floor is checked, because no incident has asked for one.
+   pnpm's range filter stays the authority on the workspace graph; the rules pnpm cannot know (bookkeeping is not source, a workspace-global input deploys everything, a platform repo is a path diff) are the verb's own, with tests.
+4. `deploy`, as a plan of fine-grained ssh steps over one multiplexed connection, each a one-liner the dry run prints verbatim, the readiness poll the one remote loop; tested with the fake Io and with a fake `ssh` on `PATH` that runs each step locally against a scratch app dir with fake `docker` and `curl`, before the dogfood tenant takes it.
 5. `new`, new ground, and `doctor` without a compendium checkout, so that a tenant runs its own staleness check.
 
 

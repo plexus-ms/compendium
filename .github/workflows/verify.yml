@@ -1,0 +1,16 @@
+name: verify
+
+# Mounts the verify verb on every push (§ 2 PLX-Delivery): the requirements
+# check over the map and every module, the same `mise verify` the pre-push
+# hook runs. Every push includes the update bot's branches, whose pull
+# requests merge unattended only once a check is green.
+
+on:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    uses: plexus-ms/ci-cd/.github/workflows/_verify.yml@0.72.0

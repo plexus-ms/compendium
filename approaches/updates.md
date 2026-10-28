@@ -54,6 +54,8 @@ How unattended the merge is, is stratified by blast radius, because one policy d
 The default posture is deliberately not trust-maximal: unattended propagation is granted per risk class, each tenant's bot config records the stratification it chose, and the risk appetite behind that choice is the tenant's own.
 A tenant choosing differently overrides the shared rules in its own `renovate.json`, which is where the deviation is recorded.
 
+In a package repo the bot's bump is given the changeset it owes by `plx changeset` ([§ 5 PLX-Delivery](delivery.md)), committed to the bot's branch; the preset lists that commit's author in `gitIgnoredAuthors`, so a branch the verb committed to is still the bot's to rebase, and the verb adds the file back after every rebase.
+
 
 ## § 3 Templates
 
@@ -83,5 +85,6 @@ One bootstrap shortcut is permitted and bounded: static config (tsconfig, biome)
 `renovate-config` rides outside the train and is read from its default branch, as Renovate presets conventionally are, so a change to it reaches every tenant's next bot run without a train.
 That makes every edit a change to every tenant's merge policy at once, and it is reviewed as one: widening automerge there widens it everywhere.
 The galaxy manager needs a `packageName` override because it hands a github.com URL to the tags datasource verbatim; the preset carries that fix so no tenant repeats it.
+`gitIgnoredAuthors` names the one author that commits to the bot's branches, `plx changeset`'s; a second such author is added here, never in a tenant's own config, because a branch the bot stops rebasing is stale in every repo at once.
 
 Propagation runs from the `toolbox` repo: `mise run ship -- -n -y` previews the train in scratch clones of the consumers, `mise run ship -- -y` tags it and copier-updates every consumer; the consumer diffs are reviewed and committed by hand (app repos on `develop`, platform repos on `main`).

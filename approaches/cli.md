@@ -15,7 +15,7 @@ Nothing on this page changes what a repo runs today.
 
 ## § 1 What exists
 
-The maintainers' helpers have moved: `plx`, published as `@plexus-ms/cli` from `packages` with `@plexus-ms/lib` as its core, carries the workspace map (`overview`), the staleness check (`doctor`, § 13.4 PLX), the release train (`ship`, `propagate`) and the standard's requirements check (`requirements`, § 1.8 PLX).
+The maintainers' helpers have moved: `plx`, published as `@plexus-ms/cli` from `packages` with `@plexus-ms/lib` as its core, carries the workspace map (`overview`), the staleness check (`doctor`, § 13.4 PLX), the release train (`ship`, `propagate`), the standard's requirements check (`requirements`, § 1.8 PLX) and the changeset a dependency bump owes (`changeset`, [§ 5 PLX-Delivery](delivery.md)).
 The toolbox and the compendium pin it in their `mise.toml`; the toolbox's tasks only name the workspace and map the flags.
 The ops verbs are bash still: `ci-cd` holds `deploy`, `changed-apps` and `deploy-targets`, mounted on the forge by thin reusable workflows and run by hand from a checkout otherwise ([PLX-Delivery](delivery.md)).
 The platform preset ships a playbook wrapper that prefixes the vault's CLI, and both repo presets ship the contract verbs and `sync` as mise tasks.
@@ -86,6 +86,7 @@ The verbs move in order of risk, each replacing one script and leaving the rest 
 2. Done, pulled ahead of the ops verbs because it is maintainer-only and had the best harness to diff against: `ship`, with `propagate` as a verb of its own and the compendium's requirements check as `requirements`, so that the `changed` comparator and `mise check` share one extractor.
    The ten scenarios of the toolbox's harness run as an integration test against real git in `packages`.
    The dry run keeps its honest preview in scratch clones; that scratch work is the one documented exception to "a dry run performs no effect", performed in every mode because nothing the operator owns changes.
+   Done, and the first verb a repo's CI runs rather than the maintainers' workspace: `changeset`, mounted on the update bot's pull requests by `ci-cd`'s `_changeset.yml`, with the runner taking `plx` as one line in the repo's tools table.
 3. `changed-apps` and `deploy-targets`.
    Read-only, run in CI, where each `ci-cd` wrapper changes one line and the runner takes `plx` as one line in its tools table.
 4. `deploy`, with the remote half carried verbatim, run against the existing offline harness of fake `docker` and `curl` before the dogfood tenant takes it.

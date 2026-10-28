@@ -167,13 +167,14 @@ Application plumbing, the "standardize boundaries" edges (framework glue, common
 ## § 6 Deploy semantics
 
 This section binds every repo that deploys: app repos through their pipeline, the platform repo for the third-party apps under its `apps/`.
-It describes what the shared deploy verb (`plexus-ms/ci-cd`, `scripts/deploy.sh`) does, so the contract requirements riding on it ([§ 5 PLX-App](../contracts/app.md), [§ 2 PLX-AppStateful](../contracts/app-stateful.md)) make sense.
+It describes what the shared deploy verb (`plx deploy`, [PLX-CLI](cli.md)) does, so the contract requirements riding on it ([§ 5 PLX-App](../contracts/app.md), [§ 2 PLX-AppStateful](../contracts/app-stateful.md)) make sense.
 The verb's behaviour is documented here rather than required; the contracts it serves are what carry requirements.
 
 ```
 deploy(host, tenant, app, image_ref):
   render compose.yaml from the invoking checkout, pinning image_ref
-  → ssh → stage the rendered file next to the one currently serving
+  → ssh, one line of shell per step, printed verbatim by --dry-run
+        → stage the rendered file next to the one currently serving
         → docker compose pull                # against the staged file
         → docker compose run --rm migrate   # only if the file declares it;
                                             # same image, idempotent, roll-forward-only
@@ -213,7 +214,7 @@ That is inside the fence: the file is read from git, the ref is the verb's own a
 The verb has one name and three callers.
 An app repo's pipeline runs it per changed app after the image is released (§ 4).
 The platform repo's `deploy.yml` runs it for the third-party apps under its `apps/`, from `main`, with the image already pinned in the committed file, each app's target looked up in the inventory by the `deploy-targets` verb.
-Hand-run, it is `./scripts/deploy.sh deploy@host tenant app image` from any checkout that has the compose file, which is what makes a forge-less deploy possible.
+Hand-run, it is `plx deploy deploy@host tenant app --image <ref>` from any checkout that has the compose file, and `plx -n deploy …` prints every ssh line it would run, which is what makes a forge-less deploy possible, with or without the tool.
 The deploy host is substance: a repo variable, or the inventory record's `plexus_deploy_target` where the platform repo has one, reachable over the tenant's overlay network or a public forward, whichever the tenant's platform provides.
 
 
@@ -252,16 +253,15 @@ A runner inside the tenant's network reaches the app hosts by their overlay name
 
 The module folds what were four pages, PLX-CI, PLX-Release, PLX-Deploy and PLX-Packages, into one, because a reader of any of them needed the other three; the section numbers of the old pages are retired with their codes, and a citation of one of them is rewritten to the section here that carries the same content.
 
-`plexus-ms/ci-cd` ships the ops verbs and the reusable workflows and tags them together, so a workflow always checks out its verb at the same tag.
+The ops verbs are commands of `plx` ([PLX-CLI](cli.md)), shipped from `plexus-ms/packages`; `plexus-ms/ci-cd` ships the reusable workflows that mount them and carries no logic of its own.
 The layering is load-bearing:
 
 - **Verbs** contain *all* the logic and stay hand-runnable.
   `plx changed-apps <from> [to]` prints the apps whose sources changed since a ref, dependents included, reading only git and the workspace graph (pnpm answers for the graph); it is the one encoding of the changed set, and the definition in § 3 and the verb change together.
   `plx deploy-targets [inventory]` prints each app's deploy target from a platform repo's inventory, and refuses an app declared with a target in two files.
-  Both are commands of `@plexus-ms/cli`, tested in `plexus-ms/packages` with the rest of the tool ([CLI](cli.md)); a tenant repo pins the tool in its `mise.toml`, so the pin, not the train, says which verb its CI runs, and a workflow that asks for a verb the pinned version lacks fails loudly as a usage error.
-  The deploy verb is the one still in bash, in `scripts/`: `git clone && ./scripts/deploy.sh deploy@host tenant app image` works with no forge at all, which is what passes the degradation test, and it moves to `plx` once its ssh steps are a plan the dry run prints.
-  Bash's native failure modes (unset variables expanding to nothing, pipelines failing silently) are second-reader traps, so a safety baseline applies to it: strict mode (`set -euo pipefail` or equivalent) and shellcheck-clean, enforced mechanically at the repo boundary by `mise :verify`, never the honor system.
-  Its remote half is a quoted heredoc that ssh feeds to `bash`; the check runs shellcheck over that too, and the heredoc can be extracted and run against a scratch directory with fake `docker` and `curl` scripts on `PATH` to exercise failure and rollback paths offline.
+  `plx deploy <host> <tenant> <app> [--image <ref>]` is § 6: every command it sends to the host is one line of shell over a shared ssh connection, and `--dry-run` prints each line verbatim, so `git clone && plx -n deploy …` hands a stranded operator the exact commands, which is what passes the degradation test.
+  All three are tested in `plexus-ms/packages`, the deploy verb against a fake `ssh` on `PATH` that runs each line locally in a scratch app dir with fake `docker` and `curl`, the offline harness of its bash days.
+  A tenant repo pins the tool in its `mise.toml`, so the pin, not the train, says which verb its CI runs, and a workflow that asks for a verb the pinned version lacks fails loudly as a usage error.
 - **Reusable workflows** are thin mounts of one verb each, with the job key equal to the verb, plus `_pipeline.yml` as the one composition; actionlint checks them under `mise :verify`.
   `_changeset.yml` is the one mount that writes back to the caller: the changeset `plx changeset` owes, committed to the bot's branch, pushed with a token the caller passes so that its checks run on the new tip.
   Logic never lives in the YAML.

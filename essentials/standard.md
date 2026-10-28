@@ -53,7 +53,7 @@ Tenants usually build and ship software:
 - **App** — one deployable unit satisfying the app contract ([PLX-App](../contracts/app.md)).
   It lives in an app repo for software the tenant builds, or the platform repo for third-party software the tenant merely operates.
 - **Verb** — a stateless, hand-runnable procedure that does one operational thing, authored portably.
-  Ops verbs are commands of `plx`, the published `@plexus-ms/cli`, and, until it moves there too, the deploy script `ci-cd` ships; contract verbs are the root mise tasks the repo contract requires.
+  Ops verbs are commands of `plx`, the published `@plexus-ms/cli` ([PLX-CLI](../approaches/cli.md)); contract verbs are the root mise tasks the repo contract requires.
 - **Mount** — the thin, disposable glue binding a verb or role to an event or state source it does not own: a workflow wrapper on forge events, a tenant playbook on an inventory, a systemd timer on the clock.
   Mounts carry no logic.
 
@@ -145,7 +145,7 @@ Because an unchanged repo still gets the tag, every cross-repo pin can cite the 
 
 The train repos are `platform`, `ci-cd`, `preset-repo-web`, `preset-app-nextjs`, `preset-repo-platform`, and `compendium`.
 `packages` (npm semver via changesets, [§ 5 PLX-Delivery](../approaches/delivery.md)) and `renovate-config` (read from its default branch) ride outside the train.
-Within the train, `ci-cd` tags the reusable workflows, and the deploy verb they still carry, together, so a workflow always checks out its verb at the same tag, while the verbs that have moved to `plx` are pinned by the calling repo (§ 13.5); `platform` tags the Ansible collection and the Terraform modules together, and its `galaxy.yml` version mirrors the tag exactly.
+Within the train, `ci-cd` tags the reusable workflows, while the verbs they mount are commands of `plx`, pinned by the calling repo (§ 13.5); `platform` tags the Ansible collection and the Terraform modules together, and its `galaxy.yml` version mirrors the tag exactly.
 The pre-train per-repo `vN` lines and the itops-era tags live on frozen in history, kept for existing pins and never retargeted.
 
 **Semver attaches to maturity.**
@@ -183,7 +183,7 @@ The repos that ship the methodology:
 |---|---|
 | `packages` | The published `@plexus-ms/*` packages for the web/Node/TypeScript world: shared tool configs, the `std` utilities, and over time the reusable application plumbing that keeps each app's domain core small. |
 | `platform` | The `plexus.platform` Ansible collection: the host baseline, the roles that make a host a tenant's app host, the roles of the infrastructure layer; plus reusable Terraform modules. |
-| `ci-cd` | The thin reusable workflows that mount the ops verbs on the forge, and the one verb not yet moved to `plx`, `deploy.sh`. |
+| `ci-cd` | The thin reusable workflows that mount the ops verbs of `plx` on the forge. |
 | `preset-repo-web` | The copier template for a tenant app repo: a web monorepo with `apps/` consuming the packages, re-syncable via `copier update`. |
 | `preset-app-nextjs` | The copier template for a Next.js app inside an app repo: contract-verb scripts, Dockerfile, `compose.yaml` with the contract labels. |
 | `preset-repo-platform` | The copier template for a tenant's platform repo: the two playbooks, on request a third for the infrastructure layer, inventory, the `op://`-pointer env files, the collection pin, the `apps/` directory and workflow for third-party apps. |
@@ -662,6 +662,5 @@ Mounting it on a schedule in each tenant, so that a tenant sees its own stalenes
 
 ### § 13.5 Tooling
 
-The maintainers' helpers and the first ops verbs are commands of `plx`, the published `@plexus-ms/cli`: the workspace map, the staleness check (§ 13.4), the train (§ 1.5), the requirements check (§ 1.8), the changeset a bump owes and the two read-only delivery verbs, `changed-apps` and `deploy-targets` (§ 6.3); a tenant repo pins the tool in its `mise.toml` and its CI runs that pin.
-The deploy verb is bash still, hand-runnable and checked, and moves last.
-The case for the tool, what it must not become, and the order in which the remaining verbs move is recorded in the [CLI note](../approaches/cli.md).
+The maintainers' helpers and the ops verbs are commands of `plx`, the published `@plexus-ms/cli`: the workspace map, the staleness check (§ 13.4), the train (§ 1.5), the requirements check (§ 1.8), the changeset a bump owes and the three delivery verbs, `changed-apps`, `deploy-targets` and `deploy` (§ 6.3); a tenant repo pins the tool in its `mise.toml` and its CI runs that pin.
+[PLX-CLI](../approaches/cli.md) is the module: why the tool replaced the scripts, what it must not become, and the verbs still to be written.

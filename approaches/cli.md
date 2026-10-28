@@ -1,43 +1,44 @@
 ---
-title: A Plexus CLI
+title: The Plexus CLI
 short_title: CLI
-description: Considerations for folding the shell verbs and maintainer helpers into one published command-line tool — what would justify it, where it would live, what it must not become, and in which order the verbs would move.
-maturity: note
+description: plx, the one published command-line tool that carries the ops verbs and the maintainers' helpers — why it replaced the shell scripts, where it lives, what it must not become, and how a repo takes it.
+code: PLX-CLI
+maturity: candidate
 binds: repo
 depends: [PLX-Repo]
 order: 29
 ---
 
-This page records the case for one published command-line tool, `plexus`, in place of the shell scripts that today carry the verbs and the maintainers' helpers.
-It is a note: a decision recorded with its reasoning and its trigger, no primitive shipped.
-Nothing on this page changes what a repo runs today.
+This module is `plx`, published as `@plexus-ms/cli`: one command-line tool that carries the ops verbs a tenant's CI runs and the helpers the maintainers run, in place of the shell scripts that carried them before.
+A repo takes it as one line in its `mise.toml` tools table, written by the repo presets and bumped by the update bot, and its workflows call the pin.
+The page keeps the case that was made for the tool and the rules that keep it a bag of verbs rather than a system; it is a candidate, so it states no requirements yet.
 
 
 ## § 1 What exists
 
 The maintainers' helpers have moved: `plx`, published as `@plexus-ms/cli` from `packages` with `@plexus-ms/lib` as its core, carries the workspace map (`overview`), the staleness check (`doctor`, § 13.4 PLX), the release train (`ship`, `propagate`), the standard's requirements check (`requirements`, § 1.8 PLX) and the changeset a dependency bump owes (`changeset`, [§ 5 PLX-Delivery](delivery.md)).
 The toolbox and the compendium pin it in their `mise.toml`; the toolbox's tasks only name the workspace and map the flags.
-The first ops verbs have followed: `changed-apps` and `deploy-targets` are commands of the tool, mounted on the forge by `ci-cd`'s thin reusable workflows, which call the `plx` the tenant repo pins in its `mise.toml`.
-The deploy verb is bash still, in `ci-cd`, mounted the same way and run by hand from a checkout otherwise ([PLX-Delivery](delivery.md)).
-The platform preset ships a playbook wrapper that prefixes the vault's CLI, and both repo presets ship the contract verbs and `sync` as mise tasks.
+The ops verbs have followed: `changed-apps`, `deploy-targets` and `deploy` are commands of the tool ([PLX-Delivery](delivery.md)), mounted on the forge by `ci-cd`'s thin reusable workflows, which call the `plx` the tenant repo pins in its `mise.toml`, and run by hand from a checkout otherwise.
+`ci-cd` carries no logic any more, only the mounts.
+The platform preset ships a playbook wrapper that prefixes the vault's CLI, and both repo presets ship the contract verbs and `sync` as mise tasks; those are the shell that remains.
 
-The discipline of the remaining script is what it was for all of them: a header stating what it does and how to run it by hand, strict mode, shellcheck clean, a `check` verb that enforces both.
+The discipline of the scripts was uniform: a header stating what the script did and how to run it by hand, strict mode, shellcheck clean, a `check` verb that enforced both.
 Each passed the second-reader and degradation tests of the [manifesto](../essentials/manifesto.md), and volume alone was no reason to replace them.
 What tipped the decision was the maintainers' own fog: dense bash with its quoting and its heredocs is harder for a human to maintain than TypeScript of the same portability, and the verbs moved for that reason, with the tighter supply chain of § 2 as a benefit that came along.
 
 
-## § 2 What would justify a CLI
+## § 2 What justified a CLI
 
-Three things in the current surface are debts a shell script cannot pay, and all three are answered by the same tool.
+Three things in the shell-script surface were debts a script could not pay, and all three are answered by the same tool.
 
 **One parser instead of five.**
 The declaration marker (§ 1.4 PLX), a module's frontmatter (§ 1.3 PLX), copier's answers file, the app record in a tenant's inventory ([§ 3 PLX-Platform](platform.md)) and the labels in `compose.yaml` ([PLX-App](../contracts/app.md)) were each read by whichever awk or sed last touched them: `ship` edited markers and frontmatter, `staleness` read frontmatter, `deploy-targets` reads inventory records, `requirements.sh` read module pages, `overview` read answers files.
 Each was honest about its limits, and together they were an unwritten contract: a quoted value, an indented list or a reordered key broke one of them silently.
-`@plexus-ms/lib` now holds one reader of the marker, the module frontmatter and the answers file, and one line-based editor of frontmatter; the inventory record and the compose labels are still read by the ops verbs' own sed.
+`@plexus-ms/lib` now holds one reader of the marker, the module frontmatter, the answers file and the inventory record, and one line-based editor of frontmatter; the compose labels are not parsed at all, the deploy verb reads `plexus.healthz` from the running container, which is reality rather than a parse.
 
 **Rung one of the ladder for the verbs themselves.**
-The deploy verb reaches a tenant's CI as a checkout of `ci-cd` at a train tag, the movable-tag edge § 1.6 PLX names and accepts.
-The playbook wrapper and the `promote` and `sync` tasks reach a tenant by copier, the second rung of § 4.3 PLX.
+The deploy verb reached a tenant's CI as a checkout of `ci-cd` at a train tag, the movable-tag edge § 1.6 PLX names and accepts; the train tag now pins only the workflows.
+The playbook wrapper and the `promote` and `sync` tasks still reach a tenant by copier, the second rung of § 4.3 PLX.
 A published `@plexus-ms/cli` is immutable and provenance-attested ([§ 5 PLX-Delivery](delivery.md)), pinned in a repo's `mise.toml`, and bumped by the update bot under the stratification of [§ 2 PLX-Updates](updates.md).
 For the verbs that is a tighter supply chain, not only better ergonomics.
 
@@ -47,15 +48,18 @@ For the verbs that is a tighter supply chain, not only better ergonomics.
 Those are the primitives that move the marginal tenant's cost toward zero.
 
 
-## § 3 Where it would live and what would run it
+## § 3 Where it lives and what runs it
 
 TypeScript in the `packages` repo, as `@plexus-ms/cli`, versioned by changesets and published through trusted publishing like every other package there, outside the train like the rest of `packages`.
 The requirements check and `ship` are maintainer helpers and are public all the same: they are methodology, and they carry no tenant's substance.
 
 The runtime is no objection.
 mise installs npm tools directly, which is how `renovate-config` pins its validator today, and every repo and every CI runner already goes through mise ([§ 2 PLX-Repo](../contracts/repo.md)).
-A platform repo does not take node into its toolchain; it takes one line in its tools table, and the bot keeps that line current.
-A few hundred lines of TypeScript with a YAML dependency read in half an hour at least as well as the awk they replace, and they take unit tests in the ordinary way instead of a bash harness faking copier and mise.
+A platform repo does not take node into its toolchain; it takes one line in its tools table, mise brings the runtime, and the bot keeps that line current.
+A few hundred lines of TypeScript with a YAML dependency read in half an hour at least as well as the awk they replaced, and they take unit tests in the ordinary way; the bash harnesses that faked copier, mise, docker and curl live on as integration tests in `packages`.
+
+The train pins the workflows and the tenant pins the verbs, and the two move independently through reviewed pull requests.
+A workflow that asks for a verb the pinned `plx` lacks fails as a usage error, loudly; no compatibility floor is checked, because no incident has asked for one.
 
 
 ## § 4 What it must not become
@@ -71,7 +75,7 @@ Three rules keep a CLI a bag of verbs rather than a system:
   Every command the deploy verb sends over ssh is a one-liner the dry run prints verbatim, so what reaches a host is readable in the plan, not in a script shipped alongside.
 
 
-## § 5 What it would not solve
+## § 5 What it does not solve
 
 The command tasks in the infrastructure roles stay Ansible and still need an offline test of their own ([PLX-Infrastructure](infrastructure.md), Maintaining).
 The hook and task stanzas repeated across the upstream repos stay manual sync, because the upstream repos are not consumers of any preset.
@@ -91,15 +95,16 @@ The verbs move in order of risk, each replacing one script and leaving the rest 
    Read-only, run in CI: each `ci-cd` wrapper calls `plx` after `mise install`, and the tenant repo takes `plx` as one line in its tools table, written by the repo presets and bumped by the update bot.
    The train pins the workflows and the tenant pins the verbs; a workflow that asks for a verb the pinned `plx` lacks fails as a usage error, loudly, and no compatibility floor is checked, because no incident has asked for one.
    pnpm's range filter stays the authority on the workspace graph; the rules pnpm cannot know (bookkeeping is not source, a workspace-global input deploys everything, a platform repo is a path diff) are the verb's own, with tests.
-4. `deploy`, as a plan of fine-grained ssh steps over one multiplexed connection, each a one-liner the dry run prints verbatim, the readiness poll the one remote loop; tested with the fake Io and with a fake `ssh` on `PATH` that runs each step locally against a scratch app dir with fake `docker` and `curl`, before the dogfood tenant takes it.
+4. Done: `deploy`, as a sequence of fine-grained ssh steps over one multiplexed connection, each a one-liner the dry run prints verbatim, the readiness poll the one remote loop, cleanup and the connection's close in a `finally`.
+   Tested with the fake Io and with a fake `ssh` on `PATH` that runs each step locally against a scratch app dir with fake `docker` and `curl`, the old offline harness reborn; the dogfood tenant's deploys are the proof in production.
+   With it `ci-cd` lost its last script, and its one check is actionlint over the workflows.
 5. `new`, new ground, and `doctor` without a compendium checkout, so that a tenant runs its own staleness check.
 
 
 ## Maintaining
 
-The trigger that reopens this page is any of the three in § 2 becoming acute: a format change that breaks one of the five parsers, a decision to close the movable-tag edge of § 1.6 PLX, or a tenant that is not the maintainer asking for `doctor` or `new`.
-Until then the debts of § 2 are paid in place: the marker and record shapes the parsers assume are stated in [§ 1.4 PLX](../essentials/standard.md) and [§ 3 PLX-Platform](platform.md), the preset's playbook wrapper is brought under the same check as every other script or dissolved into its mise tasks, and the offline fixtures of the toolbox harness cover the compendium's modules and the preset's inventory.
+`plexus-ms/packages` ships the tool as `@plexus-ms/cli` with `@plexus-ms/lib` as its core, versioned by changesets and published with provenance ([§ 5 PLX-Delivery](delivery.md)); the repo presets write the pin into every tenant repo and the update bot moves it.
+The page became a candidate with the train that moved the deploy verb, once the tool described was one a tenant's CI runs and not only the maintainers' helpers; it becomes standard, with the rules of § 4 as its requirements, when two tenants' repos that are not the maintainers' pin it.
 
-The first subcommands have shipped from `packages` and two maintainers' repos pin the tool, which is the trigger for this page to become a candidate module; it becomes standard when two tenants' repos pin it.
-Promotion waits for the first ops verb to move, so that the module describes a tool a tenant runs and not only the maintainers' helpers.
-The tool is a primitive of several modules, [PLX-Delivery](delivery.md), [PLX-Updates](updates.md) and § 13.4 PLX, and each of their Maintaining sections points here once a verb of theirs has moved.
+Debts: the preset's playbook wrapper is still shell outside the tool and is brought under a check or dissolved into its mise tasks; `new` and a `doctor` without a compendium checkout (§ 6) are not written; whether the update bot bumps the `npm:` pin in a tenant's `mise.toml` is confirmed by the first bump it opens.
+The tool is a primitive of [PLX-Delivery](delivery.md), [PLX-Updates](updates.md) and § 13.4 PLX, and each of their Maintaining sections points here.

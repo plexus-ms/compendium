@@ -13,4 +13,4 @@ permissions:
 
 jobs:
   verify:
-    uses: plexus-ms/ci-cd/.github/workflows/_verify.yml@0.72.0
+    uses: plexus-ms/ci-cd/.github/workflows/_verify.yml@0.73.0

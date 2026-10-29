@@ -240,6 +240,7 @@ A runner of the tenant's own is a host of the tenant, set up like every other by
 Each instance has a home of its own, because jobs running at the same time must not share what a job writes in place there, a tool's binaries or a registry login; the caches built for concurrent writers, the pnpm store among them, are shared between all instances.
 Jobs run directly on the host, with Docker for image builds, so one host serves one tenant and runs nothing else: a runner holds job secrets in flight, and the docker group is root on that machine.
 Only the tenant's private repos use it, since a public repo lets a stranger's pull request run on it.
+What a job expects of the forge's runners beyond its own toolchain is on the host as well: the system libraries Playwright's Chromium links against, while the browsers themselves are fetched by the jobs into a shared cache.
 What jobs leave behind is bounded on both ends.
 The release job removes the image it built once it is pushed, and a hook after every job prunes the anonymous volumes the runner leaves when it removes a job's service containers.
 A nightly housekeeping timer removes stale working directories, every container older than a few hours (a job's containers live as long as the job), unused volumes and pulled images, and caps the build cache by size, since on a persistent runner that cache is the layer cache; it fails loudly, into the host's mail, when the disk fills regardless.

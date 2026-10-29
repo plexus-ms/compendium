@@ -59,6 +59,8 @@ A package repo's `main` admits nothing but pull requests, so its `verify.yml` ru
 `deploy.yml` runs on pushes to an environment branch and answers "may this ship", per app: verify the app, release its image, deploy it.
 `release.yml` does the same for a package repo on its trunk: verify, release.
 On an environment branch both files run, and the two verifies are not the same thing: one is repo-wide, the other is scoped to one app and is the gate for that app alone.
+`verify.yml` keeps one run per ref: a newer push to the same branch cancels the run still going for the older commit, whose verdict nobody waits for any more, which also spares a runner host two runs of one repo competing for the same machine.
+`deploy.yml` and `release.yml` never cancel; a deploy cut off between migrate and up would strand the host.
 
 The per-app chain is `_pipeline.yml`, a reusable workflow with the jobs `verify`, `release` and `deploy` for one app, which the tenant's `deploy.yml` fans out over the changed set.
 It exists because the forge's job graph is static and `needs` connects jobs, never the legs of a matrix: a job after a matrixed job waits for every leg and sees only one leg's outputs.

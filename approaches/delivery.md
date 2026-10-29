@@ -236,7 +236,8 @@ By default the jobs run on the forge's own runners: a fresh machine per job, des
 A tenant that wants faster or cheaper CI runs a runner of its own, and the choice is two repo variables: a label that selects the runner (`CI_RUNNER`), and whether it keeps its disk between jobs (`CI_RUNNER_PERSISTENT`), which the mounts take as the inputs `runner` and `persistent`.
 Unsetting the label moves CI back to the forge's runners at once, without a playbook run, which is also the fallback while the tenant's runner host is down.
 
-A runner of the tenant's own is a host of the tenant, set up like every other by the collection ([§ 2 PLX-Platform](platform.md)): the `github_runner` role installs the official runner as N instances, each a systemd service with a home of its own, registered at the tenant's forge organisation with a short-lived token minted from a vault secret at registration time and never stored.
+A runner of the tenant's own is a host of the tenant, set up like every other by the collection ([§ 2 PLX-Platform](platform.md)): the `github_runner` role installs the official runner as N instances, each a systemd service, registered at the tenant's forge organisation with a short-lived token minted from a vault secret at registration time and never stored.
+Each instance has a home of its own, because jobs running at the same time must not share what a job writes in place there, a tool's binaries or a registry login; the caches built for concurrent writers, the pnpm store among them, are shared between all instances.
 Jobs run directly on the host, with Docker for image builds, so one host serves one tenant and runs nothing else: a runner holds job secrets in flight, and the docker group is root on that machine.
 Only the tenant's private repos use it, since a public repo lets a stranger's pull request run on it.
 What jobs leave behind is bounded on both ends.

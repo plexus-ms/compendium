@@ -239,7 +239,9 @@ Unsetting the label moves CI back to the forge's runners at once, without a play
 A runner of the tenant's own is a host of the tenant, set up like every other by the collection ([§ 2 PLX-Platform](platform.md)): the `github_runner` role installs the official runner as N instances, each a systemd service with a home of its own, registered at the tenant's forge organisation with a short-lived token minted from a vault secret at registration time and never stored.
 Jobs run directly on the host, with Docker for image builds, so one host serves one tenant and runs nothing else: a runner holds job secrets in flight, and the docker group is root on that machine.
 Only the tenant's private repos use it, since a public repo lets a stranger's pull request run on it.
-A nightly housekeeping timer prunes working directories, images and build cache older than a week and fails loudly, into the host's mail, when the disk fills regardless.
+What jobs leave behind is bounded on both ends.
+The release job removes the image it built once it is pushed, and a hook after every job prunes the anonymous volumes the runner leaves when it removes a job's service containers.
+A nightly housekeeping timer removes stale working directories, every container older than a few hours (a job's containers live as long as the job), unused volumes and pulled images, and caps the build cache by size, since on a persistent runner that cache is the layer cache; it fails loudly, into the host's mail, when the disk fills regardless.
 
 Three trade-offs are named rather than implied.
 The runner persists between jobs, against "primitives should rarely remember anything": the caches are the speed gain, and the housekeeping bounds what jobs leave behind.

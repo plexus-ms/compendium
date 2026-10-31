@@ -29,7 +29,8 @@ Across tenants, only upstream methodology travels.
 
 Anything that can live behind a stable interface propagates as a versioned dependency: the `@plexus-ms/*` packages (extended in one line), the reusable workflows and the verbs they mount (`primitives`' train tag and the `plx` published from it), the `plexus.platform` Ansible collection (installed from `primitives`' train tag), the shared update-bot preset.
 Fix once → bump version → a PR in every consumer repo.
-Every pin has exactly one writer: the train writes the pins that name the train (the workflow refs, the collection pin, the `plx` pin, the exact `@plexus-ms/config` pin), all in one pull request per consumer, and the update bot proposes every other pin and never those; a template holds only the value a repo is born with.
+Every pin has exactly one writer: the train writes the pins that name the train (the workflow refs, the collection pin, the `plx` pin, the `@plexus-ms/config` entry of the `plexus` catalog in `pnpm-workspace.yaml`), all in one pull request per consumer, and the update bot proposes every other pin and never those; a template holds only the value a repo is born with.
+A pin the train writes lives in a file the preset owns, which is why the config is pinned through a catalog ([§ 1 PLX-JS](js.md)): a manifest a tenant writes by hand says `catalog:plexus` and follows, where an exact version in it would have had no writer at all.
 Two writers on one line is how the template birth values rotted and the three-way merges conflicted before.
 Consumers customize by overriding at the edges, inheritance with a local override slot: a consumer's `biome.json` extends the shared one and adds local rules, so base updates never clobber local changes, because they live in different files.
 Take the dependency, override at the edge, never fork the base.

@@ -25,6 +25,7 @@ A Python or Go repo takes the same repo contract with a toolchain module of its 
 > - mise MUST install only node for the JS/TS toolchain; the package manager arrives through node itself: a `postinstall` hook enables corepack, which installs the pnpm version pinned in the root `package.json` `packageManager` field, the single pnpm pin (Turborepo requires the field anyway).
 > - The node version MUST be pinned exactly once: a `.node-version` file at the repo root, read by mise natively (`idiomatic_version_file_enable_tools`), by CI as a plain file, and by the image build as a build arg.
 > - JS-ecosystem dev tools (turbo, biome, …) MUST be devDependencies, on the PATH via mise's `_.path`, never mise `[tools]` entries; a `package.json` MUST NOT carry `engines`.
+> - A train-versioned package a repo consumes (`@plexus-ms/config`) MUST be taken through the workspace's `plexus` catalog: every manifest says `catalog:plexus`, and the one version in `pnpm-workspace.yaml` is the train's to write ([§ 1 PLX-Updates](updates.md)).
 
 Each fact sits in its canonical home ([§ 2 PLX-Repo](../contracts/repo.md)): the pnpm version where pnpm itself and every update bot reads it, dev tools where npm's ecosystem versions them, the task graph where turbo reads it, and the node version in `.node-version`, the file the node ecosystem's own version managers converged on, which any consumer can read without a toolchain (`cat` in CI, an `ARG` in the Dockerfile, mise natively).
 `pnpm-workspace.yaml` (`packages:` globs plus a `catalog:` pinning shared dev-tool versions) owns install and linking; turbo owns ordering and caching on top of it.
@@ -40,3 +41,4 @@ The concrete arrangement, the `mise.toml`, `turbo.json`, root `package.json`, ho
 
 `plexus-ms/preset-repo-web` is the arrangement authority for this module: the template's `mise.toml`, `turbo.json`, `biome.json`, root `package.json`, and `hk.pkl` are the one encoding of § 1, and a change to the requirements here is a change to the template in the same train.
 The shared configs a generated repo extends (`@plexus-ms/config/biome`, `/tsconfig`) are published from `plexus-ms/primitives` at the train number (§ 1.6 PLX); the template carries only the one-line `extends`.
+The version lives in one place because the pin has one writer: the train writes the catalog entry in `pnpm-workspace.yaml`, a file the preset owns, and the manifests a tenant writes by hand follow it through `catalog:plexus` without the train ever touching them.

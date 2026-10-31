@@ -16,7 +16,7 @@ The page keeps the case that was made for the tool and the rules that keep it a 
 
 ## § 1 What exists
 
-The maintainers' helpers have moved: `plx`, published as `@plexus-ms/cli` from `primitives` with `@plexus-ms/lib` as its core, carries the workspace map (`overview`), the staleness check (`doctor`, § 13.4 PLX), the release train (`ship`, `propagate`), the standard's requirements check (`requirements`, § 1.8 PLX) and the changeset a dependency bump owes (`changeset`, [§ 5 PLX-Delivery](delivery.md)).
+The maintainers' helpers have moved: `plx`, published as `@plexus-ms/cli` from `primitives` with `@plexus-ms/lib` as its core, carries the workspace map (`overview`), the staleness check (`doctor`, § 13.4 PLX), the release train (`ship`, `propagate`), the train pull a repo makes for itself (`update`, [§ 3 PLX-Updates](updates.md)), the standard's requirements check (`requirements`, § 1.8 PLX) and the changeset a dependency bump owes (`changeset`, [§ 5 PLX-Delivery](delivery.md)).
 The maintainers run the workspace verbs as plain `plx` commands from the root of their workspace, whose `mise.toml` takes the newest release; the compendium pins it in its own `mise.toml` for `requirements`.
 The ops verbs have followed: `changed-apps`, `deploy-targets` and `deploy` are commands of the tool ([PLX-Delivery](delivery.md)), mounted on the forge by the thin reusable workflows next to it in `primitives`, which call the `plx` the tenant repo pins in its `mise.toml`, and run by hand from a checkout otherwise.
 The workflows carry no logic, only the mounts.
@@ -103,7 +103,9 @@ The verbs move in order of risk, each replacing one script and leaving the rest 
 4. Done: `deploy`, as a sequence of fine-grained ssh steps over one multiplexed connection, each a one-liner the dry run prints verbatim, the readiness poll the one remote loop, cleanup and the connection's close in a `finally`.
    Tested with the fake Io and with a fake `ssh` on `PATH` that runs each step locally against a scratch app dir with fake `docker` and `curl`, the old offline harness reborn; the dogfood tenant's deploys are the proof in production.
    With it the workflow repo lost its last script, and the workflows' one check is actionlint.
-5. `new`, new ground, and `doctor` without a compendium checkout, so that a tenant runs its own staleness check.
+5. Done: `update`, the tenant side of the train: the same pull request `ship` opens, made from inside the repo in a worktree of its branch, mounted by the presets' `update.yml` on a schedule in the tenant's own CI and run by hand otherwise.
+   It shares its per-consumer work with `propagate` and is tested in the same harness against real git and the fake forge.
+6. `new`, new ground, and `doctor` without a compendium checkout, so that a tenant runs its own staleness check.
 
 
 ## Maintaining
@@ -112,6 +114,6 @@ The verbs move in order of risk, each replacing one script and leaving the rest 
 Inside `primitives` the tool is a workspace package: `pnpm plx` runs the checkout's own build, which `pnpm install` produces.
 The page became a candidate with the train that moved the deploy verb, once the tool described was one a tenant's CI runs and not only the maintainers' helpers; it becomes standard, with the rules of § 4 as its requirements, when two tenants' repos that are not the maintainers' pin it.
 
-Debts: the preset's playbook wrapper is still shell outside the tool and is brought under a check or dissolved into its mise tasks; `new` and a `doctor` without a compendium checkout (§ 6) are not written; whether the update bot bumps the `npm:` pin in a tenant's `mise.toml` is confirmed by the first bump it opens.
+Debts: the preset's playbook wrapper is still shell outside the tool and is brought under a check or dissolved into its mise tasks; `new` and a `doctor` without a compendium checkout (§ 6) are not written.
 The copier version `plx` pins (`COPIER_VERSION` in `packages/lib/src/copier.ts`) carries a `// renovate:` annotation that a regex manager in `primitives`' `renovate.json` reads; the bump is never automerged, because it changes how every consumer is propagated, and the next train ships it.
 The tool is a primitive of [PLX-Delivery](delivery.md), [PLX-Updates](updates.md) and § 13.4 PLX, and each of their Maintaining sections points here.

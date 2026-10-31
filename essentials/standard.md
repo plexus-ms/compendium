@@ -365,6 +365,9 @@ Until then the plumbing lives in the app that needs it.
 
 General re-use of plumbing and boilerplate is encouraged per the DRY principle.
 
+Deferred: `libraries` as an organisation or brand of its own, separate from the standard.
+The trigger is a library gaining users who do not adopt the standard; until then the libraries are published from `plexus-ms` like the rest of the methodology, on their own semver (§ 1.5).
+
 ### § 4.7 Working with coding agents
 
 Not covered yet.
@@ -652,7 +655,7 @@ Every tenant repo runs a bot that watches its pins; how unattended a merge is fo
 
 ### § 13.3 Templates and re-sync
 
-What cannot be a dependency arrives through a copier template and is re-synced on the train by `copier update`; the three scaffolding tiers decide where a new artifact goes.
+What cannot be a dependency arrives through a copier template and is re-synced on the train by `copier update`, as a pull request the repo opens for itself from its own CI (`plx update`) or the maintainers' `ship` opens for it; the three scaffolding tiers decide where a new artifact goes.
 [§ 3 PLX-Updates](../approaches/updates.md).
 
 ### § 13.4 Staleness check

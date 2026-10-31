@@ -68,5 +68,5 @@ A role belongs wholly to one cadence; a component that spans both gets two roles
 
 `plexus-ms/primitives` carries the collection and the Terraform modules under `ansible/` and `terraform/`, tagged on the train; `galaxy.yml`'s version mirrors the train tag exactly, because SCM installs record that version and a re-pointed tag alone would not reinstall.
 Tenants pin the collection by tag in `requirements.yml`, and the train's pull request moves the pin, a PR a human reads before anything new runs as root ([PLX-Updates](updates.md)).
-The collection's own `mise :check` lints the roles; a container-backed role test covers what can be exercised without a host.
+`primitives`' `check-ops` lints the roles and syntax-checks a playbook that lists every role; a container-backed role test (molecule) is a debt, deferred when the repos were consolidated so that a red verify during the merge stayed attributable, and is added in a train of its own.
 Ansible and the vault CLI want a terminal-free invocation in automation: stdin from `/dev/null`, output to a file.

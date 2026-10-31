@@ -57,6 +57,6 @@ A guest of another tenant on the same hypervisor is an arrangement between tenan
 
 ## Maintaining
 
-Known debts, to be paid in this module: the backup token and encryption key are made by hand, encoded as a procedure in the roles' defaults until a primitive can write to the vault; the local-mail role reports a failed unit at most once a day rather than per failure, and a digest is the next step if that is still noisy.
+Known debts, to be paid in this module: the Terraform modules under `primitives/terraform/` have no check under `verify` yet (`terraform validate` was deferred with molecule when the repos were consolidated); the backup token and encryption key are made by hand, encoded as a procedure in the roles' defaults until a primitive can write to the vault; the local-mail role reports a failed unit at most once a day rather than per failure, and a digest is the next step if that is still noisy.
 The roles stay the single encoding of the hosts: no image, no template, no hand step before the first run.
 Field notes on Proxmox on Debian live in the compendium's miscellaneous section; what applies generally moves into the roles, what is one host's history stays in that tenant's repo.

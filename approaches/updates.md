@@ -103,6 +103,8 @@ Until the variable is set the job is skipped, so a repo generated before the app
 The key never leaves the tenant: an app token is scoped to its installation, but the key mints tokens for every installation of the app, which is why the app is the tenant's and not the upstream's.
 `libraries` is a consumer of `preset-repo-web` like a tenant's web repo (answer `publishes_packages`), so the package-repo arrangement is propagated and no longer hand-maintained.
 Birth values in the templates (a pin's value as a repo is generated) are the one residual two-writer line: the train rewrites them on every train, so they never rot further than one train; should the three-way merge still conflict on one, the rule to add is newest-wins in `propagate` for a single-line semver conflict.
+The sharper statement, learnt on the first trains of the consolidated layout: git refuses touching hunks, so any template line adjacent to a line the update bot moves conflicts on the train that changes it, whatever its own value.
+A line the train rewrites every train (the `plx` pin, the catalog entry) is therefore kept between comment lines the bot never touches, and a manifest's dependency map is never such a place.
 
 The staleness check itself (§ 13.4 PLX) still runs only from the maintainers' workspace, because it needs a compendium checkout; a tenant's own `doctor` is the next verb ([§ 6 PLX-CLI](cli.md)).
 

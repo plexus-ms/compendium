@@ -39,4 +39,4 @@ The concrete arrangement, the `mise.toml`, `turbo.json`, root `package.json`, ho
 ## Maintaining
 
 `plexus-ms/preset-repo-web` is the arrangement authority for this module: the template's `mise.toml`, `turbo.json`, `biome.json`, root `package.json`, and `hk.pkl` are the one encoding of § 1, and a change to the requirements here is a change to the template in the same train.
-The shared configs a generated repo extends (`@plexus-ms/config/biome`, `/tsconfig`) are published from `plexus-ms/packages` ([§ 5 PLX-Delivery](delivery.md)); the template carries only the one-line `extends`.
+The shared configs a generated repo extends (`@plexus-ms/config/biome`, `/tsconfig`) are published from `plexus-ms/primitives` at the train number (§ 1.6 PLX); the template carries only the one-line `extends`.

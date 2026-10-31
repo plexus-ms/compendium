@@ -66,7 +66,7 @@ Roles are named for what they do (`configure_sshd`, `install_docker`), each role
 A role that needs something from another role's territory asks that role: a role that opens a port hands a fragment to `configure_firewall` instead of writing firewall files itself.
 A role belongs wholly to one cadence; a component that spans both gets two roles.
 
-`plexus-ms/platform` tags the collection and the Terraform modules together, on the train; `galaxy.yml`'s version mirrors the train tag exactly, because SCM installs record that version and a re-pointed tag alone would not reinstall.
-Tenants pin the collection by tag in `requirements.yml` and the update bot proposes each train as a PR a human reads before anything new runs as root ([PLX-Updates](updates.md)).
+`plexus-ms/primitives` carries the collection and the Terraform modules under `ansible/` and `terraform/`, tagged on the train; `galaxy.yml`'s version mirrors the train tag exactly, because SCM installs record that version and a re-pointed tag alone would not reinstall.
+Tenants pin the collection by tag in `requirements.yml`, and the train's pull request moves the pin, a PR a human reads before anything new runs as root ([PLX-Updates](updates.md)).
 The collection's own `mise :check` lints the roles; a container-backed role test covers what can be exercised without a host.
 Ansible and the vault CLI want a terminal-free invocation in automation: stdin from `/dev/null`, output to a file.

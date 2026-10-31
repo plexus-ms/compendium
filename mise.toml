@@ -4,7 +4,7 @@ hk = "latest"               # Git hooks
 # plexus-ms/primitives, pinned at the train number by the train itself (§ 1.5
 # PLX); the trust-policy approval only waives npm's new-name/low-download
 # heuristics, which it trips by being young.
-"npm:@plexus-ms/cli" = { version = "0.9.0", allow_low_downloads = true }
+"npm:@plexus-ms/cli" = { version = "0.10.0", allow_low_downloads = true }
 
 [hooks]
 postinstall = "hk install --mise"

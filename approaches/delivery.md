@@ -25,7 +25,7 @@ The app's side of being deployed, the compose file, the readiness endpoint, the 
 > - Every repo MUST answer `verify`: perform every automated step that ascertains code quality (§ 3 PLX-Repo).
 > - A repo that publishes an artifact MUST do so through `release`: from verified code, create and publish a versioned artifact to a registry.
 > - A repo that runs an artifact MUST do so through `deploy`: launch a released artifact into an execution environment.
-> - `release` and `deploy` MUST act only on code that `verify` has passed in the same workflow run; neither verb re-verifies.
+> - `release` MUST act only on code that `verify` has passed in the same workflow run, and `deploy` MUST launch only an artifact so released; neither verb re-verifies.
 > - Whatever operates on a repo without having written it MUST reach it only through these verbs; the incantations behind them are the repo's own.
 
 Every repo answers the first verb; the other two are answered by the repos that produce and run artifacts.
@@ -39,30 +39,39 @@ The deploy verb is one bash script in `plexus-ms/ci-cd`; the release verb is two
 
 The guarantee "from verified code" is the pipeline's, not the verb's.
 A `release` job runs after a `verify` job it depends on, in the same run, for the same commit; hand-run, `release` publishes what it is pointed at.
+Because nothing reaches the registry without that order, the registry is the record of what was verified: an artifact that exists for a commit was verified and released for it, and a later run that finds it deploys it without verifying or building the same commit again.
 
 
 ## § 2 Workflows and the pipeline
 
 > - A tenant MUST NOT operate its own CI control plane.
 > - The forge SHOULD be GitHub; a tenant SHOULD NOT self-host a forge.
-> - Every repo MUST carry `.github/workflows/verify.yml` with one job `verify` that answers the verb repo-wide, triggered so that every commit is verified before it reaches an environment branch: on every push where the repo takes direct pushes to such a branch, on pull requests where its branch rules admit nothing but pull requests.
-> - A repo that deploys MUST carry `deploy.yml`, and a repo that releases packages MUST carry `release.yml`, each triggered by pushes to the branches that name its environments and each verifying first within the same run.
+> - Every repo MUST run a job `verify` that answers the verb repo-wide on every pull request, and on every push to a trunk that takes direct pushes and verifies nothing per app.
+> - A push to a branch that is neither the trunk nor an environment branch MUST NOT start a run; a change to nothing but Markdown SHOULD NOT start one.
+> - An app repo MUST carry `.github/workflows/pipeline.yml`, which mounts the verbs on pull requests and on pushes to its environment branches; a package repo MUST carry `verify.yml` and `release.yml`, and the platform repo `verify.yml` and `deploy.yml`.
+> - A newer run for the same ref MUST cancel a `verify` still going for an older commit, and MUST NOT cancel a `release` or `deploy` once started.
 > - A job MUST be named after the verb it mounts; a workflow is named after the occasion it mounts the verbs on.
 > - Reusable workflows live in `plexus-ms/ci-cd`, named with a leading underscore; a tenant repo SHOULD carry only the generated workflows and MUST NOT carry logic in workflow YAML.
 > - A tenant repo's workflows reference the reusable ones by the train tag.
 
 A job is a verb; a workflow is a mount: the trigger that runs the verbs on an occasion.
 Three verbs therefore do not need three files.
-`verify.yml` answers the question "is the repo sound" for every commit before it reaches an environment branch, and the trigger follows the repo's branch rules.
-An app repo's `develop` takes direct pushes, the ones `propagate` makes among them, so its `verify.yml` runs on every push.
-A package repo's `main` admits nothing but pull requests, so its `verify.yml` runs on `pull_request`, which also tests the merge result rather than the branch tip; a push trigger would in any case never fire for the "version packages" PR, whose branch the release job pushes with the workflow token, and pushes made with that token start no workflow.
-`deploy.yml` runs on pushes to an environment branch and answers "may this ship", per app: verify the app, release its image, deploy it.
-`release.yml` does the same for a package repo on its trunk: verify, release.
-On an environment branch both files run, and the two verifies are not the same thing: one is repo-wide, the other is scoped to one app and is the gate for that app alone.
-`verify.yml` keeps one run per ref: a newer push to the same branch cancels the run still going for the older commit, whose verdict nobody waits for any more, which also spares a runner host two runs of one repo competing for the same machine.
-`deploy.yml` and `release.yml` never cancel; a deploy cut off between migrate and up would strand the host.
+Two questions are asked of a repo, on two occasions.
+"Is the repo sound" is asked of a pull request, answered by one repo-wide `verify` and tested as the merge result rather than the branch tip.
+"May this ship" is asked of a push to an environment branch, answered per app: verify the app, release its image, deploy it.
+The two verifies are not the same thing: one is repo-wide, the other is scoped to one app and is the gate for that app alone.
+An app repo asks both in one workflow, `pipeline.yml`, whose jobs are selected by the event: `verify` on a pull request, the per-app chain on a push to `develop` or `main`.
+A package repo asks the first in `verify.yml` on pull requests, since its `main` admits nothing but pull requests, and the second in `release.yml` on its trunk: verify, release; a push trigger would in any case never fire for the "version packages" PR, whose branch the release job pushes with the workflow token, and pushes made with that token start no workflow.
+The platform repo's `main` takes an operator's direct pushes, so its `verify.yml` runs on those as well as on pull requests, and its `deploy.yml` deploys the third-party apps from `main` (§ 3).
 
-The per-app chain is `_pipeline.yml`, a reusable workflow with the jobs `verify`, `release` and `deploy` for one app, which the tenant's `deploy.yml` fans out over the changed set.
+Runs that answer nobody are not started.
+A push to a feature branch is verified once it has a pull request, and every later push to it is verified as the pull request's merge result; a pushed branch nobody has opened a pull request for runs nothing.
+A change to nothing but Markdown starts nothing, and the next run that does start diffs past it, so its changed set loses nothing.
+A newer push to the same ref cancels the `verify` still going for the older commit, whose verdict nobody waits for any more; on an environment branch that is the per-app `verify`, so a burst of merges collapses to the newest commit for each app, and the cancelled runs' releases and deploys, which had not started, never do.
+The cancellation sits on the `verify` job and never on the workflow: a `release` or `deploy` already started runs to its end, since a deploy cut off between migrate and up would strand the host, and deploys of one app to one host keep their own queue, at most one running and the newest waiting.
+A commit whose image is already in the registry is neither verified nor built again (§ 1): a fast-forward promotion of `main` to a `develop` tip that was built there deploys that image, and a run started by hand on an environment branch redeploys every app from the images it finds.
+
+The per-app chain is `_pipeline.yml`, a reusable workflow with the jobs `verify`, `release` and `deploy` for one app, which the tenant's `pipeline.yml` fans out over the changed set.
 It exists because the forge's job graph is static and `needs` connects jobs, never the legs of a matrix: a job after a matrixed job waits for every leg and sees only one leg's outputs.
 So the three verbs of one app have to live in one unit, and the only unit the forge can nest inside a matrix leg is a reusable workflow.
 The same shape keeps a broken app from holding back a sound one on a push to `develop`: each leg fails on its own.
@@ -106,6 +115,7 @@ The model: **the unit of deployment is the app; the unit of promotion is the rep
 A merge to an environment branch releases into that environment exactly the apps whose sources changed in the merge: a docs-only merge deploys nothing, a `packages/ui` change redeploys its dependents, unchanged apps are neither rebuilt nor redeployed.
 The changed set is derived from the push event's `before..after` diff, one definition that covers merge commits, squash merges, and multi-commit direct pushes identically; stateless, no bookkeeping.
 A promotion carries every commit since the last one, so the changed set on `main` is the union of everything promoted, not the last commit alone.
+Promotion builds nothing that `develop` built: an app whose image exists for the promoted commit is deployed from it (§ 2), and only an app whose last change on `develop` lies behind the promoted tip is built again, under the tip's SHA.
 Path-scoping is itself a mounted verb, not YAML logic: `changed-apps` reads git and the workspace graph and prints the apps whose sources changed, dependents included.
 
 Promotion is the whole repo: `develop → main` asserts *everything on `develop` is prod-ready*, and selective promotion would put on prod a repo state that never existed on staging, destroying the one guarantee environment branches exist to give.
@@ -125,7 +135,7 @@ Granularity problems are solved by moving a product into a release cycle of its 
 This section binds app repos.
 `release` for an app is one image per changed app: build from the Dockerfile the app contract asks for ([§ 7 PLX-App](../contracts/app.md)), push to GHCR under the tenant's organisation, tagged with the SHA.
 The build is hermetic: it runs inside the Dockerfile, so the artifact is correct from any host, and what *build* means is encoded once, in the repo's task graph, which the Dockerfile invokes exactly as the `build` verb does.
-The image reference is the release's one output, and the deploy job of the same pipeline leg takes it as its input.
+The image reference is the release's one output, and the deploy job of the same pipeline leg takes it as its input; when the image already existed, the leg resolves the same reference without releasing.
 
 Caching is the one place the mount knows about the machine it runs on.
 A GitHub-hosted runner is destroyed after the job, so the layer cache has to be exported to the forge's cache service and imported again, through a builder container that can do so.
@@ -272,7 +282,7 @@ The layering is load-bearing:
   `_changeset.yml` is the one mount that writes back to the caller: the changeset `plx changeset` owes, committed to the bot's branch, pushed with a token the caller passes so that its checks run on the new tip.
   Logic never lives in the YAML.
   GitHub's workflow format is not an open standard and the runner is self-hostable but GitHub remains the scheduler, so a workflow is forge-specific and disposable, while a verb is portable and permanent.
-- **Tenant workflows** are generated by the presets, `verify.yml` and `deploy.yml` by the web preset, `verify.yml` and `deploy.yml` by the platform preset, `verify.yml` and `release.yml` for a package repo (the web preset with `publishes_packages`), plus `update.yml` from both repo presets, the mount that pulls the train ([§ 3 PLX-Updates](updates.md)); all reference the reusable workflows by the train tag, which the train's own pull request moves in every tenant.
+- **Tenant workflows** are generated by the presets, `pipeline.yml` by the web preset, `verify.yml` and `deploy.yml` by the platform preset, `verify.yml` and `release.yml` for a package repo (the web preset with `publishes_packages`), plus `update.yml` from both repo presets, the mount that pulls the train ([§ 3 PLX-Updates](updates.md)); all reference the reusable workflows by the train tag, which the train's own pull request moves in every tenant.
   A file the preset stops generating is removed by hand on that train; copier does not delete.
 
 **The deploy verb has a fence**, and crossing it takes a deliberate, documented decision: no persistent state, no daemon, no UI, no reconciliation loop, no provisioning of platform resources at deploy time.

@@ -122,7 +122,7 @@ Shipping and retention are the platform's job.
 > - The app's pipeline MUST verify, then release the image, then deploy it, each stage reaching the app only through its repo's standard verbs.
 > - The app MUST provide a multi-stage Dockerfile whose build stage invokes the same entry as the `build` verb.
 
-In practice the first line is the generated `deploy.yml` referencing the shared pipeline ([§ 2 PLX-Delivery](../approaches/delivery.md)); in a multi-app monorepo the pipeline is path-scoped per app ([§ 3 PLX-Delivery](../approaches/delivery.md)).
+In practice the first line is the generated `pipeline.yml` referencing the shared pipeline ([§ 2 PLX-Delivery](../approaches/delivery.md)); in a multi-app monorepo the pipeline is path-scoped per app ([§ 3 PLX-Delivery](../approaches/delivery.md)).
 The image build is hermetic: it runs inside the Dockerfile, so the artifact is correct from any host, macOS included, and a local `docker build --platform` can produce an image for any target.
 Hermeticity does not duplicate the build: what *build* means is encoded once, in the task graph, and the Dockerfile is a second invocation context, the same relationship CI has to the verbs.
 The release publishes for the deploy hosts' platform (amd64 today); multi-arch publishing is a deferred decision with a trigger, an ARM deploy host or the routine need to run production images on ARM laptops, and when triggered it is a workflow change (a per-platform matrix on native runners plus a manifest merge), not an architecture change.

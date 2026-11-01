@@ -248,6 +248,12 @@ By default the jobs run on the forge's own runners: a fresh machine per job, des
 A tenant that wants faster or cheaper CI runs a runner of its own, and the choice is two repo variables: a label that selects the runner (`CI_RUNNER`), and whether it keeps its disk between jobs (`CI_RUNNER_PERSISTENT`), which the mounts take as the inputs `runner` and `persistent`.
 Unsetting the label moves CI back to the forge's runners at once, without a playbook run, which is also the fallback while the tenant's runner host is down.
 
+Turbo's remote cache is the one cache that crosses machines, and it is optional for either kind of runner.
+The tenant names an S3 bucket of its own, in any S3-compatible store, in three repo variables (`TURBO_CACHE_ENDPOINT`, `TURBO_CACHE_REGION`, `TURBO_CACHE_BUCKET`) and grants read and write on it through two repo secrets (`TURBO_CACHE_ACCESS_KEY`, `TURBO_CACHE_SECRET_KEY`); every verify job then starts a cache server on loopback for its own length (`brunojppb/turbo-cache-server`, pinned by commit), with a token minted for the job.
+A task whose inputs did not change is replayed from any earlier job on any runner, which on a merge mostly means that the environment branch's verify replays what the pull request's verify computed for the same tree.
+The bucket is a cache and nothing else: it holds task outputs and logs, never a secret, nothing reads it but Turbo, and emptying it costs one slow run; a lifecycle rule on the bucket expires old objects, since nothing else prunes them.
+Without the bucket variable Turbo keeps its local cache alone.
+
 A runner of the tenant's own is a host of the tenant, set up like every other by the collection ([§ 2 PLX-Platform](platform.md)): the `github_runner` role installs the official runner as N instances, each a systemd service, registered at the tenant's forge organisation with a short-lived token minted from a vault secret at registration time and never stored.
 Each instance has a home of its own, because jobs running at the same time must not share what a job writes in place there, a tool's binaries or a registry login; the caches built for concurrent writers, the pnpm store among them, are shared between all instances.
 Jobs run directly on the host, with Docker for image builds, so one host serves one tenant and runs nothing else: a runner holds job secrets in flight, and the docker group is root on that machine.

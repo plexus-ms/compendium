@@ -7,7 +7,7 @@ maturity: standard
 binds: repo
 changed: 0.103.0
 depends: [PLX-Repo]
-consumes: [PLX-App, PLX-Host]
+consumes: [PLX-App, PLX-Host, PLX-Environment]
 order: 17
 ---
 
@@ -90,7 +90,7 @@ Leaving GitHub means adjusting the mounts, never the logic: a tenant on another 
 
 ## § 3 Environment branches and promotion
 
-> - App repos MUST use environment branches: `main`→prod, `develop`→staging.
+> - App repos MUST use environment branches: `main`→`production`, `develop`→`staging`; `production` and `staging` are the environment names a deploy asks the platform inventory for ([PLX-Environment](../contracts/environment.md)).
 > - The platform repo SHOULD have a single `main`; environments are inventory groups, never branches.
 > - Apps MUST NOT use changesets.
 > - A hotfix branches from `main` and merges to `main`; it MUST be back-merged `main → develop` immediately.
@@ -108,7 +108,8 @@ A merge commit on `main` is a commit `develop` does not know, so the next promot
 The hotfix back-merge is what keeps the fast-forward possible: after it, `main` is an ancestor of `develop` again.
 Release tooling built for registries (changesets) has nothing to version in an app repo, which is why it is excluded outright; packages version by different physics (§ 5), and the two models are never mixed.
 
-Which host an environment *is*, is inventory, not convention: `main`→prod and `develop`→staging name deploy targets, and the binding, which VM, which inventory record, which domain, lives in the platform repo's inventory ([§ 3 PLX-Platform](platform.md)), where the deploy mount reads it.
+Which host an environment *is*, is inventory, not convention: `main`→`production` and `develop`→`staging` name environments, and the binding, which VM, which inventory record, which domain, lives in the platform repo's inventory ([§ 3 PLX-Platform](platform.md)), one record per app and environment, where the deploy mount reads it through `plx deploy-targets --environment` from a checkout of the tenant's platform repo ([PLX-Environment](../contracts/environment.md)).
+An app without a record in an environment has no deployment there, and a push to that environment's branch releases its image and deploys nothing.
 The platform repo itself needs no environment branches because it has no release cycle of its own to promote: staging and prod are two inventory groups in one file, and a playbook run targets one of them.
 
 The model: **the unit of deployment is the app; the unit of promotion is the repo.**
@@ -280,7 +281,7 @@ The layering is load-bearing:
 
 - **Verbs** contain *all* the logic and stay hand-runnable.
   `plx changed-apps <from> [to]` prints the apps whose sources changed since a ref, dependents included, reading only git and the workspace graph (pnpm answers for the graph); it is the one encoding of the changed set, and the definition in § 3 and the verb change together.
-  `plx deploy-targets [inventory]` prints each app's deploy target from a platform repo's inventory, and refuses an app declared with a target in two files.
+  `plx deploy-targets [inventory]` prints each app's deploy target per environment from a platform repo's inventory, flat for one environment with `--environment`, and refuses an app declared with a target in two files for the same environment.
   `plx deploy <host> <tenant> <app> [--image <ref>]` is § 6: every command it sends to the host is one line of shell over a shared ssh connection, and `--dry-run` prints each line verbatim, so `git clone && plx -n deploy …` hands a stranded operator the exact commands, which is what passes the degradation test.
   All three are tested in `plexus-ms/primitives`, the deploy verb against a fake `ssh` on `PATH` that runs each line locally in a scratch app dir with fake `docker` and `curl`, the offline harness of its bash days.
   A tenant repo pins the tool in its `mise.toml` at the train number, and the train writes that pin together with the workflow refs ([§ 1 PLX-Updates](updates.md)), so the verbs a workflow asks for are the ones the pinned tool has.
@@ -296,9 +297,14 @@ Inside the fence, invest freely: logging, clean rollback, good error messages.
 Outside it, it is either an existing tool's job or an architecture change, not feature creep.
 Zero-downtime deploys (blue-green, rolling) stay outside until an app has traffic for which a blink is a real cost; whatever the answer, it stays a verb, not a reconciler.
 
-A web repo's deploy target is one `DEPLOY_HOST` variable for all its apps, while the platform repo looks each app's target up in its inventory (§ 3 PLX-Platform).
-Publishing the inventory's targets into the app repos as a variable was designed and deliberately not built.
-The trigger that reopens it, a tenant whose runners sit on its overlay network (§ 8), has arrived: the target there is the overlay name, still held in the repo variable, and the variable is kept until a second such tenant shows the pattern.
+A web repo's deploy target was one `DEPLOY_HOST` variable for all its apps while the platform repo looked each app's target up in its inventory (§ 3 PLX-Platform); publishing the inventory's targets into the app repos as a variable was designed and deliberately not built.
+Decided 2026-11-04: the app repo's deploy job reads the inventory itself, from a checkout of the tenant's platform repo (`<owner>/platform`, fixed by PLX-Tenancy) made with the tenant's GitHub App, which therefore holds `Contents: read` on it; the record it reads is the contract object of [PLX-Environment](../contracts/environment.md), and the variable goes with the cut-over to the pipeline that reads it.
+
+Two deferrals, each with the trigger that reopens it:
+
+- This module may become PLX-CI and offer more than one CI strategy: the throwaway-runner pipeline with its own builders and registry sidecars suits a tenant that builds images daily, and a smaller tenant may want the forge's runners and nothing else; the trigger is the second strategy's first consumer, and until then the pipeline of § 2 is the one strategy.
+  The CI tooling moves ahead of that into `@plexus-ms/cli-ci` (`plx-ci`), a package of its own beside `plx`, so that a strategy can be tried in one tenant without touching the others' `plx`.
+- PLX-Repo may require an app repo's environment branches to carry the environment names themselves, `production` and `staging` instead of `main` and `develop`, so that a branch and the record it deploys match by name alone; the trigger is the cut-over of the first tenant to the pipeline that reads the inventory, decided together with PLX-Environment's promotion.
 
 Preview environments per PR are deliberately absent: a single staging per app covers most of the value, and the decision is revisited when a product has real customers (§ 6.8 PLX).
 

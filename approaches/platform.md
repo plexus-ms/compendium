@@ -7,7 +7,7 @@ maturity: standard
 binds: host
 changed: 0.60.0
 depends: [PLX-Tenancy]
-consumes: [PLX-Host, PLX-App]
+consumes: [PLX-Host, PLX-App, PLX-Environment]
 order: 20
 ---
 
@@ -45,18 +45,21 @@ Runtime truth is the host, never a file: what runs is what `docker ps` says, and
 
 ## § 3 The app record and the app lifecycle
 
-> - Every app a tenant runs MUST have one record in the tenant's inventory (`apps[]`) naming the app, its source repo (`apps[].repo`), its host (`apps[].host`), and its loopback port (`apps[].loopback_port`).
-> - App names MUST be unique per tenant, across all of its repos.
+> - Every deployment a tenant runs, an app in an environment, MUST have one record in the tenant's inventory (`apps[]`) naming the app, its source repo (`apps[].repo`), its host (`apps[].host`), and its loopback port (`apps[].loopback_port`); the record MAY name its environment (`apps[].environment`), which is `production` when absent.
+> - App names MUST be unique per tenant and environment, across all of its repos; one app MAY have one record per environment.
+> - The deployment's slug on the host MUST be the app name in `production` and `<app>-<environment>` in any other environment; the app directory and the compose project MUST key on the slug.
 > - Non-secret values the platform provides to an app MUST be declared in its record (`apps[].env`) and written by the configure playbook to `.env` in the app's directory on the host; the playbook is that file's only writer.
 
-The record is the platform's whole knowledge of an app, and the app name is the join key across repos: the inventory record, the compose project, and the host directory all key on it, which is why it is unique per tenant rather than per repo.
-From the record the configure playbook lays out the app's directory on the host, `<deploy root>/<tenant>/<app>` (e.g. `/opt/stacks/plexus/website`), writes `.env` there, logs the deploy user in to the registry, and pulls and starts the app once the deploy verb has placed its `compose.yaml`; a fresh host stays provisioned-but-empty until the first deploy ([§ 6 PLX-Delivery](delivery.md)).
+The record is the platform's whole knowledge of a deployment, and the app name is the join key across repos: the inventory record, the compose project, and the host directory all key on it, which is why it is unique per tenant rather than per repo.
+An environment adds a second record for the same app, with its own host, port, values and secret pointers, on the same VM or another; the slug rule keeps production records exactly as they were, so a tenant without a staging environment sees no change.
+The record is also what the deployer reads: which host an app's environment lives on is this record's `plexus_deploy_target`, read by `plx deploy-targets` ([§ 3 PLX-Delivery](delivery.md)), and the record is the object of [PLX-Environment](../contracts/environment.md), the contract between the deployer and the platform.
+From the record the configure playbook lays out the deployment's directory on the host, `<deploy root>/<tenant>/<slug>` (e.g. `/opt/stacks/plexus/website`, `/opt/stacks/plexus/website-staging`), writes `.env` there, logs the deploy user in to the registry, and pulls and starts the app once the deploy verb has placed its `compose.yaml`; a fresh host stays provisioned-but-empty until the first deploy ([§ 6 PLX-Delivery](delivery.md)).
 `.env` is written in three sections, compose's own setting, the reserved `PLEXUS_` bindings, then the values from `apps[].env`, each under a header line naming its origin, so the first file an operator opens explains itself.
-The compose setting pins the project name to `<tenant>-<app>`: container and network names derive from the project name, and its directory-basename default would collide the moment two co-hosted tenants deploy an app with the same name.
+The compose setting pins the project name to `<tenant>-<slug>`: container and network names derive from the project name, and its directory-basename default would collide the moment two co-hosted tenants deploy an app with the same name.
 The `PLEXUS_` bindings carry the loopback port the inventory assigned, interpolated by compose ([§ 4 PLX-App](../contracts/app.md)), so the deploy verb stays port-unaware; because the app's compose file lists `.env` under `env_file`, the setting and the bindings also appear inside the container, harmless by construction since the prefix is reserved.
 Three files sit in the app directory, and each has exactly one writer: this playbook owns `.env`, the secrets role owns `.env.secret` ([PLX-Secrets](secrets.md)), and the deploy verb owns `compose.yaml`, rendered from the source repo.
 Pass `plexus_up=false` to write the directories without re-creating containers.
-A VM's record may also carry `plexus_deploy_target`, where the deploy verb reaches it; the `deploy-targets` verb reads it so that each third-party app of the platform repo deploys to the VM that runs it, with the repo's one `DEPLOY_HOST` variable as the fallback.
+A VM's record may also carry `plexus_deploy_target`, where the deploy verb reaches it; the `deploy-targets` verb reads it, per app and environment, so that each deployment goes to the VM that runs it, with an app repo's one `DEPLOY_HOST` variable as the fallback until its pipeline reads the inventory.
 
 
 ## Maintaining

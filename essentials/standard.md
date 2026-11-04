@@ -145,7 +145,7 @@ Because an unchanged repo still gets the tag, every cross-repo pin can cite the 
 
 The train repos are `primitives`, `preset-repo-web`, `preset-app-nextjs`, `preset-repo-platform`, and `compendium`.
 `libraries` (npm semver via changesets, [§ 5 PLX-Delivery](../approaches/delivery.md)) rides outside the train.
-`primitives` carries everything the train versions in one repo: the Ansible collection and the Terraform modules (its `galaxy.yml` version mirrors the tag exactly), the reusable workflows, the shared update-bot preset, and the packages `@plexus-ms/cli`, `@plexus-ms/lib` and `@plexus-ms/config`, published to npm at the train number, so that the tool, the config and the train a repo runs are one number.
+`primitives` carries everything the train versions in one repo: the Ansible collection and the Terraform modules (its `galaxy.yml` version mirrors the tag exactly), the reusable workflows, the shared update-bot preset, and the packages `@plexus-ms/cli`, `@plexus-ms/cli-ci`, `@plexus-ms/lib` and `@plexus-ms/config`, published to npm at the train number, so that the tools, the config and the train a repo runs are one number.
 A train is cut in two phases: `primitives` first, whose release publishes those packages, then the presets and the compendium once the registry has them, because they pin them.
 Trains 0.77.0 to 0.99.0 do not exist; 0.100.0 is the first train of this layout, and the repos it consolidated (`platform`, `ci-cd`, `renovate-config`, and the cli's part of `packages`, since renamed `libraries`) are archived with their tags in place for anything still pinned there.
 The pre-train per-repo `vN` lines and the itops-era tags live on frozen in history, kept for existing pins and never retargeted.
@@ -169,7 +169,7 @@ The mitigations are structural, and the tenant can rely on them:
 
 - The `plexus-ms` repos are public and GPLv3-licensed; every change is reviewable, and nothing breaks on the day the upstream goes unmaintained: published versions keep resolving, tags keep resolving, and the repos remain forkable.
 - `@plexus-ms/*` packages are published to the public npm registry through OIDC trusted publishing; published versions are immutable and carry provenance attestations linking each version to its source commit and build.
-- A breaking change to a package on its own semver line is released as a semver major, with a migration note in the changelog; the train-versioned packages (`@plexus-ms/cli`, `@plexus-ms/lib`, `@plexus-ms/config`) follow the train's semver, so a breaking change to them, like one to a standard module, is a major train (§ 1.5).
+- A breaking change to a package on its own semver line is released as a semver major, with a migration note in the changelog; the train-versioned packages (`@plexus-ms/cli`, `@plexus-ms/cli-ci`, `@plexus-ms/lib`, `@plexus-ms/config`) follow the train's semver, so a breaking change to them, like one to a standard module, is a major train (§ 1.5).
 - Tenant substance, business logic, secrets, anything tenant-specific, never appears in a public package or a public repo.
 
 These are obligations of the maintainers, not of consumers, which is why they are prose here rather than requirements in a module.
@@ -184,7 +184,7 @@ The repos that ship the methodology:
 
 | Repo | Offering |
 |---|---|
-| `primitives` | The train-versioned primitives in one repo: the `plexus.platform` Ansible collection (the host baseline, the roles that make a host a tenant's app host, the roles of the infrastructure layer) and reusable Terraform modules; the thin reusable workflows that mount the ops verbs on the forge; `plx` itself as `@plexus-ms/cli` with `@plexus-ms/lib` and the shared tool configs `@plexus-ms/config`; and the shared Renovate preset every Plexus repo extends in one line. |
+| `primitives` | The train-versioned primitives in one repo: the `plexus.platform` Ansible collection (the host baseline, the roles that make a host a tenant's app host, the roles of the infrastructure layer) and reusable Terraform modules; the thin reusable workflows that mount the ops verbs on the forge; `plx` itself as `@plexus-ms/cli` with `@plexus-ms/lib`, the CI verbs as `@plexus-ms/cli-ci` (`plx-ci`), and the shared tool configs `@plexus-ms/config`; and the shared Renovate preset every Plexus repo extends in one line. |
 | `libraries` | The published `@plexus-ms/*` libraries for the web/Node/TypeScript world on their own semver: the `std` utilities, and over time the reusable application plumbing that keeps each app's domain core small. |
 | `preset-repo-web` | The copier template for a tenant app repo: a web monorepo with `apps/` consuming the packages, re-syncable via `copier update`. |
 | `preset-app-nextjs` | The copier template for a Next.js app inside an app repo: contract-verb scripts, Dockerfile, `compose.yaml` with the contract labels. |
@@ -490,8 +490,9 @@ A [note](../approaches/host-lifecycle.md) until a policy exists that a role enfo
 
 ### § 7.7 App record and lifecycle
 
-One inventory record per app binds name, source repo, host, loopback port, and values; the configure playbook lays out the app's directory, writes `.env` from the record, and pulls and starts what the deploy verb has placed.
+One inventory record per app and environment binds name, source repo, host, loopback port, and values; the configure playbook lays out the deployment's directory, writes `.env` from the record, and pulls and starts what the deploy verb has placed.
 [§ 3 PLX-Platform](../approaches/platform.md).
+The record is also what a deploy reads to find its target, which makes it a contract between the deployer and the platform: [PLX-Environment](../contracts/environment.md), at candidate maturity.
 
 
 ## § 8 Infrastructure

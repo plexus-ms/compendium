@@ -5,7 +5,7 @@ description: The three delivery verbs verify, release and deploy; the workflows 
 code: PLX-Delivery
 maturity: standard
 binds: repo
-changed: 0.103.0
+changed: 0.106.0
 depends: [PLX-Repo]
 consumes: [PLX-App, PLX-Host, PLX-Environment]
 order: 17

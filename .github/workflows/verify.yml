@@ -17,4 +17,4 @@ concurrency:
 
 jobs:
   verify:
-    uses: plexus-ms/primitives/.github/workflows/_verify.yml@0.107.0
+    uses: plexus-ms/primitives/.github/workflows/_verify.yml@0.108.0

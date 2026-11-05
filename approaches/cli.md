@@ -20,6 +20,7 @@ The maintainers' helpers have moved: `plx`, published as `@plexus-ms/cli` from `
 The maintainers run the workspace verbs as plain `plx` commands from the root of their workspace, whose `mise.toml` takes the newest release; the compendium pins it in its own `mise.toml` for `requirements`.
 The ops verbs have followed: `changed-apps`, `deploy-targets` and `deploy` are commands of the tool ([PLX-Delivery](delivery.md)), mounted on the forge by the thin reusable workflows next to it in `primitives`, which call the `plx` the tenant repo pins in its `mise.toml`, and run by hand from a checkout otherwise.
 The workflows carry no logic, only the mounts.
+The CI verbs of the cloud strategy ([§ 8 PLX-Delivery](delivery.md)) are a second tool beside it, `plx-ci`, published as `@plexus-ms/cli-ci` at the train number from the same repo on the same `@plexus-ms/lib`: `plan`, `launch`, `build`, `test`, `release`, `teardown`, `sweep`, `registry`, `inspect` and `probe`, each one line of a reusable workflow and each runnable by hand with the same keys in the environment; a package of its own so that a strategy can change in one tenant without moving every tenant's `plx`.
 The platform preset ships a playbook wrapper that prefixes the vault's CLI, and both repo presets ship the contract verbs and `sync` as mise tasks; those are the shell that remains.
 
 The discipline of the scripts was uniform: a header stating what the script did and how to run it by hand, strict mode, shellcheck clean, a `check` verb that enforced both.

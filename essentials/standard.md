@@ -416,7 +416,7 @@ The app is the unit of deployment, the repo the unit of promotion: a merge deplo
 
 Three verbs, `verify`, `release`, `deploy`, each a job; a workflow is the occasion that mounts them: a repo-wide verify on every pull request, the per-app chain on the environment branches, fanned out per changed app through one reusable pipeline, a commit's image built once and deployed from the registry on promotion; no tenant operates a CI control plane.
 [§§ 1 and 2 PLX-Delivery](../approaches/delivery.md).
-Where the jobs run, the forge's runners or a runner host of the tenant's own, is [§ 8 PLX-Delivery](../approaches/delivery.md).
+Where the jobs run, the forge's runners, a runner host of the tenant's own, or throwaway cloud instances with a registry on the tenant's object storage, is [§ 8 PLX-Delivery](../approaches/delivery.md).
 
 ### § 6.4 Deploy semantics
 

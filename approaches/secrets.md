@@ -48,6 +48,18 @@ A redeploy also picks up the current `.env.secret` as a side effect of re-creati
 Some images read a credential only when they initialise their data (a database's superuser password); rotating such a value is a two-step act, the running service told first, the vault and playbook second, and the app's marker is where that procedure is written down.
 
 
+## § 3 Vaults per reader
+
+1Password grants access per vault, so the vaults are cut by who reads them, not by app.
+`<tenant>` is read by the platform playbooks and holds the runtime secrets: one item per app with one section per environment (`op://<tenant>/<app>/production/<field>`, `staging` for the second environment, a further section for a further environment), and one item per shared service or host thing.
+`<tenant>-ci` is read by the CI's service account and holds CI's own credentials by service (`exoscale/<role>/…`, `bucket-registry`, `bucket-turbo`, `github-app`, `smtp-relay`, `deploy`, `netbird`, the `alerts-email` under `config`) and one item per app for its build-time secrets, `app_<app>`, without an environment dimension, because an image is built once and promoted ([§ 4 PLX-Delivery](delivery.md)).
+The repo then holds one Actions secret, the service account token, and every job loads what it needs from the vault by pointer, so a rotation is a change in the vault and nothing in the repo.
+Hosts and other non-secret facts never go into a vault: the deploy target of an app per environment is the platform inventory's record ([PLX-Environment](../contracts/environment.md)), and sensitivity is the one property that forces a value out of git.
+A vault's environment feature is a developer's convenience for a local `.env`, never a system of record.
+
+Decided 2026-11-04 in the first tenant's CI trial and written here as prose; it becomes requirements when a second tenant holds the two vaults.
+
+
 ## Maintaining
 
 `configure_secrets` writes `.env.secret` and owns its rotation handler; `configure_apps` does the same for `.env` ([§ 3 PLX-Platform](platform.md)).

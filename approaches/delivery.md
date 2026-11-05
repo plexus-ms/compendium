@@ -75,6 +75,8 @@ The per-app chain is `_pipeline.yml`, a reusable workflow with the jobs `verify`
 It exists because the forge's job graph is static and `needs` connects jobs, never the legs of a matrix: a job after a matrixed job waits for every leg and sees only one leg's outputs.
 So the three verbs of one app have to live in one unit, and the only unit the forge can nest inside a matrix leg is a reusable workflow.
 The same shape keeps a broken app from holding back a sound one on a push to `develop`: each leg fails on its own.
+Under the cloud strategy (§ 8) the unit is the whole run instead: `_pipeline-cloud.yml` plans once for every app, from content hashes rather than a diff, and fans build, test, release and deploy out as matrices of its own, which the forge allows inside one reusable workflow; the tenant's `pipeline.yml` is then one job calling it.
+The preset asks which shape a repo takes (`ci_strategy`, `forge` or `cloud`) and generates the matching `pipeline.yml`; both answer the two questions above on the same two occasions.
 
 Every mount is thin: checkout, secrets plumbing, one invocation of a verb.
 `_changed-apps.yml` mounts `plx changed-apps` and emits the matrix; `_deploy-targets.yml` mounts `plx deploy-targets`; `_verify.yml` runs the contract verb; `_release-image.yml` and `_release-package.yml` are the two shapes of `release`; `_deploy.yml` mounts the deploy verb.
@@ -144,6 +146,10 @@ A runner that keeps its disk needs neither: the daemon's own build cache survive
 The mount takes the difference as one input and the tenant sets it once, in a repo variable.
 
 SHA-tagged images accumulate in the registry unboundedly, which rollback and re-deploys rely on; retention is untouched (§ 6.7 PLX).
+
+Under the cloud strategy (§ 8) an image carries three tags: `build-<hash>`, Turbo's hash of the app's `build` task, which is also the build ID inside the image; `test-<hash>`, the hash of its `test` task, added to the manifest when the tests passed on it; and `<sha>`, which remains the reference a deploy takes.
+The hashes are what the plan looks up, so a lockfile change or a force-push rebuilds nothing whose inputs did not change, and a change to specs alone re-runs the tests on the existing image.
+The build is then reproducible as far as the stack allows: the context is `turbo prune --docker`, so an app's image is independent of the other apps' dependencies; the base image is pinned by digest; the build ID and the server-actions key are fixed from outside; timestamps are zeroed; what still drifts is measured and listed (Next's preview-mode keys, a package installed at build time), never gated.
 Publishing for one platform (amd64) is the default; multi-arch is a deferred decision with a trigger, stated in the app contract.
 
 
@@ -270,6 +276,18 @@ The runner binary updates itself, the one unpinned executable on a tenant host, 
 And where the runner host shares a hypervisor with production, CI is down whenever production is, and the fix that would rescue production cannot pass it; the deploy verb being hand-runnable and the fallback being one variable away is what makes that acceptable.
 
 A runner inside the tenant's network reaches the app hosts by their overlay names, so the deploy target stops being a public forward; the overlay's policy has to allow the runner host to reach the app hosts on SSH.
+A deploy job on the forge's runners reaches them the same way by joining the overlay itself for the length of the job, as an ephemeral peer with a setup key whose policy allows the app hosts' SSH and nothing else (`_deploy.yml`, `overlay: netbird`); the key sits in the CI vault, and the peer is gone when the job is.
+
+The third place is throwaway cloud instances, the **cloud strategy**, chosen in the preset (`ci_strategy: cloud`) and mounted as one reusable workflow, `_pipeline-cloud.yml`, for the whole repo and run.
+The forge's runners decide and copy, the instances build and test, and nothing runs while no pipeline runs: every instance is created for one job and deleted after it, and there is no persistent instance at all, not even for the registry.
+Its jobs: `plan` computes every app's build and test hashes from one Turbo dry run, looks them up as image tags, and launches one builder per image to build and one test runner per test to run, all at once, hidden behind `check`; `check` is lint, typecheck and the pure tests, repo-wide, through the Turbo remote cache; `build` builds the image from the pruned context with `BUILD_HASH` and the app's fixed keys as BuildKit secrets (§ 4) and pushes it to the registry as `build-<hash>` and `<sha>`; `test` brings the app's own compose file up on the candidate with a CI override (`docker/compose.ci.yaml`: throwaway values in place of the two env files, the database published to the runner and kept in RAM), runs the app's `test` script against the stack, and marks the manifest `test-<hash>`; `release`, on an environment branch, copies the tested manifest to the tenant's forge registry under `<sha>`; `deploy-targets` reads each app's target in the environment from the platform repo's inventory ([PLX-Environment](../contracts/environment.md)) and `deploy` is `_deploy.yml` per app that has one; `teardown` deletes what the run launched, whatever the jobs ended in.
+`check` and `test` are the decomposition § 3 PLX-Repo recommends, run as two jobs because they want different machines: the first none in particular, the second Docker and cores.
+The registry is a sidecar, not a host: every job that needs it starts the CNCF distribution registry on loopback against a bucket of the tenant's object storage for its own length, as BuildKit's cache, the candidate store and the look-up index.
+Retention is rotation: the bucket is named by month, writes go to the current month, reads consult the current and the previous, and the bucket of two months ago is deleted whole, at the cost of one cold build per app a month; the registry's own garbage collection needs no writers and is not used.
+The instances tear themselves down in layers, the runner exiting, no job having started by a deadline, a death deadline that mails first, and the run's `teardown` job and a daily `sweep`, mounted in the platform repo (`_sweep.yml`), delete what the layers missed.
+CI's own credentials live in a vault of their own, `<tenant>-ci` ([§ 3 PLX-Secrets](secrets.md)), read with one service account token, the one secret an app repo holds; the cloud's keys are three, one that launches and sweeps, one an instance deletes itself with from its user-data, one that reads and writes the buckets, each able to do nothing else.
+What the strategy costs is a cloud account billed per second and the setup acts named under Maintaining; what it buys is a builder that never contends with another app's build, a test host with Docker and eight cores, a pull request verified against the image that would ship, and no runner host to operate.
+The forge's runners remain the default, and a tenant on the forge strategy moves to the cloud one by answering the preset's question and holding the vault and the keys.
 
 
 ## Maintaining
@@ -285,7 +303,9 @@ The layering is load-bearing:
   `plx deploy <host> <tenant> <app> [--image <ref>]` is § 6: every command it sends to the host is one line of shell over a shared ssh connection, and `--dry-run` prints each line verbatim, so `git clone && plx -n deploy …` hands a stranded operator the exact commands, which is what passes the degradation test.
   All three are tested in `plexus-ms/primitives`, the deploy verb against a fake `ssh` on `PATH` that runs each line locally in a scratch app dir with fake `docker` and `curl`, the offline harness of its bash days.
   A tenant repo pins the tool in its `mise.toml` at the train number, and the train writes that pin together with the workflow refs ([§ 1 PLX-Updates](updates.md)), so the verbs a workflow asks for are the ones the pinned tool has.
-- **Reusable workflows** are thin mounts of one verb each, with the job key equal to the verb, plus `_pipeline.yml` as the one composition; actionlint checks them under `mise :verify`.
+- **Reusable workflows** are thin mounts of one verb each, with the job key equal to the verb, plus two compositions, `_pipeline.yml` for the forge strategy and `_pipeline-cloud.yml` for the cloud strategy, and `_sweep.yml`, the cloud strategy's daily sweep; actionlint checks them under `mise :verify`.
+  The cloud pipeline's steps are each one `plx-ci` or `plx` invocation; the CI verbs (`plan`, `launch`, `build`, `test`, `release`, `teardown`, `sweep`, `registry`, `inspect`, `probe`) are `@plexus-ms/cli-ci`, a package beside `plx` so that a strategy can change without moving every tenant's `plx` ([PLX-CLI](cli.md)).
+  `_deploy.yml` takes its keys either from the caller's secrets or from the CI vault with the service account token, and joins the tenant's overlay on request; the deploy verb itself ends without pulling or restarting when the host already serves the image from the same run shape, healthy, so a promotion restarts only the apps whose image changed.
   `_changeset.yml` is the one mount that writes back to the caller: the changeset `plx changeset` owes, committed to the bot's branch, pushed with a token the caller passes so that its checks run on the new tip.
   Logic never lives in the YAML.
   GitHub's workflow format is not an open standard and the runner is self-hostable but GitHub remains the scheduler, so a workflow is forge-specific and disposable, while a verb is portable and permanent.
@@ -300,11 +320,14 @@ Zero-downtime deploys (blue-green, rolling) stay outside until an app has traffi
 A web repo's deploy target was one `DEPLOY_HOST` variable for all its apps while the platform repo looked each app's target up in its inventory (§ 3 PLX-Platform); publishing the inventory's targets into the app repos as a variable was designed and deliberately not built.
 Decided 2026-11-04: the app repo's deploy job reads the inventory itself, from a checkout of the tenant's platform repo (`<owner>/platform`, fixed by PLX-Tenancy) made with the tenant's GitHub App, which therefore holds `Contents: read` on it; the record it reads is the contract object of [PLX-Environment](../contracts/environment.md), and the variable goes with the cut-over to the pipeline that reads it.
 
-Two deferrals, each with the trigger that reopens it:
+Two decisions of 2026-11-05, at the first tenant's cut-over to the cloud strategy, close the deferrals written before it:
 
-- This module may become PLX-CI and offer more than one CI strategy: the throwaway-runner pipeline with its own builders and registry sidecars suits a tenant that builds images daily, and a smaller tenant may want the forge's runners and nothing else; the trigger is the second strategy's first consumer, and until then the pipeline of § 2 is the one strategy.
-  The CI tooling moves ahead of that into `@plexus-ms/cli-ci` (`plx-ci`), a package of its own beside `plx`, so that a strategy can be tried in one tenant without touching the others' `plx`.
-- PLX-Repo may require an app repo's environment branches to carry the environment names themselves, `production` and `staging` instead of `main` and `develop`, so that a branch and the record it deploys match by name alone; the trigger is the cut-over of the first tenant to the pipeline that reads the inventory, decided together with PLX-Environment's promotion.
+- The module keeps its code and § 8 carries the strategies; a split into a PLX-CI with one page per strategy would rename citations for no second reader.
+  The two strategies are the preset's question, and the forge's runners stay the default; a tenant moves between them by answering it.
+- The environment branches stay `main` and `develop`: the hotfix flow, the promotion task and every page assume them, and the deploy mount maps a branch to an environment name in one place.
+  A branch named for its environment is not pursued.
+
+The cloud strategy's setup is a one-time act per tenant, done by hand and recorded here until a second tenant makes a role of it: on the cloud, three IAM roles and keys (launch and sweep: create, list, get, delete instances and read templates, types, security groups and operations; self-delete: list, get, delete instances and read operations; storage: read and write on the buckets), a security group without inbound rules, an SSH key registered once; two buckets, `<owner>-ci-turbo` with a lifecycle rule expiring objects after thirty days and `<owner>-ci-registry-<YYYY-MM>` for the current month, the next month's being the one recurring act; the GitHub App `<owner>-ci` with `Administration: write` on the app repo (for the runners' JIT configs) and `Contents: read` on the platform repo; a relay credential for the mails; and the vault `<owner>-ci` of § 3 PLX-Secrets holding all of it, with its service account token as the app repo's one secret and the platform repo's one secret for the sweep.
 
 Preview environments per PR are deliberately absent: a single staging per app covers most of the value, and the decision is revisited when a product has real customers (§ 6.8 PLX).
 

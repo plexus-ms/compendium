@@ -331,6 +331,35 @@ Two decisions of 2026-11-05, at the first tenant's cut-over to the cloud strateg
 
 The cloud strategy's setup is a one-time act per tenant, done by hand and recorded here until a second tenant makes a role of it: on the cloud, three IAM roles and keys (launch and sweep: create, list, get, delete instances and read templates, types, security groups and operations; self-delete: list, get, delete instances and read operations; storage: read and write on the buckets), a security group without inbound rules, an SSH key registered once; two buckets, `<owner>-ci-turbo` with a lifecycle rule expiring objects after thirty days and `<owner>-ci-registry-<YYYY-MM>` for the current month, after which the plan job creates each next month's and the sweep deletes the one from two months ago, so the storage key holds the bucket operations create and delete besides the object ones; the GitHub App `<owner>-ci` with `Administration: write` on the app repo (for the runners' JIT configs) and `Contents: read` on the platform repo; a relay credential for the mails; and the vault `<owner>-ci` of § 3 PLX-Secrets holding all of it, with its service account token as the app repo's one secret and the platform repo's one secret for the sweep.
 The address the strategy mails to is a fact, not a secret: the preset answer `alerts_email`, passed to the workflows as the input `alerts-email`.
+The provider's measured behaviour, its IAM operations by role, and the providers rejected are the [Exoscale field notes](exoscale.md).
+
+**How an instance ends.**
+The deadlines are decided once, in the launch, and written both into the instance's user-data and into its labels as absolute UTC times, so that the instance and the sweep read the same clock.
+The layers, from the common case to the last resort:
+
+1. The runner exits after its one job and the instance deletes itself; no mail.
+2. No job started within the no-job deadline (five minutes for a builder, longer for a test runner, which waits for the build): the instance deletes itself; no mail.
+3. The death deadline (thirty minutes): a mail through the relay, then self-deletion; five minutes after that, a power-off without network, armed as the first cloud-init step so that it holds even when nothing after it ran.
+4. The run's `teardown` job, after every job an instance was launched for and whatever they ended in: deletes the instances this run and attempt launched, by their labels, and removes the runner registrations nothing connected with.
+5. The daily `sweep` in the platform repo: deletes every instance of the strategy that is stopped or past its death deadline, and mails when it removed something.
+
+**The launch and the boot stall.**
+A launched instance sometimes never comes online (the field notes, § 4), and a stalled boot arms no timer, so the launch is the one place that can see it in time.
+The launch waits 120 s for the runner to register; on a miss it keeps the instance stopped under a label of its own, mails the alerts address with the instance id and the command to inspect it, and creates one replacement from a fresh runner config; a second miss fails the launch.
+`teardown` and `sweep` spare a kept instance, the sweep mails again after seven days and deletes it after fourteen, and `plx-ci hybrid inspect-instance` starts it for reading and deletes it when done.
+The kept disk is the evidence the stall has never yielded, because every earlier instance deleted itself first.
+
+**The credentials of the cloud side**, each able to do one thing: a launch key (create, list, get, delete and stop instances; used by `plan` and `sweep`), a self-delete key in the user-data (get and delete), a storage key (read and write on the buckets, plus create and delete for the rotation; used by the sidecars, `plan` and `publish`), the GitHub App for the runners' just-in-time configs, a mail relay credential for the deadline and sweep mails, and the overlay's setup key for the deploy job.
+The write credentials in an instance's user-data are readable by the job that runs there, which is the same exposure as the secrets that job can read anyway, accepted for a tenant's private repos.
+
+**Debts of the cloud side**, open as of train 0.107.0:
+
+- "Re-run failed jobs" on `build` or `test` queues the job for a runner that no longer exists (§ 8); the rule is prose, since no cheap expression tells whether `plan` ran in this attempt.
+- Chromium is fetched by the test job rather than pre-installed in the test runner's user-data; a concurrency group on pull requests is absent, because a cancelled run might skip `teardown`.
+- Whether the provider's IAM can restrict the self-delete key to labelled instances is unverified.
+- An App installed on every repo of the organisation holds `Administration: write` wider than the one app repo the design asks for; narrowing it means a second App for CI.
+- The first invoice decides whether object-storage egress and the service account's request limits need attention.
+- A release version as a third tag, and where it would come from, is undecided.
 
 Preview environments per PR are deliberately absent: a single staging per app covers most of the value, and the decision is revisited when a product has real customers (§ 6.8 PLX).
 

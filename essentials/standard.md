@@ -508,6 +508,7 @@ A Debian machine an operator can reach over SSH, with a stable name, outbound in
 
 Not covered.
 A tenant on a provider's cloud has nothing to do below the host contract; which providers, which machine shapes, and how the platform repo records them is still to be written.
+What exists is the maintainers' field record of the one provider they run throwaway CI instances on, the [Exoscale field notes](../approaches/exoscale.md).
 
 ### § 8.3 Virtualisation
 

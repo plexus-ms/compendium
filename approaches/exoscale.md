@@ -38,7 +38,8 @@ Measured from the create call to cloud-init's `final` stage on the stock templat
 The create call itself takes about 21 s, and the instance type barely matters.
 With Docker installed by cloud-init the figure rises to 39–50 s; pulling a Postgres image afterwards takes 5–7 s.
 A stopped instance is back on SSH about 17 s after `start`.
-A security group with no rules drops all inbound traffic, which is the group the instances run in.
+A security group with no rules drops all inbound traffic.
+The group the instances run in admits SSH (TCP 22) and nothing else, so that the launch can read a missed instance; without that rule the launch's diagnosis times out whatever state the instance is in, and reads like a dead boot.
 
 
 ## § 3 User-data
@@ -61,6 +62,14 @@ What is known, from 29 launches on one day with 7 misses, and none in 93 bare pr
 - At least one miss was a late boot rather than a dead one: the instance came up two to five minutes after creation.
   Whether the others would have come up was not observed, because they deleted themselves first.
 - The one stalled boot whose log was read placed the stall at the network step: the Exoscale datasource hands cloud-init no network configuration, cloud-init applies a fallback DHCP configuration on a NIC it renames to `eth0` by MAC address, and only then fetches metadata and sets the hostname.
+
+**The first stalled disk read**, 2026-11-06, an instance kept by the launch and exported as a snapshot, was not a stalled boot.
+The boot was clean: network, hostname and every cloud-init stage done 14.7 s after power-on, sshd listening.
+Three seconds into the boot, `apt-daily-upgrade.service` started, the persistent timer catching up the daily run the weeks-old image had missed, and unattended-upgrades held the dpkg lock for 55 s.
+The user-data's `apt-get` calls in that window failed at once, so neither Docker nor the user `runner` came to exist, and the runner unit failed with `217/USER`.
+Whether the catch-up lands inside the user-data's window is timing, which fits every point above: random per instance, only with real user-data (a bare probe installs nothing), and never in a bare probe.
+From the train after 0.110.0, the user-data masks the apt timers and services and kills whichever of them already holds the lock before its first `apt-get` (`plexus-ci-apt-free`); a wait on the lock would cost the minute.
+The late boots and the network-step reading above predate this and may have other causes, so the trap stays.
 
 It is characterised, not pinpointed.
 The launch therefore treats a miss as expected ([§ 8 PLX-Delivery](delivery.md)): it waits a bounded time for the runner to register, keeps and stops the instance that missed, mails, and launches a replacement.

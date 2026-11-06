@@ -291,6 +291,15 @@ CI's own credentials live in a vault of their own, `<tenant>-ci` ([§ 3 PLX-Secr
 What the strategy costs is a cloud account billed per second and the setup acts named under Maintaining; what it buys is a builder that never contends with another app's build, a test host with Docker and eight cores, a pull request verified against the image that would ship, and no runner host to operate.
 The forge's runners remain the default, and a tenant on the forge strategy moves to the cloud one by answering the preset's question and holding the vault and the keys.
 
+The cloud strategy's forge-side jobs can leave the forge's runners for a runner host of the tenant's own, the **hybrid host**, while `build` and `test` stay on the instances `plan` launches.
+The pipeline takes their labels as two inputs, `runner-small` for `plan`, `release`, `deploy-targets`, `deploy` and `teardown` and `runner-medium` for `check`; the preset fills them from the repo variables `CI_RUNNER_SMALL` and `CI_RUNNER_MEDIUM`, and unset they are the forge's runners, which is the fallback as above.
+The host is the `ci_hybrid_host` role: a number of container slots per size, labelled `ci-small` and `ci-medium`, each a systemd unit that mints a just-in-time runner config with the tenant's GitHub App and starts a fresh container of the runner image for one job, and starts the next when that job ends; nothing registered outlives its job, and no registration token is stored.
+The slots register at one repository or at the organisation in a runner group, a setting of the role; on a forge plan without runner groups, slots at the organisation serve every private repo there.
+A slot has no Docker socket, which would be root on the host, and runs under the container engine's `no-new-privileges`, so a job installs what it needs into its own home and never with `sudo`.
+The slots share the host's network: they are on the overlay the host is on, so the deploy job finds its targets resolving and does not join, and they reach the registry pair on loopback.
+The host runs that pair itself, on the ports and buckets the jobs would start it on, and `plx-ci registry` finds it answering and starts nothing; an hourly housekeeping timer moves it to the new month's buckets, creating the current one, and removes stopped containers and unused images.
+The pnpm store is bind-mounted from the host into every slot, the one cache the slots share.
+
 
 ## Maintaining
 
@@ -360,6 +369,21 @@ The write credentials in an instance's user-data are readable by the job that ru
 - An App installed on every repo of the organisation holds `Administration: write` wider than the one app repo the design asks for; narrowing it means a second App for CI.
 - The first invoice decides whether object-storage egress and the service account's request limits need attention.
 - A release version as a third tag, and where it would come from, is undecided.
+
+**The hybrid host**, since train 0.110.0.
+The runner image is the official runner image with the few packages a forge-side job expects (`ansible/roles/ci_hybrid_host/files/ci-runner` in `primitives`); `runner-image.yml` builds it on the train's release and pushes it to `ghcr.io/plexus-ms/ci-runner` at the train number with a provenance attestation, the train writes that pin into the role, and the update bot bumps the base image's digest.
+It carries no `exo`, `crane` or `op`, because the jobs install their own pinned versions, the same on the forge's runners and in a slot; a tenant that wants no upstream registry between it and its runners builds the image on the host from the same Dockerfile (`ci_hybrid_host_image_build`), which is also how an unreleased role is tried.
+The setup acts, once per tenant: the host itself, on the overlay with a policy that lets it reach the app hosts' SSH; the App's `Administration: write` on the app repo, which the cloud strategy holds already, or the organisation's `Self-hosted runners: write` for slots at the organisation; and, on the first train that publishes the image, the GHCR package made public by a maintainer.
+
+Measured on the first tenant, 2026-11-06, four small slots and one medium on a VM of eight cores and 20 GB: a pull request whose every hash hits took 0:56 against 2:45 on the forge's runners; `plan` took 26 s with nothing to launch and 87 s launching three instances, against 105 to 109 s; `check` took 20 to 22 s cold and warm, against 56 to 152 s, the remote cache doing most of it either way; `teardown` and `deploy` about 22 s each; a slot picked a job up within 1 to 2 s, except twice at 21 and 27 s after the slots had idled for most of an hour.
+The forge-side jobs of a pull request were four to six billed minutes on the forge's runners and are none on the host.
+`teardown` is skipped where `plan` succeeded and launched nothing.
+
+**Debts of the hybrid host**, open as of train 0.110.0:
+
+- Every forge-side job sets up node, `plx-ci` and the vault's CLI afresh, which is most of the 20-odd seconds a job takes on a slot; an image carrying them would save that at the price of a second pin per tool.
+- The slow pick-up after an idle hour was seen once and not explained.
+- In a strategy's first month the previous month's registry answers 503, its bucket missing, which the jobs read as no previous cache; nothing to do, noted so that nobody chases it.
 
 Preview environments per PR are deliberately absent: a single staging per app covers most of the value, and the decision is revisited when a product has real customers (§ 6.8 PLX).
 

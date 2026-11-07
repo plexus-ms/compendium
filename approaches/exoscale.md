@@ -21,6 +21,7 @@ It also credits every running instance with outbound traffic (1.42 GiB per hour 
 
 - Instance limit: 20 across all zones for a new organisation; types up to `cpu.huge` and `standard.huge`.
 - `cpu.extra-large` (8 vCPU, 16 GB) cost €0.23 per hour, billed per second; a 100 GB disk €0.02 per hour, billed also while the instance is stopped.
+  `cpu.huge` (16 vCPU, 32 GB) costs exactly twice that, so it would have to halve every build and test to break even, which a build bound by its single-threaded steps and a test suite bound by its browser will not; the large jobs stay on `cpu.extra-large` (decided 2026-11-07, unmeasured).
 - Object storage bills egress to the internet per gigabyte; traffic between an instance and a bucket of the same zone does not count, which is why the builders and the registry bucket share one zone.
 
 
@@ -38,6 +39,7 @@ Measured from the create call to cloud-init's `final` stage on the stock templat
 The create call itself takes about 21 s, and the instance type barely matters.
 With Docker installed by cloud-init the figure rises to 39–50 s; pulling a Postgres image afterwards takes 5–7 s.
 A stopped instance is back on SSH about 17 s after `start`.
+A `create-instance` operation is usually done within the minute and once stayed `pending` past it (2026-11-07), so the launch waits three minutes for one; an instance in state `starting` cannot be deleted (`HTTP 400: Only running or stopped instances can be deleted`), which the cleanup retries every ten seconds for two minutes.
 A security group with no rules drops all inbound traffic.
 The group the instances run in admits SSH (TCP 22) and nothing else, so that the launch can read a missed instance; without that rule the launch's diagnosis times out whatever state the instance is in, and reads like a dead boot.
 
@@ -87,7 +89,7 @@ A role per credential, each able to do nothing else, and the daily set separated
 
 | Role | Daily | Setup only |
 |---|---|---|
-| launch and sweep | `create-instance`, `list-instances`, `get-instance`, `delete-instance`, `list-templates`, `get-template`, `list-instance-types`, `get-instance-type`, `list-security-groups`, `get-security-group`, `get-operation`; `stop-instance` for keeping a stalled instance | `create-security-group` once; `register-ssh-key` and `delete-ssh-key` only while the CLI's single-use key is in use (§ 3) |
+| launch (`plan`, `cleanup`, `housekeeping`) | `create-instance`, `list-instances`, `get-instance`, `delete-instance`, `stop-instance` (keeping a stalled instance), `list-templates`, `get-template`, `list-instance-types`, `get-instance-type`, `list-security-groups`, `get-security-group`, `get-operation` | `create-security-group` once; `register-ssh-key` and `delete-ssh-key` only while the CLI's single-use key is in use (§ 3) |
 | self-delete, from user-data | `list-instances` (the CLI resolves an instance by listing, even by id), `get-instance`, `delete-instance`, `get-operation` | none |
 | storage | object reads and writes on the Turbo bucket and the two current registry buckets, `create-bucket` and `delete-bucket` for the monthly rotation | the Turbo bucket and its lifecycle rule, the first registry bucket |
 

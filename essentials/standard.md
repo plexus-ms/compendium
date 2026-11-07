@@ -414,9 +414,9 @@ The app is the unit of deployment, the repo the unit of promotion: a merge deplo
 
 ### § 6.3 Verbs, workflows and the pipeline
 
-Three verbs, `verify`, `release`, `deploy`, each a job; a workflow is the occasion that mounts them: a repo-wide verify on every pull request, the per-app chain on the environment branches, fanned out per changed app through one reusable pipeline, a commit's image built once and deployed from the registry on promotion; no tenant operates a CI control plane.
+Two phases, `verify` (`check`, `build`, `test`) and `release` (`publish`, `deploy`), each verb a job; a workflow is the occasion that mounts them, `on_commit`, `on_pr` and `on_push`: a check on every commit, the whole verify on every pull request, the release on the environment branches, an app's image built once per content and deployed from the registry on promotion; no tenant operates a CI control plane.
 [§§ 1 and 2 PLX-Delivery](../approaches/delivery.md).
-Where the jobs run, the forge's runners, a runner host of the tenant's own, or throwaway cloud instances with a registry on the tenant's object storage, is [§ 8 PLX-Delivery](../approaches/delivery.md).
+Where the jobs run, the forge's runners, a runner host of the tenant's own, or slots on that host with a throwaway cloud instance per build and test, is [§ 8 PLX-Delivery](../approaches/delivery.md).
 
 ### § 6.4 Deploy semantics
 
@@ -668,5 +668,5 @@ Mounting it on a schedule in each tenant, so that a tenant sees its own stalenes
 
 ### § 13.5 Tooling
 
-The maintainers' helpers and the ops verbs are commands of `plx`, the published `@plexus-ms/cli`: the workspace map, the staleness check (§ 13.4), the train (§ 1.5), the requirements check (§ 1.8), the changeset a bump owes and the three delivery verbs, `changed-apps`, `deploy-targets` and `deploy` (§ 6.3); a tenant repo pins the tool in its `mise.toml` at the train number, written by the train, and its CI runs that pin.
+The maintainers' helpers and the ops verbs are commands of `plx`, the published `@plexus-ms/cli`: the workspace map, the staleness check (§ 13.4), the train (§ 1.5), the requirements check (§ 1.8), the changeset a bump owes and the delivery verbs, `deploy-targets` and `deploy`, with the CI verbs of § 6.3 in `plx-ci` beside it; a tenant repo pins the tools in its `mise.toml` at the train number, written by the train, and its CI runs those pins.
 [PLX-CLI](../approaches/cli.md) is the module: why the tool replaced the scripts, what it must not become, and the verbs still to be written.

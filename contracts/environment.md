@@ -24,6 +24,7 @@ The maturity rule (§ 1.3 PLX) promotes it when a second tenant declares it.
 A record describes one deployment: one app in one environment.
 It names the app, the app's source repo, the environment (`production` when absent), the public host the deployment answers on, the loopback port it publishes, the non-secret values it is given, and the secrets it is given as `op://` pointers into the tenant's vault, never as values ([PLX-Secrets](../approaches/secrets.md)).
 It lives in the inventory file of the VM that runs the deployment, and that file names where a deploy reaches the VM, `plexus_deploy_target`, as `ssh://<deploy user>@<address>[:<port>]`.
+The reader binds a record to the target of its own file and resolves no inheritance of Ansible's: a record in a group's file whose target is in the host's file is a record without a target, and the deployer treats it as no deployment (seen 2026-11-09, the dogfood tenant's first production release deploying nothing).
 
 One app has at most one record per environment, and as many records as it has environments.
 The environment names are those the pipeline asks for, `production` and `staging` today; a further name, such as a preview, is a further record.

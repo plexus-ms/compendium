@@ -1,7 +1,7 @@
 ---
 title: PLX-Tenancy – trust domains and tenants
 short_title: PLX-Tenancy
-description: How an organisation becomes a Plexus tenant — one trust domain sharing methodology and never substance, a slug threaded through every layer, one platform repo and N app repos, and written arrangements between tenants that share hardware.
+description: How an organisation becomes a Plexus tenant — one trust domain sharing methodology and never substance, a slug threaded through every layer, one operations repo and N app repos, and written arrangements between tenants that share hardware.
 code: PLX-Tenancy
 maturity: standard
 binds: organisation
@@ -13,7 +13,7 @@ order: 0
 A **tenant** is one trust domain in the federation: its own forge org, repos, hosts, secrets vault, backups.
 Nominally a distinct legal person or organisation, but the boundary that matters is *access*, not legal personality; `plexus` itself is a tenant without being a distinct legal person.
 This module is the contract at the seam between a tenant and the federation: what the upstream's primitives assume of a tenant, with what the tenant may assume of the upstream stated in § 1.6 PLX.
-It binds the organisation, and the tenant's platform repo declares it.
+It binds the organisation, and the tenant's operations repo declares it.
 The sections bind the tenant; the upstream's side stays prose in the map, since it binds the maintainers and not a consumer.
 
 What spans the tenants is separate trust domains sharing a *methodology*, not a *runtime*: federation under a common standard, not multi-tenancy.
@@ -34,28 +34,30 @@ Substance stays partitioned because the tenant is the trust boundary.
 
 > - Every tenant MUST have a short slug (e.g. `acme`, `initech`, `plexus`).
 > - Every deployed service MUST carry the label `plexus.tenant=<slug>`.
-> - The slug SHOULD additionally appear consistently in the tenant's forge org name, VM hostnames, Ansible inventory groups, and vault name.
+> - The slug SHOULD additionally appear consistently in the tenant's forge org name, VM hostnames, and vault name.
 
 One greppable name threads through every layer.
 The label makes the boundary visible exactly where it otherwise blurs: staring at a host wondering whose service this is.
+The inventory groups are not on the list: the shipped playbooks target fixed group names (`platform`, `ci`, `proxmox`, `pbs`, `haproxy`, `guests`; [§ 1 PLX-Platform](../approaches/platform.md)), and a host runs one tenant's services, so the slug on a group would repeat what the repo already says.
+Until train 0.114.0 the repo was named `platform`; the name moved when `platform` came to mean the layer alone, with the infrastructure layer and the tenant's CI beside it in the same repo.
 
 
 ## § 3 Forge layout
 
 > - Tenant repos SHOULD be partitioned by separate forge orgs.
-> - A tenant MUST hold its ops side (inventory, host definitions, playbooks, deployment configs) in exactly one repo, the platform repo; every other tenant repo is an app repo.
-> - The platform repo MUST NOT hold the source of an app the tenant builds itself; it MAY hold third-party apps the tenant merely operates ([§ 2 PLX-App](../contracts/app.md)).
-> - The platform repo SHOULD be named `platform` and the default web monorepo `web`; further app repos are named after their product.
+> - A tenant MUST hold its ops side (inventory, host definitions, playbooks, deployment configs) in exactly one repo, the operations repo; every other tenant repo is an app repo.
+> - The operations repo MUST NOT hold the source of an app the tenant builds itself; it MAY hold third-party apps the tenant merely operates ([§ 2 PLX-App](../contracts/app.md)).
+> - The operations repo SHOULD be named `operations` and the default web monorepo `web`; further app repos are named after their product.
 
 Org membership governs code access; a person in tenant A's org is simply not in tenant B's.
-Inside the org, the layout follows three cardinalities: one trust domain, N release cycles, one platform repo.
+Inside the org, the layout follows three cardinalities: one trust domain, N release cycles, one operations repo.
 A **repo** is one release cycle and one toolchain contract ([PLX-Repo](../contracts/repo.md)) inside a tenant.
 The ops side gets a repo of its own because everything about it is repo-level and unlike an app's: it has no release cycle ([§ 3 PLX-Delivery](../approaches/delivery.md)), it is applied by playbook runs on its own occasions ([PLX-Platform](../approaches/platform.md)), its dependency bumps are human-reviewed because they run as root ([PLX-Updates](../approaches/updates.md)), and it holds the root playbooks and the vault pointers, so its access list is naturally the shortest in the org.
 Co-locating it in one arbitrary app repo would be an asymmetry every second reader has to be told about.
 
 Within an app repo, the monorepo's benefits remain direct: apps and the packages they share version together, cross-cutting changes land as one atomic commit, and it is safe because a repo is one access boundary.
 With several apps in one repo, deploys are per-app and promotion is repo-wide; a product that persistently needs its own release cadence is the one reason to give it its own repo within the tenant's org.
-Adding an app to the tenant therefore touches two repos: the app itself lands in its source repo, and its host, loopback port, and env values land as one inventory record in the platform repo ([PLX-Ingress](../approaches/ingress.md)).
+Adding an app to the tenant therefore touches two repos: the app itself lands in its source repo, and its host, loopback port, and env values land as one inventory record in the operations repo ([PLX-Ingress](../approaches/ingress.md)).
 That is the design working, not friction: the ops-side act of binding an app to a host is explicit and reviewed.
 
 

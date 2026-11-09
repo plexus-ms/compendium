@@ -10,12 +10,12 @@ order: 25
 
 This module is the posture on what happens to a host after its first playbook run: patches, reboots, upgrades, rebuilds.
 It is interim by design and says so.
-It is a note: one baseline role (`configure_unattended_upgrades`, [§ 2 PLX-Platform](platform.md)) and a posture, no primitive of its own.
+It is a note: one baseline role (`plexus.host.upgrades`, [§ 2 PLX-Platform](platform.md)) and a posture, no primitive of its own.
 
 
 ## § 1 The interim posture
 
-Tenant hosts run the distribution's unattended security upgrades, the default of the `configure_unattended_upgrades` role.
+Tenant hosts run the distribution's unattended security upgrades, the default of the `plexus.host.upgrades` role.
 Everything beyond that, kernel-update reboots, engine major bumps, release upgrades, host rebuilds, is a supervised operator act for now.
 A host that reboots unattended on a schedule is a tenant's choice, recorded in its platform marker; the roles leave the host up by default.
 
@@ -25,7 +25,7 @@ That visibility is an observability concern (§ 12 PLX), and the policy is writt
 
 ## § 2 Rebuilding a host
 
-The roles are the single encoding of a host's setup, so a rebuild is a fresh host plus the playbooks, never a restore of the old root.
+The roles are the single encoding of a host's setup, so a rebuild is a fresh host plus the layer's playbook, never a restore of the old root.
 What has to survive a rebuild is the apps' data ([backups per service](backup.md), [PLX-Infrastructure](infrastructure.md) for whole-VM backups) and the inventory; the host itself is reconstructable from git.
 Delete something only after checking what still references it; a guest removed from a hypervisor without care drops out of its backup job as well.
 

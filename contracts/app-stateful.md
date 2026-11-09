@@ -25,7 +25,7 @@ The backup job discovers what to dump by reading the labels ([backups per servic
 Extending the backup vocabulary means adding one handler upstream, after which every app using that data-service type is covered.
 
 A data service keeps its data in a named Docker volume, not in a bind-mounted directory under the app directory.
-The first start of a bind mount has Docker create the directory as root, and an image whose process runs unprivileged (Postgres as its own user, an object store as uid 10001) cannot write it, so every first start on a host needs a `chown` by hand that the configure playbook would otherwise have to know per image; a named volume is created with the ownership of the image's mount point, needs no directory and no chown.
+The first start of a bind mount has Docker create the directory as root, and an image whose process runs unprivileged (Postgres as its own user, an object store as uid 10001) cannot write it, so every first start on a host needs a `chown` by hand that the platform playbook would otherwise have to know per image; a named volume is created with the ownership of the image's mount point, needs no directory and no chown.
 Backups do not care: whole-machine backups take the volumes with the guest ([§ 3 PLX-Infrastructure](../approaches/infrastructure.md)), and the per-service backup dumps through the container, never from the directory.
 An app moving from bind directories to volumes migrates each host once, with the stack stopped: create the volume, copy the directory into it with ownership preserved, bring the stack up on the new file.
 

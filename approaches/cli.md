@@ -21,8 +21,8 @@ The maintainers run the workspace verbs as plain `plx` commands from the root of
 The ops verbs have followed: `deploy-targets` and `deploy` are commands of the tool ([§ 6 PLX-Delivery](delivery.md)), mounted on the forge by the thin reusable workflows next to it in `primitives`, which call the `plx` the tenant repo pins in its `mise.toml`, and run by hand from a checkout otherwise.
 The workflows carry no logic, only the mounts.
 The CI verbs ([§ 8 PLX-Delivery](delivery.md)) are a second tool on top of it, `plx-ci`, published as `@plexus-ms/cli-ci` at the train number from the same repo on the same `@plexus-ms/lib`: `registry`, `plan`, `build`, `test`, `publish` and `report`, which every strategy runs and which read the strategy, the registry and the overlay from `CI_STRATEGY`, `CI_REGISTRY` and `CI_OVERLAY`, and under `hybrid` the instances' own, `hybrid create-instances`, `destroy-instances` and `sweep-instances`; each is one line of a reusable workflow and each runnable by hand with the same keys in the environment.
-It is a package of its own so that the CI of one tenant can change without moving every tenant's `plx`, and so that a platform repo, which builds nothing, carries only the base.
-`changed-apps` was a verb of `plx` from train 0.71.0 to 0.110.0 and went with the diff-based changed set: `plx-ci plan` decides by content hash, and the platform repo's deploy fans over every app and relies on the deploy verb's no-op.
+It is a package of its own so that the CI of one tenant can change without moving every tenant's `plx`, and so that an operations repo, which builds nothing, carries only the base.
+`changed-apps` was a verb of `plx` from train 0.71.0 to 0.110.0 and went with the diff-based changed set: `plx-ci plan` decides by content hash, and the operations repo's deploy fans over every app and relies on the deploy verb's no-op.
 The maintainers' helpers are to leave the base for a third tool, `plx-dev`, so that a tenant repo pins nothing it cannot run; `lib` stays under all three.
 The platform preset ships a playbook wrapper that prefixes the vault's CLI, and both repo presets ship the contract verbs and `sync` as mise tasks; those are the shell that remains.
 
@@ -60,7 +60,7 @@ The requirements check and `ship` are maintainer helpers and are public all the 
 
 The runtime is no objection.
 mise installs npm tools directly, and every repo and every CI runner already goes through mise ([§ 2 PLX-Repo](../contracts/repo.md)).
-A platform repo has no Node toolchain, only the runtime the two tools run on, and it pins that runtime in its tools table like any tool, since train 0.113.0; the bot keeps both lines current.
+An operations repo has no Node toolchain, only the runtime the two tools run on, and it pins that runtime in its tools table like any tool, since train 0.113.0; the bot keeps both lines current.
 A few hundred lines of TypeScript with a YAML dependency read in half an hour at least as well as the awk they replaced, and they take unit tests in the ordinary way; the bash harnesses that faked copier, mise, docker and curl live on as integration tests in `primitives`, joined by fakes for `gh` and `npm`.
 
 The train pins the workflows and the tool alike, in one pull request per consumer, so the verbs a workflow asks for are the ones the pinned `plx` has; a workflow that asks for a verb the pinned `plx` lacks still fails as a usage error, loudly.

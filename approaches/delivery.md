@@ -16,7 +16,7 @@ Plexus puts state in git, takes events from a forge someone else operates, and r
 This module is everything between a verified commit and a running container or a published package: two phases made of five verbs, the workflows that mount them, the branch model that decides what runs where, where the jobs run, and the recovery when a deploy fails.
 
 It binds a repo.
-Which sections bind which kind of repo is said at each section: an app repo releases images and deploys them, a package repo releases packages, the platform repo deploys third-party apps and releases nothing.
+Which sections bind which kind of repo is said at each section: an app repo releases images and deploys them, a package repo releases packages, the operations repo deploys third-party apps and releases nothing.
 The app's side of being deployed, the compose file, the readiness endpoint, the Dockerfile, is [PLX-App](../contracts/app.md); the host's side is [PLX-Host](../contracts/host.md).
 
 
@@ -32,8 +32,8 @@ Every repo answers the first; the second is answered by the repos that produce a
 Inside the phases are the verbs, each one job.
 `check` is lint, typecheck and the pure tests, repo-wide, the part of `verify` that needs no machine in particular and gates everything after it: a commit that fails here builds and launches nothing.
 `build` makes an app's image hermetically from its Dockerfile and pushes it to the registry as a candidate; `test` brings the app's own compose file up on that candidate and runs the app's tests against it, so a pull request is verified against the image that would ship.
-`publish` puts a tested candidate under its commit in the tenant's forge registry; `deploy` launches it where the platform repo's inventory places the app in the branch's environment.
-`deploy` never builds: the platform repo deploys images it never built, a rollback re-launches an image that was published long ago, and a re-run deploys the same artifact again.
+`publish` puts a tested candidate under its commit in the tenant's forge registry; `deploy` launches it where the operations repo's inventory places the app in the branch's environment.
+`deploy` never builds: the operations repo deploys images it never built, a rollback re-launches an image that was published long ago, and a re-run deploys the same artifact again.
 
 The verbs are of two kinds, and the difference is where their logic lives.
 `check` is the contract verb's own decomposition: a root mise task of the repo, with whatever `lint`, `check` and `test` mean in its toolchain (§ 3 PLX-Repo), and a repo without images to build runs its whole `verify` there.
@@ -51,7 +51,7 @@ Hand-run, `publish` publishes what it is pointed at.
 > - A tenant MUST NOT operate its own CI control plane.
 > - The forge SHOULD be GitHub; a tenant SHOULD NOT self-host a forge.
 > - Every repo MUST run `check` on every pull request, tested as the merge result, in a workflow `on_pr`; a change to nothing but Markdown SHOULD start no run.
-> - An app repo MUST carry `on_commit` (`check` on a push to any branch but its environment branches), `on_pr` (`check`, then `verify`) and `on_push` (`check`, `verify`, `release` on a push to an environment branch); a package repo MUST carry `on_pr` (`check`) and `on_push` (`check`, `publish` on its trunk); the platform repo MUST carry `on_commit` and `on_pr` (`check`) and `deploy`.
+> - An app repo MUST carry `on_commit` (`check` on a push to any branch but its environment branches), `on_pr` (`check`, then `verify`) and `on_push` (`check`, `verify`, `release` on a push to an environment branch); a package repo MUST carry `on_pr` (`check`) and `on_push` (`check`, `publish` on its trunk); the operations repo MUST carry `on_commit` and `on_pr` (`check`) and `deploy`.
 > - A repo whose CI holds instances or a registry of the tenant's own MUST carry `housekeeping`, the daily retention of what its runs leave behind.
 > - A newer run for the same ref MUST cancel a `check` or `verify` still going for an older commit, and MUST NOT cancel a `release` once started.
 > - A job MUST be named after the verb it mounts; a workflow is named after the occasion it mounts the verbs on.
@@ -66,20 +66,20 @@ A push to an environment branch (`on_push`) asks "may this ship": `check`, `veri
 The chain inside each workflow is a `needs` chain of three reusable workflows, `_check.yml`, `_verify.yml` and `_release.yml`, and `check` gates `verify`: a failed lint launches no instance and builds no image.
 
 `verify` plans once for the whole repo and run.
-Its `plan` job computes every app's build and test hashes from one Turbo dry run, looks them up in the registry, reads where each app deploys from the platform repo's inventory when the run is going to release ([PLX-Environment](../contracts/environment.md)), and emits the matrices; `build` and `test` fan out over them, each leg one app and one hash, and `cleanup` deletes whatever `plan` launched for them.
+Its `plan` job computes every app's build and test hashes from one Turbo dry run, looks them up in the registry, reads where each app deploys from the operations repo's inventory when the run is going to release ([PLX-Environment](../contracts/environment.md)), and emits the matrices; `build` and `test` fan out over them, each leg one app and one hash, and `cleanup` deletes whatever `plan` launched for them.
 The forge's job graph is static and `needs` connects jobs, never the legs of a matrix, so the legs are independent: a broken app does not hold back a sound one, and a leg whose hash hit is skipped rather than run, which is why the chain's conditions read job results and never `success()`.
 `release` takes the plan's output: `publish` per app, then `deploy` per app with a target in the environment, as `_deploy.yml` nested inside it.
 A promotion never builds, a run by hand on an environment branch republishes and redeploys every app from the images it finds, and a run by hand on a branch that names no environment releases nothing.
 
 A package repo's `on_push` is `check` then `publish`, the package shape of the verb (§ 5), on its trunk; its `main` admits nothing but pull requests, so `on_commit` has nothing to run there, and the "version packages" branch is pushed with the workflow token, which starts no workflow of its own.
-The platform repo's `main` takes an operator's direct pushes, so `on_commit` checks those; its `deploy` workflow deploys the third-party apps under `apps/` from `main`, every app on every push that touches `apps/`, since the deploy verb ends at once where the host already serves the app's file (§ 6), and only a changed app restarts.
-`housekeeping` runs daily where the thing kept lives: in the platform repo for the tenant's throwaway instances and the registry buckets, in an app repo for the candidates it holds in the forge's registry (§ 8).
+The operations repo's `main` takes an operator's direct pushes, so `on_commit` checks those; its `deploy` workflow deploys the third-party apps under `apps/` from `main`, every app on every push that touches `apps/`, since the deploy verb ends at once where the host already serves the app's file (§ 6), and only a changed app restarts.
+`housekeeping` runs daily where the thing kept lives: in the operations repo for the tenant's throwaway instances and the registry buckets, in an app repo for the candidates it holds in the forge's registry (§ 8).
 
 Cancellation sits on `check` and `verify` and never on `release`.
 A newer push to the same ref cancels the verify still going for the older commit, whose verdict nobody waits for any more, and a cancelled verify's instances are deleted by its `cleanup`, which runs whatever the legs ended in; a `release` already started runs to its end, since a deploy cut off between migrate and up would strand the host, and deploys of one app to one host keep their own queue, at most one running and the newest waiting.
 
 Every mount is thin: checkout, secrets plumbing, one or two invocations of a verb, and the mount's logic is the strategy expression that says where the job runs (§ 8).
-`_check.yml` runs the repo's own tasks; `_verify.yml` is `plan`, `build`, `test` and `cleanup`, each one `plx-ci` invocation; `_release.yml` is `publish` and `deploy`; `_publish-package.yml` is the package shape of `publish`; `_deploy.yml` mounts `plx deploy`, `_deploy-targets.yml` mounts `plx deploy-targets` for the platform repo's `deploy`, `_housekeeping.yml` the retention; `_update.yml` and `_changeset.yml` are the mounts of [PLX-Updates](updates.md) and § 5.
+`_check.yml` runs the repo's own tasks; `_verify.yml` is `plan`, `build`, `test` and `cleanup`, each one `plx-ci` invocation; `_release.yml` is `publish` and `deploy`; `_publish-package.yml` is the package shape of `publish`; `_deploy.yml` mounts `plx deploy`, `_deploy-targets.yml` mounts `plx deploy-targets` for the operations repo's `deploy`, `_housekeeping.yml` the retention; `_update.yml` and `_changeset.yml` are the mounts of [PLX-Updates](updates.md) and § 5.
 The tenant's own workflows are generated by the presets and shipped on the train; a tenant repo carries no reusable workflow of its own, and the underscore says at a glance which files are triggered and which are called.
 A tenant's workflows hold one secret, the CI vault's service account token; everything else a job needs is read from the vault `<owner>-ci` (§ 8, [§ 3 PLX-Secrets](secrets.md)).
 
@@ -93,7 +93,7 @@ Leaving GitHub means adjusting the mounts, never the logic: a tenant on another 
 ## § 3 Environment branches and promotion
 
 > - App repos MUST use environment branches: `main`→`production`, `develop`→`staging`; `production` and `staging` are the environment names a deploy asks the platform inventory for ([PLX-Environment](../contracts/environment.md)).
-> - The platform repo SHOULD have a single `main`; environments are inventory groups, never branches.
+> - The operations repo SHOULD have a single `main`; environments are inventory groups, never branches.
 > - Apps MUST NOT use changesets.
 > - A hotfix branches from `main` and merges to `main`; it MUST be back-merged `main → develop` immediately.
 > - Promotion MUST be a fast-forward of `main` to `develop`; `main` MUST NOT carry merge commits of its own.
@@ -110,9 +110,9 @@ A merge commit on `main` is a commit `develop` does not know, so the next promot
 The hotfix back-merge is what keeps the fast-forward possible: after it, `main` is an ancestor of `develop` again.
 Release tooling built for registries (changesets) has nothing to version in an app repo, which is why it is excluded outright; packages version by different physics (§ 5), and the two models are never mixed.
 
-Which host an environment *is*, is inventory, not convention: `main`→`production` and `develop`→`staging` name environments, and the binding, which VM, which inventory record, which domain, lives in the platform repo's inventory ([§ 3 PLX-Platform](platform.md)), one record per app and environment, where `plan` reads it from a checkout of the tenant's platform repo made with the tenant's GitHub App ([PLX-Environment](../contracts/environment.md)).
+Which host an environment *is*, is inventory, not convention: `main`→`production` and `develop`→`staging` name environments, and the binding, which VM, which inventory record, which domain, lives in the operations repo's inventory ([§ 3 PLX-Platform](platform.md)), one record per app and environment, where `plan` reads it from a checkout of the tenant's operations repo made with the tenant's GitHub App ([PLX-Environment](../contracts/environment.md)).
 An app without a record in an environment has no deployment there, and a push to that environment's branch releases its image and deploys nothing.
-The platform repo itself needs no environment branches because it has no release cycle of its own to promote: staging and prod are two inventory groups in one file, and a playbook run targets one of them.
+The operations repo itself needs no environment branches because it has no release cycle of its own to promote: staging and prod are two inventory groups in one file, and a playbook run targets one of them.
 
 The model: **the unit of deployment is the app; the unit of promotion is the repo.**
 A merge to an environment branch releases into that environment every app, and builds exactly the ones whose inputs changed: a docs-only merge builds nothing, a `packages/ui` change rebuilds its dependents, an unchanged app is published from the candidate the registry holds and left running where the host already serves it.
@@ -123,8 +123,8 @@ The hashing is the verb's, not YAML logic: `plx-ci plan` reads the workspace gra
 Promotion is the whole repo: `develop → main` asserts *everything on `develop` is prod-ready*, and selective promotion would put on prod a repo state that never existed on staging, destroying the one guarantee environment branches exist to give.
 
 Two boundaries of the model.
-The platform repo has no release cycle: its ops side is not an app and the deploy verb never touches it; applying it is a playbook run, its own mount, on its own occasions.
-Third-party apps hosted in the platform repo are the exception that proves it: they *are* apps, so the deploy verb does touch them, mounted on the platform repo's `main` and fanned out over every app under `apps/` with a target in the inventory, the verb itself telling an unchanged app from a changed one.
+The operations repo has no release cycle: its ops side is not an app and the deploy verb never touches it; applying it is a playbook run, its own mount, on its own occasions.
+Third-party apps hosted in the operations repo are the exception that proves it: they *are* apps, so the deploy verb does touch them, mounted on the operations repo's `main` and fanned out over every app under `apps/` with a target in the inventory, the verb itself telling an unchanged app from a changed one.
 And the escape valve is a repo split, not a process patch: if two products in one tenant *persistently* need independent release cadences, move one into its own repo (still inside the tenant's org and access boundary, still on the same contract).
 Granularity problems are solved by moving a product into a release cycle of its own, never by making promotion partial.
 
@@ -178,7 +178,7 @@ Application plumbing, the "standardize boundaries" edges (framework glue, common
 
 ## § 6 Deploy semantics
 
-This section binds every repo that deploys: app repos through their pipeline, the platform repo for the third-party apps under its `apps/`.
+This section binds every repo that deploys: app repos through their pipeline, the operations repo for the third-party apps under its `apps/`.
 It describes what the shared deploy verb (`plx deploy`, [PLX-CLI](cli.md)) does, so the contract requirements riding on it ([§ 5 PLX-App](../contracts/app.md), [§ 2 PLX-AppStateful](../contracts/app-stateful.md)) make sense.
 The verb's behaviour is documented here rather than required; the contracts it serves are what carry requirements.
 
@@ -225,10 +225,10 @@ That is inside the fence: the file is read from git, the ref is the verb's own a
 
 The verb has one name and three callers.
 An app repo's `release` runs it per app with a target in the environment, after `publish` (§ 4), from the target `plan` read in the inventory.
-The platform repo's `deploy` runs it for the third-party apps under its `apps/`, from `main`, with the image already pinned in the committed file, each app's target looked up in the inventory by the `deploy-targets` verb.
-Hand-run, it is `plx deploy deploy@host tenant app --image <ref>` from any checkout that has the compose file, and `plx -n deploy …` prints every ssh line it would run, which is what makes a forge-less deploy possible, with or without the tool.
+The operations repo's `deploy` runs it for the third-party apps under its `apps/`, from `main`, with the image already pinned in the committed file, each app's target looked up in the inventory by the `deploy-targets` verb.
+Hand-run, it is `plx deploy deploy@host app --image <ref>` from any checkout that has the compose file, and `plx -n deploy …` prints every ssh line it would run, which is what makes a forge-less deploy possible, with or without the tool.
 The deploy host is substance: the inventory record's `plexus_deploy_target` ([PLX-Environment](../contracts/environment.md)), reachable over the tenant's overlay network or a public forward, whichever the tenant's platform provides (§ 8).
-The verb ends without pulling or restarting when the host already serves the app from the same rendered file, healthy, so a promotion restarts only the apps whose image changed, and the platform repo's deploy of every app on every push restarts only the one that changed.
+The verb ends without pulling or restarting when the host already serves the app from the same rendered file, healthy, so a promotion restarts only the apps whose image changed, and the operations repo's deploy of every app on every push restarts only the one that changed.
 
 
 ## § 7 Failed deploys and recovery
@@ -281,10 +281,10 @@ Under `ghcr` the `housekeeping` of the app repo deletes the package versions who
 Under `none` the host is reached as the inventory names it, a public address or a forward.
 Under `netbird` a job on the forge's runners joins the tenant's overlay for its length, as an ephemeral peer with a setup key from the vault whose policy allows the app hosts' SSH and nothing else, and leaves with the job; a job on a slot of a runner host joins nothing, since the slot shares the host's network and the host is on the overlay already.
 
-**The runner host** (`on-prem` and `hybrid`) is a host of the tenant like every other, set up by the collection ([§ 2 PLX-Platform](platform.md)), the `ci_runner_host` role: a number of container slots per size, each a systemd unit that mints a just-in-time runner configuration with the tenant's GitHub App and starts a fresh container of the runner image for one job, and the next when that job ends.
+**The runner host** (`on-prem` and `hybrid`) is a host of the tenant like every other, set up by the collections ([§ 2 PLX-Platform](platform.md)) through the `plexus.ci` playbook, whose one role of its own is `actions_runners`: a number of container slots per size, each a systemd unit that mints a just-in-time runner configuration with the tenant's GitHub App and starts a fresh container of the runner image for one job, and the next when that job ends.
 Nothing registered outlives its job, no registration token is stored, and the image is the official runner's with the few packages a small or medium job expects, published from `primitives` at the train number and pinned by the role.
 A small or medium slot has no Docker socket, which would be root on the host, runs under the container engine's `no-new-privileges` and a memory limit per size, so a job installs what it needs into its own home and never with `sudo`; the one thing the slots share is the host's pnpm store.
-The slots register at one repository, or at the organisation in a runner group, so that every repo of the tenant uses them: the platform repo's `deploy` and `housekeeping` need a slot as much as an app repo's jobs do, and on a forge plan without runner groups the organisation's default group serves every private repo.
+The slots register at one repository, or at the organisation in a runner group, so that every repo of the tenant uses them: the operations repo's `deploy` and `housekeeping` need a slot as much as an app repo's jobs do, and on a forge plan without runner groups the organisation's default group serves every private repo.
 A change to what a slot runs, its registration, its image, its limits, restarts the slots on the next playbook run, which a job in flight on the host does not survive.
 Where the runner host shares a hypervisor with production, CI is down whenever production is, and the fix that would rescue production cannot pass it; the deploy verb being hand-runnable and the fallback being one variable away is what makes that acceptable.
 
@@ -300,16 +300,16 @@ The provider's measured behaviour and its IAM are the [Exoscale field notes](exo
 | Item | Fields | Read when |
 |---|---|---|
 | `app_<name>` | `server-actions-key` | every build of the app, so that the candidate is reproducible |
-| `github-app` | `client-id`, `private-key` | `plan` reads the platform repo's inventory for a release; the runner host's slots and the instances mint their runner configurations |
+| `github-app` | `client-id`, `private-key` | `plan` reads the operations repo's inventory for a release; the runner host's slots and the instances mint their runner configurations |
 | `deploy-ssh` | an SSH key | every deploy |
 | `netbird` | `setup-key` | a deploy under `github` with `netbird` |
 | `bucket-registry`, `bucket-turbo` | `endpoint`, `region`, `access-key-id`, `secret-access-key` | `own`: the pair and the Turbo cache |
 | `exoscale` | `ci-launch/key`, `ci-launch/secret`, `ci-selfdelete/key`, `ci-selfdelete/secret` | `hybrid`: `plan`, `cleanup` and `housekeeping` launch and delete; an instance deletes itself |
 | `smtp-relay` | `host`, `port`, `username`, `password`, `from` | `hybrid`: the mails of a missed boot, a deadline, a sweep |
 
-The GitHub App holds `Contents: read` on the platform repo, `Administration: write` on the app repo for runners at the repository or `Self-hosted runners: write` on the organisation for slots there, and is otherwise the tenant's own; a tenant under `github` with `ghcr` and no overlay holds the first three items and nothing else.
+The GitHub App holds `Contents: read` on the operations repo, `Administration: write` on the app repo for runners at the repository or `Self-hosted runners: write` on the organisation for slots there, and is otherwise the tenant's own; a tenant under `github` with `ghcr` and no overlay holds the first three items and nothing else.
 A job reads the vault with the service account token, one request per secret reference and more, and 1Password limits those requests per token and hour (1,000 on the individual and Teams plans, 10,000 on Business) and per account and day (1,000, 5,000 and 50,000), all service accounts together; a pull request under `hybrid` costs on the order of a hundred, so a day of two tenants' CI exhausts the individual plan's account and every job of the day fails at its first read (seen 2026-11-08).
-A runner host therefore runs a **Connect server** (`ci_runner_host_connect`), an encrypted copy of the CI vault synced by one container and served on loopback by another, created once per tenant in 1Password with access to that vault alone; the slots carry its address and token in their environment, `load-secrets-action` prefers them over the service account token the workflows set, and the reads of every job on a slot leave the account's budget untouched, which the workflows never notice.
+A runner host therefore runs a **Connect server** (`actions_runners_connect`), an encrypted copy of the CI vault synced by one container and served on loopback by another, created once per tenant in 1Password with access to that vault alone; the slots carry its address and token in their environment, `load-secrets-action` prefers them over the service account token the workflows set, and the reads of every job on a slot leave the account's budget untouched, which the workflows never notice.
 A launched instance and the forge's runners cannot reach loopback and keep the service account, so the budget is spent by `build` and `test` under `hybrid` and by everything under `github`.
 The address the strategy mails to is a fact, the preset answer `alerts_email`, passed to the workflows as an input.
 
@@ -329,8 +329,8 @@ The layering is load-bearing:
 
 - **Verbs** contain *all* the logic and stay hand-runnable.
   `plx-ci plan [--test] [--deploy --environment <env> --inventory <dir>]` computes the hashes, looks them up, reads the deploy targets, and prints the builds, tests and deploys the run owes, with each leg's `runs-on`; `plx-ci build <app> <hash> <sha>`, `plx-ci test <app> <build> <hash>` and `plx-ci publish <app> <build> <sha>` are the three image verbs; `plx-ci registry` makes the candidates' registry reachable and `registry rotate` is the retention; `plx-ci hybrid create-instances`, `destroy-instances` and `sweep-instances` are the instances' lifecycle; `plx-ci report` compares what the registry holds for a run.
-  `plx deploy-targets [inventory]` prints each app's deploy target per environment from a platform repo's inventory and refuses an app declared with a target in two files for the same environment; `plan --deploy` uses the same reader from `@plexus-ms/lib`.
-  `plx deploy <host> <tenant> <app> [--image <ref>]` is § 6: every command it sends to the host is one line of shell over a shared ssh connection, and `--dry-run` prints each line verbatim, so `git clone && plx -n deploy …` hands a stranded operator the exact commands, which is what passes the degradation test.
+  `plx deploy-targets [inventory]` prints each app's deploy target per environment from an operations repo's inventory and refuses an app declared with a target in two files for the same environment; `plan --deploy` uses the same reader from `@plexus-ms/lib`.
+  `plx deploy <host> <app> [--image <ref>]` is § 6: every command it sends to the host is one line of shell over a shared ssh connection, and `--dry-run` prints each line verbatim, so `git clone && plx -n deploy …` hands a stranded operator the exact commands, which is what passes the degradation test.
   Every verb reads the three answers as `CI_STRATEGY`, `CI_REGISTRY` and `CI_OVERLAY`, which the reusable workflows set from their inputs, and `--strategy` overrides the first by hand.
   All of them are tested in `plexus-ms/primitives`, the deploy verb against a fake `ssh` on `PATH` that runs each line locally in a scratch app dir with fake `docker` and `curl`, the instance verbs against a fake cloud.
   A tenant repo pins both tools in its `mise.toml` at the train number, and the train writes the pins together with the workflow refs ([§ 1 PLX-Updates](updates.md)), so the verbs a workflow asks for are the ones the pinned tools have.
@@ -355,17 +355,17 @@ Zero-downtime deploys (blue-green, rolling) stay outside until an app has traffi
 
 **Decisions**, in order, each closing a deferral written before it:
 
-- 2026-11-04: an app repo's deploy reads the inventory itself, from a checkout of the tenant's platform repo (`<owner>/platform`, fixed by PLX-Tenancy) made with the tenant's GitHub App, which therefore holds `Contents: read` on it; the record it reads is the contract object of [PLX-Environment](../contracts/environment.md), and the web repo's `DEPLOY_HOST` variable went with the pipeline that reads it.
+- 2026-11-04: an app repo's deploy reads the inventory itself, from a checkout of the tenant's operations repo (`<owner>/platform`, fixed by PLX-Tenancy) made with the tenant's GitHub App, which therefore holds `Contents: read` on it; the record it reads is the contract object of [PLX-Environment](../contracts/environment.md), and the web repo's `DEPLOY_HOST` variable went with the pipeline that reads it.
 - 2026-11-05: the module keeps its code and § 8 carries the strategies; a split into one page per strategy would rename citations for no second reader.
   The environment branches stay `main` and `develop`: the hotfix flow, the promotion task and every page assume them, and the mount maps a branch to an environment name in one place.
-- 2026-11-06, the shape of 0.111.0: the phases `verify` and `release` with the verbs inside them; one pipeline for the three strategies, with the sizes as labels; `ci_registry` and `ci_overlay` as answers of their own; `CI_STRATEGY` as the escape hatch; the platform repo's `deploy` fans the verb over every app under `apps/` and relies on the verb's no-op, so `changed-apps` is gone; the platform repo's check is `on_commit` and `on_pr` on a small runner of its strategy.
+- 2026-11-06, the shape of 0.111.0: the phases `verify` and `release` with the verbs inside them; one pipeline for the three strategies, with the sizes as labels; `ci_registry` and `ci_overlay` as answers of their own; `CI_STRATEGY` as the escape hatch; the operations repo's `deploy` fans the verb over every app under `apps/` and relies on the verb's no-op, so `changed-apps` is gone; the operations repo's check is `on_commit` and `on_pr` on a small runner of its strategy.
 - 2026-11-08, hotfix shipped as 0.112.0: the nested `_deploy.yml` ref, above; and, after the first releases of the train failed on the rate limit, the Connect server on the runner host rather than a larger 1Password plan, since the reads that matter are the slots' and the server costs nothing but two containers beside the registry pair.
-- 2026-11-07, at the trials of 0.111.0: `large` under `github` is `ubuntu-latest`, since the forge's larger runners need a paid plan; one role, `ci_runner_host`, serves `on-prem` and `hybrid`, the large slot being the privileged one with a Docker daemon of its own; the slots register at the organisation as soon as a second repo of the tenant needs them, which the platform repo's `housekeeping` and `deploy` do under `hybrid`; `cpu.huge` (16 vCPU) is not used for the large jobs, since it costs twice `cpu.extra-large` and would have to be twice as fast; the GHCR retention deletes versions whose only tags are candidates older than thirty days.
+- 2026-11-07, at the trials of 0.111.0: `large` under `github` is `ubuntu-latest`, since the forge's larger runners need a paid plan; one role, `plexus.ci.actions_runners`, serves `on-prem` and `hybrid`, the large slot being the privileged one with a Docker daemon of its own; the slots register at the organisation as soon as a second repo of the tenant needs them, which the operations repo's `housekeeping` and `deploy` do under `hybrid`; `cpu.huge` (16 vCPU) is not used for the large jobs, since it costs twice `cpu.extra-large` and would have to be twice as fast; the GHCR retention deletes versions whose only tags are candidates older than thirty days.
 
 **Setting a tenant up**, once per tenant, by hand and recorded here until a second tenant makes a role of it.
 Every strategy: the vault `<owner>-ci` with its service account token as the one CI secret of every repo, the items `app_<name>` per app, `deploy-ssh` and `github-app`, and the App itself with the permissions § 8 names; `plexus_deploy_target` on each host's record in the inventory.
 `own`: a storage key with read and write on the buckets plus their creation and deletion, the bucket `<owner>-ci-turbo` with a lifecycle rule expiring objects after thirty days, and the first `<owner>-ci-registry-<YYYY-MM>`.
-`on-prem` and `hybrid`: a runner host in the inventory group the role is applied to, on the overlay with a policy that lets it reach the app hosts' SSH, with the App's credentials and, under `own`, the storage key in its playbook environment, and slots by size (`ci_runner_host_slots`); a Connect server in 1Password (Developer tools, Infrastructure Secrets Management) with access to the CI vault, whose `1password-credentials.json` and access token go into the vault's item `1password-connect` and reach the role as `CI_CONNECT_CREDENTIALS` and `CI_CONNECT_TOKEN`; a tenant that wants no upstream registry between it and its runners builds the runner image on the host from the same Dockerfile (`ci_runner_host_image_build`), which is also how an unreleased role is tried.
+`on-prem` and `hybrid`: a runner host in the inventory group `ci`, applied by the operations repo's `ci.yml` (`plexus.ci.playbook`), on the overlay with a policy that lets it reach the app hosts' SSH, with the App's credentials and, under `own`, the storage key in its playbook environment, and slots by size (`actions_runners_slots`); a Connect server in 1Password (Developer tools, Infrastructure Secrets Management) with access to the CI vault, whose `1password-credentials.json` and access token go into the vault's item `1password-connect` and reach the role as `CI_CONNECT_CREDENTIALS` and `CI_CONNECT_TOKEN`; a tenant that wants no upstream registry between it and its runners builds the runner image on the host from the same Dockerfile (`actions_runners_image_build`), which is also how an unreleased role is tried.
 `hybrid`: on the cloud, two IAM roles and keys (launch: create, list, get, stop and delete instances and read templates, types, security groups and operations; self-delete: list, get and delete instances and read operations), a security group admitting SSH only, for the launch's diagnosis of a missed boot, an SSH key registered once, and a relay credential for the mails.
 `netbird`: a setup key whose policy allows the app hosts' SSH and nothing else.
 
@@ -379,7 +379,7 @@ The layers, from the common case to the last resort:
    The timer is armed at boot and the deadline computed before the create call, so an instance that idles goes a minute or two after the announced time.
 3. The death deadline (thirty minutes): a mail through the relay, then self-deletion; five minutes after that, a power-off without network, armed as the first cloud-init step so that it holds even when nothing after it ran.
 4. The run's `cleanup` job, after every leg an instance was launched for and whatever they ended in: deletes the instances this run and attempt launched, by their labels, retrying one the cloud refuses to delete while it is still starting, and removes the runner registrations nothing connected with; what it could not delete it names, and layers 2 and 5 take.
-5. The daily `housekeeping` in the platform repo: deletes every instance of the strategy that is stopped or past its death deadline, and mails when it removed something.
+5. The daily `housekeeping` in the operations repo: deletes every instance of the strategy that is stopped or past its death deadline, and mails when it removed something.
 
 **The launch and the boot stall.**
 A launched instance sometimes never comes online (the field notes, § 4), and a stalled boot arms no timer, so the launch is the one place that can see it in time.
@@ -416,5 +416,5 @@ The forge-side jobs of a pull request were four to six billed minutes on the for
 Preview environments per PR are deliberately absent: a single staging per app covers most of the value, and the decision is revisited when a product has real customers (§ 6.8 PLX).
 
 `plexus-ms/libraries` rides outside the train (§ 1.5 PLX): npm semver via changesets is its versioning, and the train number says nothing about it.
-It is generated from `preset-repo-web` like a tenant's web repo and takes its arrangement from the train; `plx`, `@plexus-ms/lib` and `@plexus-ms/config` left it for `primitives`, where they are versioned by the train (§ 1.6 PLX), because they are arrangement, not application libraries.
+It is generated from `preset-repo-turbo` like a tenant's web repo and takes its arrangement from the train; `plx`, `@plexus-ms/lib` and `@plexus-ms/config` left it for `primitives`, where they are versioned by the train (§ 1.6 PLX), because they are arrangement, not application libraries.
 §§ 5 and 6 carry no requirements yet: one package repo and one deploy verb are their consumers, and they gain requirements when a second consumer of each exists.

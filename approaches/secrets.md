@@ -1,7 +1,7 @@
 ---
 title: PLX-Secrets – secrets delivery
 short_title: PLX-Secrets
-description: Git holds op:// pointers and never values; the configure playbook resolves them from the tenant's vault into .env.secret on the host and re-creates the containers whose environment changed.
+description: Git holds op:// pointers and never values; the platform playbook resolves them from the tenant's vault into .env.secret on the host and re-creates the containers whose environment changed.
 code: PLX-Secrets
 maturity: standard
 binds: host
@@ -24,8 +24,8 @@ This module is how the secret half gets there: one pointer syntax, resolved by a
 
 Two flows, both resolved when a platform playbook runs:
 
-- **Platform secrets** (deploy SSH key, registry credentials): the platform repo's committed `secrets.env` is a dotenv file of `op://` pointers, it holds no values, so it is safe in git, and the playbook wrapper (`ansible-playbookw`) runs `op run -- ansible-playbook <playbook>`, which resolves the pointers into env vars either playbook reads.
-- **App runtime secrets:** each entry of the app's inventory record `apps[].secrets` is the same kind of `op://` pointer, resolved from the vault by the configure playbook and written to `<app_dir>/.env.secret` on the host; the app's compose file loads it via `env_file`.
+- **Platform secrets** (deploy SSH key, registry credentials): the operations repo's committed `secrets.env` is a dotenv file of `op://` pointers, it holds no values, so it is safe in git, and the playbook wrapper (`ansible-playbookw`) runs `op run -- ansible-playbook <playbook>`, which resolves the pointers into env vars either playbook reads.
+- **App runtime secrets:** each entry of the app's inventory record `apps[].secrets` is the same kind of `op://` pointer, resolved from the vault by the platform playbook and written to `<app_dir>/.env.secret` on the host; the app's compose file loads it via `env_file`.
 
 One pointer syntax serves both flows, so every vault reference a tenant holds is greppable in one repo, and the inventory record stays free of lookup expressions.
 The deploy verb never touches secrets.
@@ -62,7 +62,7 @@ Decided 2026-11-04 in the first tenant's CI trial and written here as prose; it 
 
 ## Maintaining
 
-`configure_secrets` writes `.env.secret` and owns its rotation handler; `configure_apps` does the same for `.env` ([§ 3 PLX-Platform](platform.md)).
-The secrets role runs before the apps role in the configure playbook, so the first `up` already sees the secrets.
+`plexus.platform.secrets` writes `.env.secret` and owns its rotation handler; `plexus.platform.apps` does the same for `.env` ([§ 3 PLX-Platform](platform.md)).
+The secrets role runs before the apps role in the platform playbook, so the first `up` already sees the secrets; `mise platform -- --tags secrets,apps` is the rotation run.
 1Password is a suggested default behind a thin adapter: `op.env` is plain dotenv of pointers any vault CLI could resolve, so leaving it means replacing `op run` in the wrapper, not rewriting logic, and recording the substitution in the platform marker.
 A 1Password authorization timeout in automation most likely means an unlock prompt went unanswered; retry.

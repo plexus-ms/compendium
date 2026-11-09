@@ -49,9 +49,9 @@ Plexus revolves around tenants sharing methodology but never substance:
 Tenants usually build and ship software:
 
 - **Repo** — one release cycle and one toolchain inside a tenant bundled in one forge repository ([PLX-Repo](../contracts/repo.md)).
-  A tenant can have any number of **app repos** holding the dev side, and has exactly one **platform repo** holding the ops side.
+  A tenant can have any number of **app repos** holding the dev side, and has exactly one **operations repo** holding the ops side.
 - **App** — one deployable unit satisfying the app contract ([PLX-App](../contracts/app.md)).
-  It lives in an app repo for software the tenant builds, or the platform repo for third-party software the tenant merely operates.
+  It lives in an app repo for software the tenant builds, or the operations repo for third-party software the tenant merely operates.
 - **Verb** — a stateless, hand-runnable procedure that does one operational thing, authored portably.
   Ops verbs are commands of `plx`, the published `@plexus-ms/cli` ([PLX-CLI](../approaches/cli.md)); contract verbs are the root mise tasks the repo contract requires.
 - **Mount** — the thin, disposable glue binding a verb or role to an event or state source it does not own: a workflow wrapper on forge events, a tenant playbook on an inventory, a systemd timer on the clock.
@@ -59,9 +59,9 @@ Tenants usually build and ship software:
 
 IT operations is a layered concern. We are adopting the commonly used language of on-premises, IaaS, PaaS, and SaaS:
 
-- **App/Software layer** — on top of the platform layer, the software a tenant provides as a service and the data it holds: the apps the tenant builds in its app repos and the third-party apps it merely operates from its platform repo, each meeting the app contract ([PLX-App](../contracts/app.md)).
+- **App/Software layer** — on top of the platform layer, the software a tenant provides as a service and the data it holds: the apps the tenant builds in its app repos and the third-party apps it merely operates from its operations repo, each meeting the app contract ([PLX-App](../contracts/app.md)).
   It is the equivalent of a tenant being its own SaaS provider, and it is the dev side: everything from the domain core up to the seam where the platform provides the surroundings.
-- **Platform layer** — what makes any existing production host run a tenant's app and provide it as a service: the host baseline, the container engine and proxy, ingress, environment and secrets delivery, applied by the platform repo's playbooks ([PLX-Platform](../approaches/platform.md)).
+- **Platform layer** — what makes any existing production host run a tenant's app and provide it as a service: the host baseline, the container engine and proxy, ingress, environment and secrets delivery, applied by the operations repo's playbooks ([PLX-Platform](../approaches/platform.md)).
   It is the equivalent of a tenant being its own PaaS provider, running the layer between the infrastructure below and the apps above.
 - **Infrastructure layer** — underneath the platform layer, this is what makes a tenant's hosts exist, reachable, and restorable: bought from a provider as IaaS (virtualized cloud instances etc.), or built by the tenant on bare metal of its own (on-premises or bare metal rented from a provider, [PLX-Infrastructure](../approaches/infrastructure.md)).
 
@@ -128,7 +128,7 @@ modules: [PLX-Repo, PLX-JS, PLX-Delivery, PLX-Updates]
 Machine checks read only the frontmatter; the body is for humans, and it is where a deviation from a requirement is owned in a sentence of rationale..
 
 **Dependencies.**
-A module's `depends` (§ 1.3) is satisfied by the declaring unit itself, by an enclosing declaration (an app's by its repo, a repo's by the tenant's platform repo), or by a contained one (a repo's by an app inside it).
+A module's `depends` (§ 1.3) is satisfied by the declaring unit itself, by an enclosing declaration (an app's by its repo, a repo's by the tenant's operations repo), or by a contained one (a repo's by an app inside it).
 What a module `consumes` is never the declaring unit's to satisfy: PLX-Ingress consumes PLX-App, and it is the apps that declare PLX-App; PLX-Platform consumes PLX-Host, and the side that provides the host declares it, or, for a rented machine, nobody does.
 The staleness check (§ 13.4) verifies the first and leaves the second to the other side.
 
@@ -143,9 +143,9 @@ The number says *when*, not *how stable*; stability is the maturity axis of § 1
 The train is the tested set: the only combination ever validated is the one the maintainers' tenants run together, so independent per-repo version lines would name compatibility cells nobody tests.
 Because an unchanged repo still gets the tag, every cross-repo pin can cite the train version and be right by construction.
 
-The train repos are `primitives`, `preset-repo-web`, `preset-app-nextjs`, `preset-repo-platform`, and `compendium`.
+The train repos are `primitives`, `preset-repo-turbo`, `preset-app-nextjs`, `preset-repo-operations`, and `compendium`.
 `libraries` (npm semver via changesets, [§ 5 PLX-Delivery](../approaches/delivery.md)) rides outside the train.
-`primitives` carries everything the train versions in one repo: the Ansible collection and the Terraform modules (its `galaxy.yml` version mirrors the tag exactly), the reusable workflows, the shared update-bot preset, and the packages `@plexus-ms/cli`, `@plexus-ms/cli-ci`, `@plexus-ms/lib` and `@plexus-ms/config`, published to npm at the train number, so that the tools, the config and the train a repo runs are one number.
+`primitives` carries everything the train versions in one repo: the four `plexus.*` Ansible collections and the Terraform modules (each collection's `galaxy.yml` version mirrors the tag exactly), the reusable workflows, the shared update-bot preset, and the packages `@plexus-ms/cli`, `@plexus-ms/cli-ci`, `@plexus-ms/lib` and `@plexus-ms/config`, published to npm at the train number, so that the tools, the config and the train a repo runs are one number.
 A train is cut in two phases: `primitives` first, whose release publishes those packages, then the presets and the compendium once the registry has them, because they pin them.
 Trains 0.77.0 to 0.99.0 do not exist; 0.100.0 is the first train of this layout, and the repos it consolidated (`platform`, `ci-cd`, `renovate-config`, and the cli's part of `packages`, since renamed `libraries`) are archived with their tags in place for anything still pinned there.
 The pre-train per-repo `vN` lines and the itops-era tags live on frozen in history, kept for existing pins and never retargeted.
@@ -184,11 +184,11 @@ The repos that ship the methodology:
 
 | Repo | Offering |
 |---|---|
-| `primitives` | The train-versioned primitives in one repo: the `plexus.platform` Ansible collection (the host baseline, the roles that make a host a tenant's app host, the roles of the infrastructure layer) and reusable Terraform modules; the thin reusable workflows that mount the ops verbs on the forge; `plx` itself as `@plexus-ms/cli` with `@plexus-ms/lib`, the CI verbs as `@plexus-ms/cli-ci` (`plx-ci`), and the shared tool configs `@plexus-ms/config`; and the shared Renovate preset every Plexus repo extends in one line. |
+| `primitives` | The train-versioned primitives in one repo: the `plexus.*` Ansible collections, one per layer with its playbook (`plexus.host` for the baseline every host gets, `plexus.platform`, `plexus.infrastructure`, `plexus.ci`), and reusable Terraform modules; the thin reusable workflows that mount the ops verbs on the forge; `plx` itself as `@plexus-ms/cli` with `@plexus-ms/lib`, the CI verbs as `@plexus-ms/cli-ci` (`plx-ci`), and the shared tool configs `@plexus-ms/config`; and the shared Renovate preset every Plexus repo extends in one line. |
 | `libraries` | The published `@plexus-ms/*` libraries for the web/Node/TypeScript world on their own semver: the `std` utilities, and over time the reusable application plumbing that keeps each app's domain core small. |
-| `preset-repo-web` | The copier template for a tenant app repo: a web monorepo with `apps/` consuming the packages, re-syncable via `copier update`. |
+| `preset-repo-turbo` | The copier template for a tenant app repo: a Turborepo monorepo with `apps/` consuming the packages, re-syncable via `copier update`. |
 | `preset-app-nextjs` | The copier template for a Next.js app inside an app repo: contract-verb scripts, Dockerfile, `compose.yaml` with the contract labels. |
-| `preset-repo-platform` | The copier template for a tenant's platform repo: the two playbooks, on request a third for the infrastructure layer, inventory, the `op://`-pointer env files, the collection pin, the `apps/` directory and workflow for third-party apps. |
+| `preset-repo-operations` | The copier template for a tenant's operations repo: one thin playbook per layer mounting the collection's, on request the infrastructure layer's and the CI layer's, the inventory with the standard groups, the `op://`-pointer env files, the collection pins, the `apps/` directory and workflow for third-party apps. |
 | `compendium` | This map, the modules, the manifesto, and the supporting reference docs. |
 
 The dogfood tenant `plexus` lives in its own organisation, `plexus-ms-tenant`, laid out like any tenant and bound by the modules it declares, not by anything in this section: the maintainers' organisation ships methodology, the tenant's holds substance, and the two never share an access boundary.
@@ -202,8 +202,8 @@ flowchart TB
   packages -- "npm versions" --> boundary
   preset -- "copier update" --> boundary
   ops -- "train tags + npm at the train number" --> boundary
-  boundary --> acme["TENANT: fooCorp<br>forge org · platform repo · app repos<br>host(s) · vault · backups"]
-  boundary --> initech["TENANT: barCorp<br>forge org · platform repo · app repos<br>host(s) · vault · backups"]
+  boundary --> acme["TENANT: fooCorp<br>forge org · operations repo · app repos<br>host(s) · vault · backups"]
+  boundary --> initech["TENANT: barCorp<br>forge org · operations repo · app repos<br>host(s) · vault · backups"]
   boundary --> plexus["TENANT: plexus<br>dogfood; runs<br>plexus-ms.org"]
 ```
 
@@ -241,7 +241,7 @@ How an organisation is cut into trust domains and named, where its code lives, h
 
 ### § 2.1 Trust domains and tenancy
 
-The tenant is the trust boundary: one organisation, one forge org, one platform repo, one secrets vault, its own hosts and backups.
+The tenant is the trust boundary: one organisation, one forge org, one operations repo, one secrets vault, its own hosts and backups.
 What spans tenants is methodology; what never does is substance.
 [PLX-Tenancy](../contracts/tenancy.md) is the contract, at standard maturity; its first section holds the one pair of requirements everything else rests on.
 
@@ -252,7 +252,7 @@ One short slug per tenant threads through every layer: forge org, hostnames, inv
 
 ### § 2.3 Forge and repo layout
 
-One trust domain, N release cycles, one platform repo: the ops side in a repo of its own, every other repo an app repo, app repos as monorepos by default, generated from the presets.
+One trust domain, N release cycles, one operations repo: the ops side in a repo of its own, every other repo an app repo, app repos as monorepos by default, generated from the presets.
 [§ 3 PLX-Tenancy](../contracts/tenancy.md).
 
 ### § 2.4 Arrangements between tenants
@@ -310,7 +310,7 @@ Approaches on DNS and domain management with a focus on bringing DNS state into 
 
 ### § 3.4 Mail
 
-Hosts send local mail to a mailbox through a relay the tenant provides (the `configure_mail` role); apps send through a transactional provider from their environment; neither is a standard module today.
+Hosts send local mail to a mailbox through a relay the tenant provides (the `mail` role of `plexus.host`); apps send through a transactional provider from their environment; neither is a standard module today.
 
 More approaches to mail may follow in the future.
 
@@ -460,12 +460,12 @@ A tenant's hosts as code: the Ansible collection mounted as playbooks, and the c
 
 ### § 7.1 Playbooks
 
-Two playbooks split by change cadence, provision for fresh hosts and deep changes, configure as the re-runnable everyday pass, each role wholly in one.
+One playbook per layer, shipped in its collection and mounted by one line in the tenant's operations repo; plays carry their layer as a tag and roles their name, so a run is narrowed with `--tags` and `--limit` and the whole is always re-runnable.
 [§ 1 PLX-Platform](../approaches/platform.md).
 
 ### § 7.2 Host baseline
 
-Packages and system activity record, personal admins, unattended security upgrades, a default-drop firewall assembled from fragments, sshd closed to root; the deploy user and the container engine on an app host.
+Packages and system activity record, personal admins, unattended security upgrades, a default-drop firewall assembled from fragments, sshd closed to root: the `plexus.host` collection, listed by every layer's playbook; the deploy user and the container engine on an app host.
 [§ 2 PLX-Platform](../approaches/platform.md).
 
 ### § 7.3 Ingress
@@ -475,7 +475,7 @@ The proxy's routes are rendered from the app record, public host to loopback por
 
 ### § 7.4 App environment and secrets delivery
 
-Git holds `op://` pointers, the configure playbook resolves them into `.env.secret` on the host and re-creates the containers whose environment changed; the deploy verb never touches a secret.
+Git holds `op://` pointers, the platform playbook resolves them into `.env.secret` on the host and re-creates the containers whose environment changed; the deploy verb never touches a secret.
 [PLX-Secrets](../approaches/secrets.md).
 
 ### § 7.5 Scheduling
@@ -490,7 +490,7 @@ A [note](../approaches/host-lifecycle.md) until a policy exists that a role enfo
 
 ### § 7.7 App record and lifecycle
 
-One inventory record per app and environment binds name, source repo, host, loopback port, and values; the configure playbook lays out the deployment's directory, writes `.env` from the record, and pulls and starts what the deploy verb has placed.
+One inventory record per app and environment binds name, source repo, host, loopback port, and values; the platform playbook lays out the deployment's directory under the deploy root, writes `.env` from the record, and pulls and starts what the deploy verb has placed.
 [§ 3 PLX-Platform](../approaches/platform.md).
 The record is also what a deploy reads to find its target, which makes it a contract between the deployer and the platform: [PLX-Environment](../contracts/environment.md), at candidate maturity.
 
@@ -507,7 +507,7 @@ A Debian machine an operator can reach over SSH, with a stable name, outbound in
 ### § 8.2 Rented machines
 
 Not covered.
-A tenant on a provider's cloud has nothing to do below the host contract; which providers, which machine shapes, and how the platform repo records them is still to be written.
+A tenant on a provider's cloud has nothing to do below the host contract; which providers, which machine shapes, and how the operations repo records them is still to be written.
 What exists is the maintainers' field record of the one provider they run throwaway CI instances on, the [Exoscale field notes](../approaches/exoscale.md).
 
 ### § 8.3 Virtualisation
@@ -528,7 +528,7 @@ An ingress VM holding the one public address, routing 443 by SNI and 80 by Host 
 ### § 8.6 Admin network
 
 Not covered as a module.
-Hosts join an overlay network (the `install_and_join_netbird` role) and are administered over it; the hypervisor's UI and the backup server listen only there.
+Hosts join an overlay network (the `netbird` role of `plexus.host`) and are administered over it; the hypervisor's UI and the backup server listen only there.
 Whether the overlay, its control plane, and the fallback when it is down become a module is still to be decided.
 
 ### § 8.7 Hardware and providers

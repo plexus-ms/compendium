@@ -20,7 +20,7 @@ The maturity rule (§ 1.3 PLX) promotes it the day one does.
 
 A host is a Debian machine, the current stable release, with a stock kernel and no configuration management of its own.
 It is reachable over SSH on an address the operator's machine can connect to: a public one, an overlay network's, or an internal one through a jump host the operator can also reach.
-It is reached once as root with the operator's key, after which the provision playbook creates personal admin accounts and closes root logins; nothing on the host is set up by hand before that first run.
+It is reached once as root with the operator's key, after which the platform playbook creates personal admin accounts and closes root logins; nothing on the host is set up by hand before that first run.
 It has a stable hostname that the platform treats as the host's name in the inventory.
 It has outbound internet access for packages, container images, and the overlay or vault endpoints the roles talk to.
 Inbound, ports 80 and 443 reach it from the public internet, directly on a public address or through a layer-4 ingress that routes by SNI and Host header and announces the real peer with the PROXY protocol ([PLX-Ingress](../approaches/ingress.md) believes that announcement only from configured sources).
@@ -33,7 +33,7 @@ A machine image carries only what has to exist before the first SSH login.
 ## § 2 What the infrastructure layer is told
 
 The platform asks nothing of how the host came to be, and the infrastructure layer asks only two things back: which guests to create and how to reach them.
-Both are inventory, in the tenant's platform repo.
+Both are inventory, in the tenant's operations repo.
 A host that stops meeting § 1, a release upgrade or a changed address, is a infrastructure-layer change first and a platform re-run second, in that order.
 
 

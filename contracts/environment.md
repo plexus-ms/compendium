@@ -10,7 +10,7 @@ order: 6
 ---
 
 The environment record sits at the seam between the deployer and the platform.
-On one side, the platform's operator writes the record into the tenant's platform inventory and the configure playbook renders the app's environment from it ([§ 3 PLX-Platform](../approaches/platform.md)).
+On one side, the platform's operator writes the record into the tenant's platform inventory and the platform playbook renders the app's environment from it ([§ 3 PLX-Platform](../approaches/platform.md)).
 On the other side, a deploy, run by an app repo's pipeline or by hand, reads the record to learn where an app's environment lives ([§ 3 PLX-Delivery](../approaches/delivery.md)).
 The app itself never learns where it runs; what it is handed is the subject of [PLX-App](app.md).
 This is why the record is not PLX-App: the two contracts have different pairs of sides, and the deployer needs exactly what the app never sees, the host, the user, and which environment a branch maps to.
@@ -37,15 +37,15 @@ The vault holds only what git cannot, and the record points at it.
 
 ## § 2 What each side owes
 
-The platform's operator owes a record for every deployment the tenant runs, kept current, and a `plexus_deploy_target` on every file that holds records; the configure playbook renders exactly what the record says, nothing more, and re-creates the containers whose environment changed.
+The platform's operator owes a record for every deployment the tenant runs, kept current, and a `plexus_deploy_target` on every file that holds records; the platform playbook renders exactly what the record says, nothing more, and re-creates the containers whose environment changed.
 
-The deployer owes to read the record and nothing else for its target: `plx deploy-targets --environment <name>` on a checkout of the tenant's platform repo, which [PLX-Tenancy](tenancy.md) fixes as the one platform repo of the organisation, prints each app's target in that environment; an app without a record there has no deployment there, and the deployer deploys nothing for it rather than inventing a target.
+The deployer owes to read the record and nothing else for its target: `plx deploy-targets --environment <name>` on a checkout of the tenant's operations repo, which [PLX-Tenancy](tenancy.md) fixes as the one operations repo of the organisation, prints each app's target in that environment; an app without a record there has no deployment there, and the deployer deploys nothing for it rather than inventing a target.
 The deployer never writes to the record, never holds a copy of it, and never carries a target of its own once it reads the record.
 
 
 ## Maintaining
 
-`configure_apps`, `configure_secrets` and `configure_ingress` provide the platform's side and `plx deploy-targets` and `plx deploy --environment` the deployer's; all ship from `plexus-ms/primitives` on the train.
+`plexus.platform.apps`, `plexus.platform.secrets` and `plexus.platform.ingress` provide the platform's side and `plx deploy-targets` and `plx deploy --environment` the deployer's; all ship from `plexus-ms/primitives` on the train.
 The record's shape is the one § 3 PLX-Platform requires; this page owns the seam and names the sides, and a guarantee one side relies on from the other moves here when it is argued.
 Decided 2026-11-04 in the CI trial of the first tenant (`damage`), where one deploy host per app repo and non-secret facts in the vault were the two things that did not scale to a second environment; 1Password Environments was considered as a store for the record and rejected, since it would be a second database of intent beside the inventory and fail the degradation test.
 Promotion to standard, with the requirements of §§ 1 and 2 as blockquotes, waits for the second tenant; the branch names of an app repo matching the environment names is a deferral of PLX-Delivery decided together with it.

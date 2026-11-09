@@ -40,7 +40,7 @@ Take the dependency, override at the edge, never fork the base.
 
 > - Every tenant repo MUST run an automated update bot that watches its pins and opens update PRs.
 > - The update bot SHOULD be Renovate, extending the shared preset `github>plexus-ms/primitives//renovate/default`.
-> - Tenants MUST pin the `plexus.platform` collection by tag in the platform repo's `requirements.yml`.
+> - Tenants MUST pin the `plexus.platform` collection by tag in the operations repo's `requirements.yml`.
 > - For `@plexus-ms/*` packages on their own semver, CI-green patch/minor auto-merge MAY be enabled and is the recommended default.
 > - The pins the train writes (the workflow refs, the collection pin, the `plx` pin, the `@plexus-ms/config` pin) MUST NOT be proposed by the update bot; they arrive as the train's pull request, which a human reads before anything new runs in CI or as root.
 > - For third-party dev tools that check or orchestrate but never become a runtime dependency of an app (turbo, typescript, `@types/*`), CI-green patch/minor auto-merge MAY be enabled.
@@ -61,7 +61,7 @@ In a package repo the bot's bump is given the changeset it owes by `plx changese
 
 ## § 3 Templates
 
-> - A tenant's repos SHOULD be generated from the presets: app repos from `plexus-ms/preset-repo-web`, apps within them from `plexus-ms/preset-app-nextjs`, the platform repo from `plexus-ms/preset-repo-platform`.
+> - A tenant's repos SHOULD be generated from the presets: app repos from `plexus-ms/preset-repo-turbo`, apps within them from `plexus-ms/preset-app-nextjs`, the operations repo from `plexus-ms/preset-repo-operations`.
 > - A repo generated from a preset SHOULD stay current with it through `copier update`, taken on the train like a dependency bump.
 
 Scaffolding is the last resort, chosen per artifact in three tiers, and a generated repo is where the tiers meet.
@@ -83,7 +83,7 @@ pnpm saves an exact version only when it is given no range, so Biome is born at 
 
 ## Maintaining
 
-The presets, `plexus-ms/preset-repo-web`, `preset-app-nextjs`, and `preset-repo-platform`, are arrangement authorities, not conveniences: the standard defers the concrete toolchain arrangement to them, so they need real versioning discipline and ship on the train like the other ops artifacts.
+The presets, `plexus-ms/preset-repo-turbo`, `preset-app-nextjs`, and `preset-repo-operations`, are arrangement authorities, not conveniences: the standard defers the concrete toolchain arrangement to them, so they need real versioning discipline and ship on the train like the other ops artifacts.
 The three tiers decide where a new artifact goes:
 
 1. **Convert to a dependency if at all possible.**
@@ -109,7 +109,7 @@ The verb asks the forge for the preset's newest release, which is the newest tra
 It needs an identity of the tenant's own, because a push with the workflow token starts no checks and the pull request should be opened by something the tenant controls: one GitHub App per tenant, installed on its repos with contents and pull requests write, its ID in the variable `PLX_APP_ID` and its key in the secret `PLX_APP_PRIVATE_KEY`, set once at the organisation where the plan allows it (on GitHub Free, organisation secrets and variables reach public repositories only, so a tenant with private repos sets both on each repo); a package repo's changeset job pushes with the same app.
 Until the variable is set the job is skipped, so a repo generated before the app exists stays green and simply waits for `ship`.
 The key never leaves the tenant: an app token is scoped to its installation, but the key mints tokens for every installation of the app, which is why the app is the tenant's and not the upstream's.
-`libraries` is a consumer of `preset-repo-web` like a tenant's web repo (answer `publishes_packages`), so the package-repo arrangement is propagated and no longer hand-maintained.
+`libraries` is a consumer of `preset-repo-turbo` like a tenant's web repo (answer `publishes_packages`), so the package-repo arrangement is propagated and no longer hand-maintained.
 The templates hold no version the update bot moves (§ 3), so propagation never meets a line with two writers, and no newest-wins rule is needed in `propagate`.
 What remains was learnt on the first trains of the consolidated layout: git refuses touching hunks, so any template line adjacent to a line the update bot moves conflicts on the train that changes it, whatever its own value.
 A line the train rewrites every train (the `plx` pin, the catalog entry) is therefore kept between comment lines the bot never touches, and a manifest's dependency map is never such a place.

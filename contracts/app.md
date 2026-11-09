@@ -21,7 +21,7 @@ The deploy verb only needs *"is there a migration step and how do I invoke it"*,
 The backup job only needs *"which services hold state and of what type"*, answered by labels.
 
 An **app** is one deployable unit satisfying this contract.
-Its **source repo**, the repo holding its `compose.yaml` and marker, is an app repo for software the tenant builds, or the tenant's platform repo for third-party software the tenant merely operates (§ 2).
+Its **source repo**, the repo holding its `compose.yaml` and marker, is an app repo for software the tenant builds, or the tenant's operations repo for third-party software the tenant merely operates (§ 2).
 The repo answers [PLX-Repo](repo.md); the verbs the pipeline calls on an app are that contract's.
 
 
@@ -39,7 +39,7 @@ An app's dependencies are satisfied by its own list or its repo's (§ 1.4 PLX), 
 
 > - Every app MUST provide a `compose.yaml` declaring the app service and any app-owned infrastructure.
 > - Every service in it MUST carry the label `plexus.tenant=<slug>` ([PLX-Tenancy](tenancy.md)).
-> - Every app MUST have exactly one source repo: an app repo for software the tenant builds, or the platform repo, at `apps/<app-name>/`, for third-party software the tenant merely operates.
+> - Every app MUST have exactly one source repo: an app repo for software the tenant builds, or the operations repo, at `apps/<app-name>/`, for third-party software the tenant merely operates.
 > - `compose.yaml` MUST reach the app's host directory through the deploy verb, rendered from the invoking checkout of the source repo at deploy time with the image ref pinned (§ 3); the platform playbooks MUST NOT copy it.
 
 App-owned infrastructure means services that live and die with the app; a database container is the stateful profile's case.
@@ -49,10 +49,10 @@ A tenant's platform is its own sovereign Vercel or Railway, and the ownership sp
 Such a platform owns env values, domains, routing, and secrets; it does not own the app's run shape, which stays in the app's repo as a Dockerfile or a `railway.toml`.
 `compose.yaml` is the run shape: the migrate command, a worker service added in the same commit as the job queue, a new data service, the container port, the backup labels.
 Every one of those facts changes with the code, so the file versions with the code, and dev runs the identical file locally.
-Because the deploy verb runs from a checkout of the source repo, an app repo's CI or the platform repo for a third-party app, it has the file, and rendering it onto the host before `pull` means the compose file on the host always names the image being deployed.
+Because the deploy verb runs from a checkout of the source repo, an app repo's CI or the operations repo for a third-party app, it has the file, and rendering it onto the host before `pull` means the compose file on the host always names the image being deployed.
 
-Third-party software fits without a second mechanism: a third-party app is an app whose source repo is the platform repo.
-Its `compose.yaml` and marker live at `apps/<app-name>/` there, its image is someone else's and pinned in the file, and the same deploy verb is mounted on the platform repo instead of an app repo's CI.
+Third-party software fits without a second mechanism: a third-party app is an app whose source repo is the operations repo.
+Its `compose.yaml` and marker live at `apps/<app-name>/` there, its image is someone else's and pinned in the file, and the same deploy verb is mounted on the operations repo instead of an app repo's CI.
 Same verb, two mounts.
 
 
@@ -72,8 +72,8 @@ The reserved vocabulary is small, and each name has one provider:
 
 | Variable | Provided by | When | How it reaches compose |
 |---|---|---|---|
-| `COMPOSE_PROJECT_NAME` | configure playbook, `<tenant>-<app>` | playbook run | `.env`, read implicitly |
-| `PLEXUS_LOOPBACK_PORT` | configure playbook, from the app's inventory record | playbook run | `.env`, read implicitly |
+| `COMPOSE_PROJECT_NAME` | platform playbook, the deployment's slug (§ 3 PLX-Platform) | playbook run | `.env`, read implicitly |
+| `PLEXUS_LOOPBACK_PORT` | platform playbook, from the app's inventory record | playbook run | `.env`, read implicitly |
 | `PLEXUS_DEPLOYMENT_IMAGE` | deploy verb, from CI | deploy | pinned into `compose.yaml` |
 
 The one asymmetry is ownership: the port has a file with an owner on the host, the image ref does not; it is the release itself, known only at deploy time.
@@ -87,7 +87,7 @@ Pinning it into the compose file, the way a third-party app's image is pinned in
 > - The app MUST NOT hardcode a host port; `compose.yaml` publishes via interpolation: `127.0.0.1:${PLEXUS_LOOPBACK_PORT}:<container-port>`.
 > - An app MAY be served under a path prefix of a host it shares with other apps of the same tenant; the platform MUST strip the prefix before a request reaches the app, and the app MUST serve from its own root and take the public URL it needs for links from its environment.
 
-The host side of the binding is not the app's to choose: the loopback port is assigned by the platform and written to the app directory by the configure playbook ([§ 3 PLX-Platform](../approaches/platform.md)).
+The host side of the binding is not the app's to choose: the loopback port is assigned by the platform and written to the app directory by the platform playbook ([§ 3 PLX-Platform](../approaches/platform.md)).
 TLS, hostnames, and the host→port binding are likewise the platform's job; public host and loopback port alike are deployment substance, so the app stays deployable under any hostname and next to any neighbour.
 The binding reaches compose through the platform's `.env` in the app directory, which compose reads implicitly; the app never reads it.
 The prefix is the platform's promise in the other direction: an app stays as deployable under any prefix as under any hostname because it never sees the prefix, and where it is bound (`apps[].path`) and how the proxy strips it are the platform's business ([§ 1 PLX-Ingress](../approaches/ingress.md)).

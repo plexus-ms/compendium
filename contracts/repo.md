@@ -12,7 +12,7 @@ order: 1
 
 The repo contract sits at the seam between a repo and everything that operates on it: a developer at a fresh checkout, a git hook, a CI job, the staleness check.
 It asks three things of a repo, and nothing about what the repo contains: that it declares what it follows, that it answers the standard verbs through one front door, and that its checks run before code leaves the machine.
-A JS/TS monorepo, a Python service, an Ansible platform repo and the compendium itself take the same contract with different incantations behind the same names.
+A JS/TS monorepo, a Python service, an Ansible operations repo and the compendium itself take the same contract with different incantations behind the same names.
 The sections bind the repo, the authors' side; what the operating side owes in return is stated where it applies.
 
 Every other module that binds a repo or an app depends on this one: [PLX-App](app.md) asks for its verbs, [PLX-Delivery](../approaches/delivery.md) calls them, [PLX-Updates](../approaches/updates.md) bumps the pins that live where this contract says facts live.

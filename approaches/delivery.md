@@ -371,6 +371,7 @@ Every strategy: the vault `<owner>-ci` with its service account token as the one
 
 **How an instance ends.**
 The deadlines are decided once, in `create-instances`, and written both into the instance's user-data and into its labels as absolute UTC times, so that the instance and the housekeeping read the same clock.
+The instance's own layers depend on nothing fetched: the self-delete calls the cloud's API with `curl`, signed with the self-delete key by `openssl`, both in the Debian image before the first `apt` runs; until 0.113.0 it fetched the provider's CLI from GitHub's releases on first use, and on 2026-11-08, with those answering 503 for two hours, twelve instances that had missed their runner download for the same reason could not delete themselves either, nor could the run's `cleanup`, which fetched the CLI the same way, and the kept ones stayed stopped for the sweep.
 The layers, from the common case to the last resort:
 
 1. The runner exits after its one job and the instance deletes itself; no mail.
@@ -405,6 +406,8 @@ The forge-side jobs of a pull request were four to six billed minutes on the for
 - The playbooks of two tenants on one machine install the collection into one `~/.ansible/collections`, so a hook run in one repo replaces the pin the other had installed; a repo on an unreleased collection reinstalls it with `ansible-galaxy collection install -r requirements.yml --force` before a playbook run.
 - Whether the provider's IAM can restrict the self-delete key to labelled instances is unverified.
 - Layer 1 cannot run when the runner's setup failed before the user `runner` exists: the runner unit's `ExecStopPost` fails on the missing user like its `ExecStart`, and layer 2 deletes the instance in its place, minutes later.
+- `plan`, `cleanup` and `housekeeping` still install the provider's CLI and `crane` from GitHub's releases per job, so a GitHub outage that lets a job start can still leave it without its tools; the instance side no longer depends on it, and the forge side would follow by speaking the two APIs with `curl` as the S3 code does.
+- The relay mail from inside an instance (the death layer) has never been observed arriving: every instance so far ended by another layer first.
 - An App installed on every repo of the organisation holds `Administration: write` wider than the one app repo the design asks for; narrowing it means a second App for CI.
 - The overlay join under `github` with `netbird` has no consumer and is untested since the pipeline that carried it was retired.
 - The first invoice decides whether object-storage egress needs attention; the service account's request limits are § 8's, answered by the Connect server for the slots and still open for the instances and the forge's runners, where fewer items per job (one item per strategy instead of five) would cut the requests several-fold.

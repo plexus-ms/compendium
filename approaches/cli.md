@@ -60,7 +60,7 @@ The requirements check and `ship` are maintainer helpers and are public all the 
 
 The runtime is no objection.
 mise installs npm tools directly, and every repo and every CI runner already goes through mise ([§ 2 PLX-Repo](../contracts/repo.md)).
-A platform repo does not take node into its toolchain; it takes one line in its tools table, mise brings the runtime, and the bot keeps that line current.
+A platform repo has no Node toolchain, only the runtime the two tools run on, and it pins that runtime in its tools table like any tool, since train 0.113.0; the bot keeps both lines current.
 A few hundred lines of TypeScript with a YAML dependency read in half an hour at least as well as the awk they replaced, and they take unit tests in the ordinary way; the bash harnesses that faked copier, mise, docker and curl live on as integration tests in `primitives`, joined by fakes for `gh` and `npm`.
 
 The train pins the workflows and the tool alike, in one pull request per consumer, so the verbs a workflow asks for are the ones the pinned `plx` has; a workflow that asks for a verb the pinned `plx` lacks still fails as a usage error, loudly.

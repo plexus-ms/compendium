@@ -5,7 +5,7 @@ description: How an organisation becomes a Plexus tenant — one trust domain sh
 code: PLX-Tenancy
 maturity: standard
 binds: organisation
-changed: 0.61.0
+changed: 0.114.0
 depends: []
 order: 0
 ---

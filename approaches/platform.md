@@ -5,7 +5,7 @@ description: A tenant's hosts as code — the plexus.host baseline and the plexu
 code: PLX-Platform
 maturity: standard
 binds: host
-changed: 0.106.0
+changed: 0.114.0
 depends: [PLX-Tenancy]
 consumes: [PLX-Host, PLX-App, PLX-Environment]
 order: 20

@@ -42,12 +42,13 @@ Take the dependency, override at the edge, never fork the base.
 > - The update bot SHOULD be Renovate, extending the shared preset `github>plexus-ms/primitives//renovate/default`.
 > - Tenants MUST pin the `plexus.platform` collection by tag in the operations repo's `requirements.yml`.
 > - For `@plexus-ms/*` packages on their own semver, CI-green patch/minor auto-merge MAY be enabled and is the recommended default.
-> - The pins the train writes (the workflow refs, the collection pin, the `plx` pin, the `@plexus-ms/config` pin) MUST NOT be proposed by the update bot; they arrive as the train's pull request, which a human reads before anything new runs in CI or as root.
+> - The pins the train writes (the workflow refs, the collection pin, the `plx` pin, the `@plexus-ms/config` pin) MUST NOT be proposed by the update bot; they arrive in the pull request by which the repo takes a train (§ 3), which a human reads before anything new runs in CI or as root.
 > - For third-party dev tools that check or orchestrate but never become a runtime dependency of an app (turbo, typescript, `@types/*`), CI-green patch/minor auto-merge MAY be enabled.
 > - A third-party npm release MUST NOT be installed or proposed before it is three days old; the package manager enforces the age at install time and the bot before it opens a PR; `@plexus-ms/*` packages are exempt, and so is the pnpm a repo is born with (§ 3).
 
 A pin no machinery watches is invisible staleness, hence the bot itself is required while the concrete bot is only suggested; this section is written against Renovate, which extends the shared preset in one line.
-The repo presets ship that line as `renovate.json`, so a generated repo runs the recommended stratification from its first bot run: `@plexus-ms/*` patch and minor updates merge on green CI, as do the dev tools', while the train's pins are the train's own pull request, opened by `plx ship` (§ 3), never the bot's and never auto-merged.
+The repo presets ship that line as `renovate.json`, so a generated repo runs the recommended stratification from its first bot run: `@plexus-ms/*` patch and minor updates merge on green CI, as do the dev tools', while the train's pins move only in the pull request by which the repo takes a train (§ 3), never the bot's and never auto-merged.
+That is one pull request per train the repo takes, not one per train that is cut.
 
 The three-day release age is one decision enforced on both sides of the install: the preset sets `minimumReleaseAge` for everything it watches, and the repo preset's `pnpm-workspace.yaml` sets the same 4320 minutes with `@plexus-ms/*` excluded, so pnpm refuses a younger version whether it arrives through the bot, a hand edit, or a transitive resolution.
 A bot that proposed a release the package manager rejects would only open red PRs, which is what happened when pnpm 11 turned its own one-day default on; the two numbers are kept equal so that neither side ever hides the other's verdict, and the initiative's own packages and train skip the wait because they are published by the maintainers under § 1.6 PLX.
@@ -62,15 +63,36 @@ In a package repo the bot's bump is given the changeset it owes by `plx changese
 ## § 3 Templates
 
 > - A tenant's repos SHOULD be generated from the presets: app repos from `plexus-ms/preset-repo-turbo`, apps within them from `plexus-ms/preset-app-nextjs`, the operations repo from `plexus-ms/preset-repo-operations`.
-> - A repo generated from a preset SHOULD stay current with it through `copier update`, taken on the train like a dependency bump.
+> - A repo generated from a preset SHOULD stay current with it through `copier update`, taking the newest train when it needs one and not whenever one is cut.
+> - A repo needs a train, and SHOULD then take the newest, when a module it declares has a `changed` newer than its marker's `plexus`, when somebody asks, or when the oldest train it has not taken is older than the backstop age.
+> - The backstop age is the tenant's to set and SHOULD NOT exceed 30 days.
+> - While none of these holds, a repo MAY rest on the train it has.
 
 Scaffolding is the last resort, chosen per artifact in three tiers, and a generated repo is where the tiers meet.
 Most of a repo's arrangement arrives as a dependency (tier one); what cannot arrives through the template and is re-synced by copier's three-way merge against local edits, surfacing conflicts explicitly, template as living dependency rather than `cp` (tier two); and the genuine remainder is kept visibly versioned by the marker's `plexus` field (tier three), never invisibly stale.
 `copier update` is the structural counterpart of a dependency bump: the hosted bot cannot run it, so a verb of the pinned tool does, `plx update`, and the result is a pull request on a `plexus/<version>` branch, conflicts committed with their markers so that they are resolved where they are reviewed; the tenant reviews and merges.
-Two mounts open that one pull request.
-The repo's own `update.yml`, generated by the repo presets, runs the verb once a day in the tenant's CI with an identity of the tenant's own (a GitHub App, Maintaining); and the maintainers' `plx ship` runs it for the consumers in their workspace right after the train is cut.
-Whichever arrives first opens the branch, and a `plexus/<version>` branch already on origin is never moved by either, so a scheduled run cannot overwrite a conflict somebody is resolving; deleting the branch is how a pull is redone.
-The pull is made by the `plx` the repo pins, the previous train's, so a change to the pull itself reaches a tenant one train late.
+Cutting a train and a repo taking it are separate events.
+The maintainers cut a train when the methodology has moved; a repo takes one when it needs it, and that a newer train exists is not a need.
+Three triggers are the need:
+
+1. **A declared module changed.**
+   A module in one of the repo's markers has a `changed` newer than that marker's `plexus`: the staleness of § 1.4 PLX, per module, and the only one of the three that says the train has something for this repo.
+2. **Somebody asks.**
+   The verb told by hand to take the train now, or the workflow's manual trigger; it is also how a hotfix reaches the repos that need it, asked for by whoever operates them.
+3. **The backstop age is exceeded.**
+   The oldest train the repo has not taken was cut longer ago than the tenant's maximum, 30 days unless it says otherwise.
+   The backstop carries everything no `changed` announces, a template change without a requirement behind it or a module below standard maturity, and it keeps a jump small enough to review.
+
+While none holds the repo rests on the train it has.
+That is safe because every pin it holds is immutable (§ 1.6 PLX): a repo on an old train keeps working, and a quiet repo sees no pull request until it needs one.
+A repo that takes a train takes the newest, over every train in between in one jump; copier merges it the same way, the merge is only larger, and the backstop bounds how large.
+An age of zero is the eager repo, which takes every train as it is cut; a tenant that wants to meet a train first sets that.
+
+One mount opens the pull request: the repo's own `update.yml`, generated by the repo presets, runs the verb once a day in the tenant's CI with an identity of the tenant's own (a GitHub App, Maintaining).
+A run that finds no trigger says in one line that the repo rests and why, and opens nothing, so the daily schedule costs nothing and a need is met on the day it arises.
+The maintainers open no pull request in anybody's repo: `plx ship` cuts the train and ends there.
+A `plexus/<version>` branch already on origin is never moved, so a scheduled run cannot overwrite a conflict somebody is resolving; deleting the branch is how a pull is redone.
+The pull is made by the `plx` the repo pins, the one of the train it rests on, so a change to the pull itself reaches a repo one pull late.
 
 A template states a third-party dependency by the major its own files rely on (`"next": "^16"`), never by a version.
 The repo's first install resolves the newest release the three-day age allows, the repo's update bot is the only writer from then on, and the template line stays as it is until the template moves to a new major, which is a decision and the one occasion its three-way merge is meant to conflict.
@@ -102,15 +124,30 @@ It is one preset for every Plexus repo, the upstream ones included: every pin th
 The galaxy manager needs a `packageName` override because it hands a github.com URL to the tags datasource verbatim; the preset carries that fix so no tenant repeats it.
 `gitIgnoredAuthors` names the one author that commits to the bot's branches, `plx changeset`'s; a second such author is added here, never in a tenant's own config, because a branch the bot stops rebasing is stale in every repo at once.
 
-Propagation runs from the root of the maintainers' workspace: `plx -n -y ship` previews the train in scratch clones of the consumers, `plx -y ship` tags and releases it and opens one pull request per consumer (app repos against `develop`, platform and package repos against `main`); the pull requests are reviewed and merged by hand.
-The consumers are found in the workspace, but updated in clones of their origins: a dirty or detoured checkout no longer blocks a train.
-A tenant outside that workspace pulls the train itself: the presets' `update.yml` mounts `plx update` on a daily schedule and on demand, through the reusable `_update.yml` in `primitives`, and the verb works in a worktree of the branch the train lands on, so a developer running it by hand keeps their checkout as it was.
-The verb asks the forge for the preset's newest release, which is the newest train because every train tag has one (§ 1.6 PLX), and does nothing when every site of the repo already records it.
-It needs an identity of the tenant's own, because a push with the workflow token starts no checks and the pull request should be opened by something the tenant controls: one GitHub App per tenant, installed on its repos with contents and pull requests write, its ID in the variable `PLX_APP_ID` and its key in the secret `PLX_APP_PRIVATE_KEY`, set once at the organisation where the plan allows it (on GitHub Free, organisation secrets and variables reach public repositories only, so a tenant with private repos sets both on each repo); a package repo's changeset job pushes with the same app.
-Until the variable is set the job is skipped, so a repo generated before the app exists stays green and simply waits for `ship`.
+Cutting and taking are separate tools as they are separate events (§ 3), and two tests keep them apart: the upstream tooling works with no knowledge of any consumer, and the tenant tooling works with published artifacts and the tenant's own repos alone.
+From the root of the maintainers' workspace, `plx -y ship` writes the bookkeeping, tags and releases the train, and ends there: it looks for no consumer and opens no pull request.
+Every repo generated from the presets pulls the train itself, the maintainers' own like any tenant's: the presets' `update.yml` mounts `plx update` on a daily schedule and on demand, through the reusable `_update.yml` in `primitives`, and the verb works in a worktree of the branch the train lands on (`develop` in an app repo, `main` in an operations or package repo), so a developer running it by hand keeps their checkout as it was.
+The verb asks the forge for the preset's releases: the newest is the newest train because every train tag has one (§ 1.6 PLX), and their dates are what the backstop age is measured against.
+It decides before it makes a worktree: a resting run prints its one line and exits zero, and a run that takes the train names its trigger in the pull request, so a reviewer knows why this one arrived.
+The schedule stays daily for that reason, and the maximum age is an input of the workflow, so a tenant's deviation from 30 days is one line in a file it owns.
+`plx propagate` is the operator's convenience over the same verb: it runs `plx update` in every generated repo under a directory, from the published tags, under the same triggers and with the same way to override them, and ends with one summary of what rests, what is clean, conflicted or failed, and the pull requests.
+It needs no `plexus-ms` checkout, and a tenant's operator runs it as the maintainers do.
+The rule reaches a repo with the train that ships it, because a repo runs the `plx` it pins: that train is the last one every repo takes merely because it exists.
+
+Two debts.
+The first trigger is not checked by the verb yet: `changed` lives in the compendium, which a tenant repo does not have, so until a train publishes what it changed as data on its release, the backstop is what carries a module change, and the maintainers' `doctor` is where it shows.
+And `plx -n -y ship` still previews the unreleased presets against scratch clones of the workspace's consumers; that is a maintainer's test of a train before it is cut, not propagation, and it leaves `ship` for a canary of its own.
+
+Deferred: an urgent train, one that every repo takes at once whatever its triggers say.
+Reading urgency off the patch number was rejected: a hotfix repairs what one train broke, and a repo resting on an older train would be pulled to it for a fault it never had.
+While the maintainers operate every consumer, asking covers it: the hotfix is cut and `plx propagate` is told to take it now where it matters.
+Reopened with the first tenant the maintainers do not operate, because a signal on the release is then the only way to say "take this one" across the tenant line, and decided together with the data a train publishes about itself, which can say which repos it is urgent for.
+
+The verb needs an identity of the tenant's own, because a push with the workflow token starts no checks and the pull request should be opened by something the tenant controls: one GitHub App per tenant, installed on its repos with contents and pull requests write, its ID in the variable `PLX_APP_ID` and its key in the secret `PLX_APP_PRIVATE_KEY`, set once at the organisation where the plan allows it (on GitHub Free, organisation secrets and variables reach public repositories only, so a tenant with private repos sets both on each repo); a package repo's changeset job pushes with the same app.
+Until the variable is set the job is skipped, so a repo generated before the app exists stays green and takes no train until the app exists or somebody runs the verb by hand.
 The key never leaves the tenant: an app token is scoped to its installation, but the key mints tokens for every installation of the app, which is why the app is the tenant's and not the upstream's.
 `libraries` is a consumer of `preset-repo-turbo` like a tenant's web repo (answer `publishes_packages`), so the package-repo arrangement is propagated and no longer hand-maintained.
-The templates hold no version the update bot moves (§ 3), so propagation never meets a line with two writers, and no newest-wins rule is needed in `propagate`.
+The templates hold no version the update bot moves (§ 3), so propagation never meets a line with two writers, and no newest-wins rule is needed in the verb.
 What remains was learnt on the first trains of the consolidated layout: git refuses touching hunks, so any template line adjacent to a line the update bot moves conflicts on the train that changes it, whatever its own value.
 A line the train rewrites every train (the `plx` pin, the catalog entry) is therefore kept between comment lines the bot never touches, and a manifest's dependency map is never such a place.
 

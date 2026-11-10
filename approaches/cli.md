@@ -68,10 +68,11 @@ A few hundred lines of TypeScript with a YAML dependency read in half an hour at
 The train pins the workflows and the tool alike, in one pull request per consumer, so the verbs a workflow asks for are the ones the pinned `plx` has; a workflow that asks for a verb the pinned `plx` lacks still fails as a usage error, loudly.
 
 The maintainers' workspace is the exception that takes no pin: its `mise.toml` asks for the newest release, because the release tool has to be newer than anything it releases.
-From 0.7.0, `ship` and `propagate` hold the running `plx` against the registry (`npm view @plexus-ms/cli version`) and refuse to run behind it; an unreachable registry only warns.
+From 0.7.0, `ship` holds the running `plx` against the registry (`npm view @plexus-ms/cli version`) and refuses to run behind it; an unreachable registry only warns.
+`propagate` did the same while it ran the maintainers' copy of the release flow; as `update` over many repos it runs whatever `plx` the operator has, like the verb it loops over.
 The workspace exempts the tool from mise's minimum release age (`minimum_release_age_excludes`), as pnpm and the update bot already exempt `@plexus-ms`: without that, `mise up` holds a fresh release back for a day while `ship` refuses to run behind it.
 mise also caches a tool's version list, so the update the refusal names is `mise cache clear npm:@plexus-ms/cli && mise up npm:@plexus-ms/cli`.
-The copier a propagation runs is pinned inside `plx` and run as `mise exec copier@<version> -- copier`, which the dry run prints like every other step: the copier a consumer is updated with travels with the tool, and the operator's `PATH` has no say in it.
+The copier an update runs is pinned inside `plx` and run as `mise exec copier@<version> -- copier`, which the dry run prints like every other step: the copier a repo is updated with travels with the tool, and the operator's `PATH` has no say in it.
 
 
 ## § 4 What it must not become

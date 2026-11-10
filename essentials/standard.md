@@ -161,6 +161,7 @@ The train reaches 1.0.0 once the modular standard with its first standard module
 It opens no pull request in any consumer: cutting a train and a repo taking it are separate events, and the taking is the repo's own (§ 13.3).
 Besides the compendium's stamps, the bookkeeping is every pin the train owns ([§ 1 PLX-Updates](../approaches/updates.md)): the collection's and the packages' versions in `primitives`, and in the presets and the compendium the workflow refs, the collection pin, the `plx` pin and the exact `@plexus-ms/config` pin.
 For the compendium it writes the version and timestamp in this document's frontmatter (a draft carries `v0` until its first train) and stamps `changed` on each standard module whose extracted requirement lines differ from the previous train's, using the same extractor `mise check` runs.
+It then publishes those facts as data: the compendium's release of the train carries the train manifest, the train's number and date and the catalogue of modules with each one's `changed`, which is how a repo without a compendium checkout learns whether a train concerns it ([§ 3 PLX-Updates](../approaches/updates.md)).
 
 ### § 1.6 Upstream guarantees
 
@@ -659,7 +660,7 @@ Every tenant repo runs a bot that watches its pins; how unattended a merge is fo
 ### § 13.3 Templates and re-sync
 
 What cannot be a dependency arrives through a copier template and is re-synced by `copier update`, as a pull request the repo opens for itself from its own CI (`plx update`); the three scaffolding tiers decide where a new artifact goes.
-A repo takes a train when it needs one and not whenever one is cut: a module it declares has changed, somebody asks, or a backstop age is exceeded; otherwise it rests on the train it has, which its immutable pins make safe (§ 1.6).
+A repo takes a train when it needs one and not whenever one is cut: a module it declares has changed, which it reads from the manifest the train publishes (§ 1.5), somebody asks, or a backstop age is exceeded; otherwise it rests on the train it has, which its immutable pins make safe (§ 1.6).
 [§ 3 PLX-Updates](../approaches/updates.md).
 
 ### § 13.4 Staleness check

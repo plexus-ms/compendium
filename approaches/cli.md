@@ -117,6 +117,7 @@ The verbs move in order of risk, each replacing one script and leaving the rest 
 7. The split by role: the upstream's verbs (`ship` and its bookkeeping) leave `plx`, for a package of their own pinned by the maintainers' workspace alone or for a run from source in `primitives`, which would also end the release tool being a release of what it releases (§ 3).
    The operator's verbs (`overview`, `doctor`, `propagate`) stay in the base with the tenant's; where `requirements` goes is open, because the compendium runs it as a pinned tool.
 8. `new`, new ground, and `doctor` without a compendium checkout, so that a tenant runs its own staleness check.
+   The data is there since `ship` attaches the train manifest to the compendium's release ([PLX-Updates](updates.md), Maintaining), and `update` already reads it; `doctor` reading it too is what remains.
 
 
 ## Maintaining

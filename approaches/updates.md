@@ -77,6 +77,8 @@ Three triggers are the need:
 
 1. **A declared module changed.**
    A module in one of the repo's markers has a `changed` newer than that marker's `plexus`: the staleness of § 1.4 PLX, per module, and the only one of the three that says the train has something for this repo.
+   The repo learns it from the train itself: every train publishes its module catalogue as data on its release (Maintaining), so no checkout of the compendium is needed.
+   The markers that count are those of the repo's sites, its root and its apps, which a pull brings up to the train; a marker kept by hand anywhere else is not cured by a pull and is the staleness check's to report (§ 13.4 PLX).
 2. **Somebody asks.**
    The verb told by hand to take the train now, or the workflow's manual trigger; it is also how a hotfix reaches the repos that need it, asked for by whoever operates them.
 3. **The backstop age is exceeded.**
@@ -127,16 +129,18 @@ The galaxy manager needs a `packageName` override because it hands a github.com 
 Cutting and taking are separate tools as they are separate events (§ 3), and two tests keep them apart: the upstream tooling works with no knowledge of any consumer, and the tenant tooling works with published artifacts and the tenant's own repos alone.
 From the root of the maintainers' workspace, `plx -y ship` writes the bookkeeping, tags and releases the train, and ends there: it looks for no consumer and opens no pull request.
 Every repo generated from the presets pulls the train itself, the maintainers' own like any tenant's: the presets' `update.yml` mounts `plx update` on a daily schedule and on demand, through the reusable `_update.yml` in `primitives`, and the verb works in a worktree of the branch the train lands on (`develop` in an app repo, `main` in an operations or package repo), so a developer running it by hand keeps their checkout as it was.
-The verb asks the forge for the preset's releases: the newest is the newest train because every train tag has one (§ 1.6 PLX), and their dates are what the backstop age is measured against.
+The verb asks the forge for the compendium's releases: the newest is the newest train because every train tag has one (§ 1.6 PLX), and their dates are what the backstop age is measured against.
+The compendium is asked because it is released last, so a train shows to a repo only once it is cut everywhere, and because its release carries the train manifest: `train.json`, the train's number and date and the module catalogue with every module's `changed`, written by `ship` from the pages it has just stamped.
+An immutable release locks its assets, so `ship` creates that one release as a draft, uploads the manifest and only then publishes it; a draft is no train yet, and a run that stops there is finished by the re-run.
+The verb reads the manifest of the newest train alone, since `changed` is cumulative, and compares it with the markers of the repo's sites as origin has them; a train without a manifest, as every train before the first that carried one, is said in one line and leaves the repo to its backstop.
 It decides before it makes a worktree: a resting run prints its one line and exits zero, and a run that takes the train names its trigger in the pull request, so a reviewer knows why this one arrived.
 The schedule stays daily for that reason, and the maximum age is an answer of the repo preset (`update_max_age`, in days), read by the verb from the repo's answers file, so that the schedule, a run by hand and `propagate` agree on it and a tenant's deviation from 30 days is one line in a file it owns; a repo whose answers do not say is held to 30.
 `plx propagate` is the operator's convenience over the same verb: it runs `plx update` in every generated repo under a directory, from the published tags, under the same triggers and with the same way to override them, and ends with one summary of what rests, what is clean, conflicted or failed, and the pull requests.
 It needs no `plexus-ms` checkout, and a tenant's operator runs it as the maintainers do.
 The rule reaches a repo with the train that ships it, because a repo runs the `plx` it pins: that train is the last one every repo takes merely because it exists.
 
-Two debts.
-The first trigger is not checked by the verb yet: `changed` lives in the compendium, which a tenant repo does not have, so until a train publishes what it changed as data on its release, the backstop is what carries a module change, and the maintainers' `doctor` is where it shows.
-And `plx -n -y ship` still previews the unreleased presets against scratch clones of the workspace's consumers; that is a maintainer's test of a train before it is cut, not propagation, and it leaves `ship` for a canary of its own.
+One debt.
+`plx -n -y ship` still previews the unreleased presets against scratch clones of the workspace's consumers; that is a maintainer's test of a train before it is cut, not propagation, and it leaves `ship` for a canary of its own.
 
 Deferred: an urgent train, one that every repo takes at once whatever its triggers say.
 Reading urgency off the patch number was rejected: a hotfix repairs what one train broke, and a repo resting on an older train would be pulled to it for a fault it never had.
@@ -151,7 +155,7 @@ The templates hold no version the update bot moves (§ 3), so propagation never 
 What remains was learnt on the first trains of the consolidated layout: git refuses touching hunks, so any template line adjacent to a line the update bot moves conflicts on the train that changes it, whatever its own value.
 A line the train rewrites every train (the `plx` pin, the catalog entry) is therefore kept between comment lines the bot never touches, and a manifest's dependency map is never such a place.
 
-The staleness check itself (§ 13.4 PLX) still runs only from the maintainers' workspace, because it needs a compendium checkout; a tenant's own `doctor` is the next verb ([§ 6 PLX-CLI](cli.md)).
+The staleness check itself (§ 13.4 PLX) still runs only from the maintainers' workspace, because it reads a compendium checkout; the train manifest carries everything it reads, so a tenant's own `doctor` is the next verb and a small one ([§ 6 PLX-CLI](cli.md)).
 
 Deferred: self-hosting the update bot.
 The hosted bot runs each repo every few hours, and it merges a green pull request only on its own run, unless the forge's native auto-merge takes over; that needs a required check on the default branch, which blocks the direct pushes the train makes, and on a free plan a private repo has no auto-merge at all.

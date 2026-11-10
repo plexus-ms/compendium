@@ -16,14 +16,16 @@ The page keeps the case that was made for the tool and the rules that keep it a 
 
 ## § 1 What exists
 
-The maintainers' helpers have moved: `plx`, published as `@plexus-ms/cli` from `primitives` with `@plexus-ms/lib` as its core, carries the workspace map (`overview`), the staleness check (`doctor`, § 13.4 PLX), the release train (`ship`, `propagate`), the train pull a repo makes for itself (`update`, [§ 3 PLX-Updates](updates.md)), the standard's requirements check (`requirements`, § 1.8 PLX) and the changeset a dependency bump owes (`changeset`, [§ 5 PLX-Delivery](delivery.md)).
+The maintainers' helpers have moved: `plx`, published as `@plexus-ms/cli` from `primitives` with `@plexus-ms/lib` as its core, carries the workspace map (`overview`), the staleness check (`doctor`, § 13.4 PLX), the cutting of a train (`ship`, § 1.5 PLX), the train pull a repo makes for itself and the loop that runs it over many repos (`update`, `propagate`, [§ 3 PLX-Updates](updates.md)), the standard's requirements check (`requirements`, § 1.8 PLX) and the changeset a dependency bump owes (`changeset`, [§ 5 PLX-Delivery](delivery.md)).
 The maintainers run the workspace verbs as plain `plx` commands from the root of their workspace, whose `mise.toml` takes the newest release; the compendium pins it in its own `mise.toml` for `requirements`.
 The ops verbs have followed: `deploy-targets` and `deploy` are commands of the tool ([§ 6 PLX-Delivery](delivery.md)), mounted on the forge by the thin reusable workflows next to it in `primitives`, which call the `plx` the tenant repo pins in its `mise.toml`, and run by hand from a checkout otherwise.
 The workflows carry no logic, only the mounts.
 The CI verbs ([§ 8 PLX-Delivery](delivery.md)) are a second tool on top of it, `plx-ci`, published as `@plexus-ms/cli-ci` at the train number from the same repo on the same `@plexus-ms/lib`: `registry`, `plan`, `build`, `test`, `publish` and `report`, which every strategy runs and which read the strategy, the registry and the overlay from `CI_STRATEGY`, `CI_REGISTRY` and `CI_OVERLAY`, and under `hybrid` the instances' own, `hybrid create-instances`, `destroy-instances` and `sweep-instances`; each is one line of a reusable workflow and each runnable by hand with the same keys in the environment.
 It is a package of its own so that the CI of one tenant can change without moving every tenant's `plx`, and so that an operations repo, which builds nothing, carries only the base.
 `changed-apps` was a verb of `plx` from train 0.71.0 to 0.110.0 and went with the diff-based changed set: `plx-ci plan` decides by content hash, and the operations repo's deploy fans over every app and relies on the deploy verb's no-op.
-The maintainers' helpers are to leave the base for a third tool, `plx-dev`, so that a tenant repo pins nothing it cannot run; `lib` stays under all three.
+The verbs of the base serve three roles: the upstream, which cuts a train (`ship`, `requirements`); a tenant repo, which lives on one (`update`, `deploy`, `deploy-targets`, `changeset`); and an operator of many repos, the maintainers or a tenant's own (`overview`, `doctor`, `propagate`).
+Two tests draw the line between the first and the other two: the upstream's verbs work with no knowledge of any consumer, and the tenant's and the operator's work with published artifacts and the tenant's own repos alone ([PLX-Updates](updates.md), Maintaining).
+The upstream's verbs are to leave the base (§ 6), so that a tenant repo pins nothing it cannot run.
 The platform preset ships a playbook wrapper that prefixes the vault's CLI, and both repo presets ship the contract verbs and `sync` as mise tasks; those are the shell that remains.
 
 The discipline of the scripts was uniform: a header stating what the script did and how to run it by hand, strict mode, shellcheck clean, a `check` verb that enforced both.
@@ -43,7 +45,7 @@ Each was honest about its limits, and together they were an unwritten contract: 
 **Rung one of the ladder for the verbs themselves.**
 The deploy verb reached a tenant's CI as a checkout of the workflow repo at a train tag, a movable tag; the train tag now pins only the workflows, and every train tag is locked by an immutable release (§ 1.6 PLX).
 The playbook wrapper and the `promote` and `sync` tasks still reach a tenant by copier, the second rung of § 4.3 PLX.
-A published `@plexus-ms/cli` is immutable and provenance-attested ([§ 5 PLX-Delivery](delivery.md)), pinned in a repo's `mise.toml` at the train number, and moved by the train's pull request ([§ 1 PLX-Updates](updates.md)).
+A published `@plexus-ms/cli` is immutable and provenance-attested ([§ 5 PLX-Delivery](delivery.md)), pinned in a repo's `mise.toml` at the train number, and moved by the pull request in which the repo takes a train ([§ 1 PLX-Updates](updates.md)).
 For the verbs that is a tighter supply chain, not only better ergonomics.
 
 **The verbs not written yet.**
@@ -107,10 +109,12 @@ The verbs move in order of risk, each replacing one script and leaving the rest 
 4. Done: `deploy`, as a sequence of fine-grained ssh steps over one multiplexed connection, each a one-liner the dry run prints verbatim, the readiness poll the one remote loop, cleanup and the connection's close in a `finally`.
    Tested with the fake Io and with a fake `ssh` on `PATH` that runs each step locally against a scratch app dir with fake `docker` and `curl`, the old offline harness reborn; the dogfood tenant's deploys are the proof in production.
    With it the workflow repo lost its last script, and the workflows' one check is actionlint.
-5. Done: `update`, the tenant side of the train: the same pull request `ship` opens, made from inside the repo in a worktree of its branch, mounted by the presets' `update.yml` on a schedule in the tenant's own CI and run by hand otherwise.
-   It shares its per-consumer work with `propagate` and is tested in the same harness against real git and the fake forge.
+5. Done: `update`, the tenant side of the train: the pull request by which a repo takes a train, made from inside the repo in a worktree of its branch, mounted by the presets' `update.yml` on a schedule in the tenant's own CI and run by hand otherwise.
+   It decides first whether the repo needs the train ([§ 3 PLX-Updates](updates.md)), and it is the only thing that opens that pull request: `ship` ends at the release, and `propagate` is `update` run in every generated repo under a directory.
+   It is tested in the harness `ship` came with, against real git and the fake forge.
 6. Done, as `plx-ci` (trains 0.106.0 to 0.111.0): the CI verbs, written in TypeScript from the start rather than ported, with the cloud's API and the registry's S3 spoken through `curl` so that the jobs need no provider's CLI; tested against fakes of the cloud, the registry and the forge.
-7. `plx-dev`: the maintainers' helpers (`overview`, `doctor`, `ship`, `propagate`, `requirements`) leave `plx` for a package of their own, pinned by the maintainers' workspace alone.
+7. The split by role: the upstream's verbs (`ship` and its bookkeeping) leave `plx`, for a package of their own pinned by the maintainers' workspace alone or for a run from source in `primitives`, which would also end the release tool being a release of what it releases (§ 3).
+   The operator's verbs (`overview`, `doctor`, `propagate`) stay in the base with the tenant's; where `requirements` goes is open, because the compendium runs it as a pinned tool.
 8. `new`, new ground, and `doctor` without a compendium checkout, so that a tenant runs its own staleness check.
 
 
@@ -120,6 +124,6 @@ The verbs move in order of risk, each replacing one script and leaving the rest 
 Inside `primitives` the tools are workspace packages: `pnpm plx` runs the checkout's own build, which `pnpm install` produces, and the reusable workflows' `primitives-ref` input builds `plx-ci` from a checkout for a trial ([PLX-Delivery](delivery.md), Maintaining).
 The page became a candidate with the train that moved the deploy verb, once the tool described was one a tenant's CI runs and not only the maintainers' helpers; it becomes standard, with the rules of § 4 as its requirements, when two tenants' repos that are not the maintainers' pin it.
 
-Debts: the preset's playbook wrapper is still shell outside the tool and is brought under a check or dissolved into its mise tasks; `plx-dev`, `new` and a `doctor` without a compendium checkout (§ 6) are not written; `plx-ci --version` reports the train number only once the train writes it, so a build from a branch names the previous train.
+Debts: the preset's playbook wrapper is still shell outside the tool and is brought under a check or dissolved into its mise tasks; the split by role, `new` and a `doctor` without a compendium checkout (§ 6) are not written; `plx-ci --version` reports the train number only once the train writes it, so a build from a branch names the previous train.
 The copier version `plx` pins (`COPIER_VERSION` in `packages/lib/src/copier.ts`) carries a `// renovate:` annotation that a regex manager in `primitives`' `renovate.json` reads; the bump is never automerged, because it changes how every consumer is propagated, and the next train ships it.
 The tool is a primitive of [PLX-Delivery](delivery.md), [PLX-Updates](updates.md) and § 13.4 PLX, and each of their Maintaining sections points here.

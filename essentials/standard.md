@@ -157,7 +157,8 @@ Section numbers in the map and in every module are append-only within a major tr
 The train reaches 1.0.0 once the modular standard with its first standard modules has shipped and settled; until then `0.x` promises nothing, and any train can change anything.
 
 **What `ship` writes.**
-`plx ship`, run from the root of the maintainers' workspace, writes the bookkeeping, tags every train repo, creates each tag's GitHub release, pushes, and opens one pull request per consumer with its copier update, in one pass.
+`plx ship`, run from the root of the maintainers' workspace, writes the bookkeeping, tags every train repo, creates each tag's GitHub release and pushes, in one pass.
+It opens no pull request in any consumer: cutting a train and a repo taking it are separate events, and the taking is the repo's own (§ 13.3).
 Besides the compendium's stamps, the bookkeeping is every pin the train owns ([§ 1 PLX-Updates](../approaches/updates.md)): the collection's and the packages' versions in `primitives`, and in the presets and the compendium the workflow refs, the collection pin, the `plx` pin and the exact `@plexus-ms/config` pin.
 For the compendium it writes the version and timestamp in this document's frontmatter (a draft carries `v0` until its first train) and stamps `changed` on each standard module whose extracted requirement lines differ from the previous train's, using the same extractor `mise check` runs.
 
@@ -657,7 +658,8 @@ Every tenant repo runs a bot that watches its pins; how unattended a merge is fo
 
 ### § 13.3 Templates and re-sync
 
-What cannot be a dependency arrives through a copier template and is re-synced on the train by `copier update`, as a pull request the repo opens for itself from its own CI (`plx update`) or the maintainers' `ship` opens for it; the three scaffolding tiers decide where a new artifact goes.
+What cannot be a dependency arrives through a copier template and is re-synced by `copier update`, as a pull request the repo opens for itself from its own CI (`plx update`); the three scaffolding tiers decide where a new artifact goes.
+A repo takes a train when it needs one and not whenever one is cut: a module it declares has changed, somebody asks, or a backstop age is exceeded; otherwise it rests on the train it has, which its immutable pins make safe (§ 1.6).
 [§ 3 PLX-Updates](../approaches/updates.md).
 
 ### § 13.4 Staleness check
@@ -668,5 +670,5 @@ Mounting it on a schedule in each tenant, so that a tenant sees its own stalenes
 
 ### § 13.5 Tooling
 
-The maintainers' helpers and the ops verbs are commands of `plx`, the published `@plexus-ms/cli`: the workspace map, the staleness check (§ 13.4), the train (§ 1.5), the requirements check (§ 1.8), the changeset a bump owes and the delivery verbs, `deploy-targets` and `deploy`, with the CI verbs of § 6.3 in `plx-ci` beside it; a tenant repo pins the tools in its `mise.toml` at the train number, written by the train, and its CI runs those pins.
+The maintainers' helpers and the ops verbs are commands of `plx`, the published `@plexus-ms/cli`: the workspace map, the staleness check (§ 13.4), the cutting of a train (§ 1.5) and a repo's pull of one (§ 13.3), the requirements check (§ 1.8), the changeset a bump owes and the delivery verbs, `deploy-targets` and `deploy`, with the CI verbs of § 6.3 in `plx-ci` beside it; a tenant repo pins the tools in its `mise.toml` at the train number, written by the train, and its CI runs those pins.
 [PLX-CLI](../approaches/cli.md) is the module: why the tool replaced the scripts, what it must not become, and the verbs still to be written.

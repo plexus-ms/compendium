@@ -43,17 +43,32 @@ Take the dependency, override at the edge, never fork the base.
 > - Tenants MUST pin the `plexus.platform` collection by tag in the operations repo's `requirements.yml`.
 > - For `@plexus-ms/*` packages on their own semver, CI-green patch/minor auto-merge MAY be enabled and is the recommended default.
 > - The pins the train writes (the workflow refs, the collection pin, the `plx` pin, the `@plexus-ms/config` pin) MUST NOT be proposed by the update bot; they arrive in the pull request by which the repo takes a train (§ 3), which a human reads before anything new runs in CI or as root.
-> - For third-party dev tools that check or orchestrate but never become a runtime dependency of an app (turbo, typescript, `@types/*`), CI-green patch/minor auto-merge MAY be enabled.
-> - A third-party npm release MUST NOT be installed or proposed before it is three days old; the package manager enforces the age at install time and the bot before it opens a PR; `@plexus-ms/*` packages are exempt, and so is the pnpm a repo is born with (§ 3).
+> - Third-party patch, minor and digest updates SHOULD reach a repo together, in one pull request a week; that pull request MAY merge unattended once CI is green, and in an operations repo it SHOULD wait for a human.
+> - Third-party majors, minors below 1.0.0, and the updates of a dependency on a prerelease MUST NOT merge unattended, and SHOULD come in pull requests of their own.
+> - Lock file maintenance SHOULD run weekly, in a pull request of its own, and MAY merge unattended once CI is green.
+> - A security fix SHOULD be proposed at once, in a pull request of its own, and MAY merge unattended once CI is green.
+> - A repo that publishes packages SHOULD keep their ranges wide: a range in `dependencies` or `optionalDependencies` moves only when a release falls outside it, and a range in `peerDependencies` is widened, not moved.
+> - A third-party npm release MUST NOT be installed or proposed before it is three days old, a security fix included; the package manager enforces the age at install time and the bot before it opens a PR; `@plexus-ms/*` packages are exempt, and so is the pnpm a repo is born with (§ 3).
 
 A pin no machinery watches is invisible staleness, hence the bot itself is required while the concrete bot is only suggested; this section is written against Renovate, which extends the shared preset in one line.
-The repo presets ship that line as `renovate.json`, so a generated repo runs the recommended stratification from its first bot run: `@plexus-ms/*` patch and minor updates merge on green CI, as do the dev tools', while the train's pins move only in the pull request by which the repo takes a train (§ 3), never the bot's and never auto-merged.
+The repo presets ship that line as `renovate.json`, so a generated repo runs the recommended stratification from its first bot run: `@plexus-ms/*` patch and minor updates merge on green CI, and so does the weekly pull request of everything else, while the train's pins move only in the pull request by which the repo takes a train (§ 3), never the bot's and never auto-merged.
 That is one pull request per train the repo takes, not one per train that is cut.
+
+Third-party updates are batched because their stream is steady and each one's risk is small: one pull request per dependency and release became a daily queue of hand merges, and a queue like that teaches merging without reading.
+Once a week, on Monday morning, every third-party patch, minor and digest update from every manager moves in one pull request, and lock file maintenance moves in a second, because Renovate never groups it with other updates.
+Both merge themselves once CI is green, and a red one waits for a human, which is the fallback.
+The bot merges on its own next run, so the merge needs no native auto-merge on the forge and works in a private repo on any plan.
+What stays outside the group is what semver itself says may break: majors, minors below 1.0.0, and every update of a dependency that is on a prerelease; each comes alone and waits for a human, and a node or TypeScript major also waits for approval on the dependency dashboard.
+A security fix comes alone and at once, but still after the three-day release age: the bot's own default for alerts is no age at all, which the package manager would reject; in an emergency a human excludes the one version in `pnpm-workspace.yaml`.
+
+Two sub-presets sharpen the shared one, and the repo presets extend them.
+An operations repo extends `operations`, under which the weekly group waits for a human: there a merge to `main` deploys a third-party image to production, and the only check before it is the playbooks' syntax.
+A package repo extends `library`, which keeps published ranges wide: an upstream release inside a range reaches only the lock file, which owes no changeset and forces no release, and a peer range is widened so that consumers on the older major keep working.
 
 The three-day release age is one decision enforced on both sides of the install: the preset sets `minimumReleaseAge` for everything it watches, and the repo preset's `pnpm-workspace.yaml` sets the same 4320 minutes with `@plexus-ms/*` excluded, so pnpm refuses a younger version whether it arrives through the bot, a hand edit, or a transitive resolution.
 A bot that proposed a release the package manager rejects would only open red PRs, which is what happened when pnpm 11 turned its own one-day default on; the two numbers are kept equal so that neither side ever hides the other's verdict, and the initiative's own packages and train skip the wait because they are published by the maintainers under § 1.6 PLX.
 
-How unattended the merge is, is stratified by blast radius, because one policy does not fit four risk classes: packages run inside an app with immutable, provenance-attested versions; third-party dev tools run in CI and the image build but never inside the running app; the workflows and `plx` run in tenant CI next to its secrets; the Ansible collection runs with root on tenant hosts.
+How unattended the merge is, is stratified by blast radius, because one policy does not fit four risk classes: the initiative's own packages run inside an app with immutable, provenance-attested versions; third-party dependencies run in CI, in the image build and inside the app, and are judged per update by what semver promises; the workflows and `plx` run in tenant CI next to its secrets; the Ansible collection runs with root on tenant hosts.
 The default posture is deliberately not trust-maximal: unattended propagation is granted per risk class, each tenant's bot config records the stratification it chose, and the risk appetite behind that choice is the tenant's own.
 A tenant choosing differently overrides the shared rules in its own `renovate.json`, which is where the deviation is recorded.
 
@@ -123,7 +138,8 @@ One bootstrap shortcut is permitted and bounded: static config (tsconfig, biome)
 The shared Renovate preset lives in `primitives` under `renovate/` and is read from the default branch, as Renovate presets conventionally are, so a change to it reaches every tenant's next bot run without a train.
 That makes every edit a change to every tenant's merge policy at once, and it is reviewed as one: widening automerge there widens it everywhere.
 It is one preset for every Plexus repo, the upstream ones included: every pin the train writes is written by the train in every repo that carries it, so there is no repo left in which the bot should bump them.
-The galaxy manager needs a `packageName` override because it hands a github.com URL to the tags datasource verbatim; the preset carries that fix so no tenant repeats it.
+An operations repo pins each collection as `https://github.com/plexus-ms/primitives.git#/ansible/<layer>/`; the galaxy manager drops the subdirectory, so the train-pin rule matches these pins by the bare URL and the bot never proposes them.
+The sub-presets `library` and `operations` are read from the default branch like the shared preset, but a repo extends them through its template, so a new sub-preset reaches a repo with the train that adds its line.
 `gitIgnoredAuthors` names the one author that commits to the bot's branches, `plx changeset`'s; a second such author is added here, never in a tenant's own config, because a branch the bot stops rebasing is stale in every repo at once.
 
 Cutting and taking are separate tools as they are separate events (§ 3), and two tests keep them apart: the upstream tooling works with no knowledge of any consumer, and the tenant tooling works with published artifacts and the tenant's own repos alone.

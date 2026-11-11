@@ -146,6 +146,7 @@ Because an unchanged repo still gets the tag, every cross-repo pin can cite the 
 The train repos are `primitives`, `preset-repo-turbo`, `preset-app-nextjs`, `preset-repo-operations`, and `compendium`.
 `libraries` (npm semver via changesets, [§ 5 PLX-Delivery](../approaches/delivery.md)) rides outside the train.
 `primitives` carries everything the train versions in one repo: the four `plexus.*` Ansible collections and the Terraform modules (each collection's `galaxy.yml` version mirrors the tag exactly), the reusable workflows, the shared update-bot preset, and the packages `@plexus-ms/cli`, `@plexus-ms/cli-ci`, `@plexus-ms/lib` and `@plexus-ms/config`, published to npm at the train number, so that the tools, the config and the train a repo runs are one number.
+The tool that cuts the train, `plx-dev`, lives there too and is never published: the maintainers run it from their `primitives` checkout, so it is always the code at `main` and never a release behind the one it cuts.
 A train is cut in two phases: `primitives` first, whose release publishes those packages, then the presets and the compendium once the registry has them, because they pin them.
 Trains 0.77.0 to 0.99.0 do not exist; 0.100.0 is the first train of this layout, and the repos it consolidated (`platform`, `ci-cd`, `renovate-config`, and the cli's part of `packages`, since renamed `libraries`) are archived with their tags in place for anything still pinned there.
 The pre-train per-repo `vN` lines and the itops-era tags live on frozen in history, kept for existing pins and never retargeted.
@@ -157,7 +158,7 @@ Section numbers in the map and in every module are append-only within a major tr
 The train reaches 1.0.0 once the modular standard with its first standard modules has shipped and settled; until then `0.x` promises nothing, and any train can change anything.
 
 **What `ship` writes.**
-`plx ship`, run from the root of the maintainers' workspace, writes the bookkeeping, tags every train repo, creates each tag's GitHub release and pushes, in one pass.
+`plx-dev ship`, run from the maintainers' `primitives` checkout over their workspace (`mise ship` there), writes the bookkeeping, tags every train repo, creates each tag's GitHub release and pushes, in one pass.
 It opens no pull request in any consumer: cutting a train and a repo taking it are separate events, and the taking is the repo's own (§ 13.3).
 Besides the compendium's stamps, the bookkeeping is every pin the train owns ([§ 1 PLX-Updates](../approaches/updates.md)): the collection's and the packages' versions in `primitives`, and in the presets and the compendium the workflow refs, the collection pin, the `plx` pin and the exact `@plexus-ms/config` pin.
 For the compendium it writes the version and timestamp in this document's frontmatter (a draft carries `v0` until its first train) and stamps `changed` on each standard module whose extracted requirement lines differ from the previous train's, using the same extractor `mise check` runs.
@@ -186,7 +187,7 @@ The repos that ship the methodology:
 
 | Repo | Offering |
 |---|---|
-| `primitives` | The train-versioned primitives in one repo: the `plexus.*` Ansible collections, one per layer with its playbook (`plexus.host` for the baseline every host gets, `plexus.platform`, `plexus.infrastructure`, `plexus.ci`), and reusable Terraform modules; the thin reusable workflows that mount the ops verbs on the forge; `plx` itself as `@plexus-ms/cli` with `@plexus-ms/lib`, the CI verbs as `@plexus-ms/cli-ci` (`plx-ci`), and the shared tool configs `@plexus-ms/config`; and the shared Renovate preset every Plexus repo extends in one line. |
+| `primitives` | The train-versioned primitives in one repo: the `plexus.*` Ansible collections, one per layer with its playbook (`plexus.host` for the baseline every host gets, `plexus.platform`, `plexus.infrastructure`, `plexus.ci`), and reusable Terraform modules; the thin reusable workflows that mount the ops verbs on the forge; `plx` itself as `@plexus-ms/cli` with `@plexus-ms/lib`, the CI verbs as `@plexus-ms/cli-ci` (`plx-ci`), and the shared tool configs `@plexus-ms/config`; `plx-dev`, the unpublished tool that cuts the train; and the shared Renovate preset every Plexus repo extends in one line. |
 | `libraries` | The published `@plexus-ms/*` libraries for the web/Node/TypeScript world on their own semver: the `std` utilities, and over time the reusable application plumbing that keeps each app's domain core small. |
 | `preset-repo-turbo` | The copier template for a tenant app repo: a Turborepo monorepo with `apps/` consuming the packages, re-syncable via `copier update`. |
 | `preset-app-nextjs` | The copier template for a Next.js app inside an app repo: contract-verb scripts, Dockerfile, `compose.yaml` with the contract labels. |
@@ -671,5 +672,6 @@ Mounting it on a schedule in each tenant, so that a tenant sees its own stalenes
 
 ### § 13.5 Tooling
 
-The maintainers' helpers and the ops verbs are commands of `plx`, the published `@plexus-ms/cli`: the workspace map, the staleness check (§ 13.4), the cutting of a train (§ 1.5) and a repo's pull of one (§ 13.3), the requirements check (§ 1.8), the changeset a bump owes and the delivery verbs, `deploy-targets` and `deploy`, with the CI verbs of § 6.3 in `plx-ci` beside it; a tenant repo pins the tools in its `mise.toml` at the train number, written by the train, and its CI runs those pins.
+The verbs of a tenant repo and of an operator of many repos are commands of `plx`, the published `@plexus-ms/cli`: the workspace map, the staleness check (§ 13.4), a repo's pull of a train and the loop of it over many repos (§ 13.3), the requirements check (§ 1.8), the changeset a bump owes and the delivery verbs, `deploy-targets` and `deploy`, with the CI verbs of § 6.3 in `plx-ci` beside it; a tenant repo pins the tools in its `mise.toml` at the train number, written by the train, and its CI runs those pins.
+Cutting a train (§ 1.5) is the upstream's alone and is not in any published tool: `plx-dev`, run from the maintainers' `primitives` checkout.
 [PLX-CLI](../approaches/cli.md) is the module: why the tool replaced the scripts, what it must not become, and the verbs still to be written.

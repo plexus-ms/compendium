@@ -25,7 +25,6 @@ A Python or Go repo takes the same repo contract with a toolchain module of its 
 > - mise MUST install only node for the JS/TS toolchain; the package manager arrives through node itself: a `postinstall` hook enables corepack, which installs the pnpm version pinned in the root `package.json` `packageManager` field, the single pnpm pin (Turborepo requires the field anyway).
 > - The node version MUST be pinned exactly once: a `.node-version` file at the repo root, read by mise natively (`idiomatic_version_file_enable_tools`), by CI as a plain file, and by the image build as a build arg.
 > - JS-ecosystem dev tools (turbo, biome, …) MUST be devDependencies, on the PATH via mise's `_.path`, never mise `[tools]` entries; a `package.json` MUST NOT carry `engines`.
-> - A train-versioned package a repo consumes (`@plexus-ms/config`) MUST be taken through the workspace's `plexus` catalog: every manifest says `catalog:plexus`, and the one version in `pnpm-workspace.yaml` is the train's to write ([§ 1 PLX-Updates](updates.md)).
 
 Each fact sits in its canonical home ([§ 2 PLX-Repo](../contracts/repo.md)): the pnpm version where pnpm itself and every update bot reads it, dev tools where npm's ecosystem versions them, the task graph where turbo reads it, and the node version in `.node-version`, the file the node ecosystem's own version managers converged on, which any consumer can read without a toolchain (`cat` in CI, an `ARG` in the Dockerfile, mise natively).
 `pnpm-workspace.yaml` (`packages:` globs plus a `catalog:` pinning shared dev-tool versions) owns install and linking; turbo owns ordering and caching on top of it.
@@ -33,13 +32,14 @@ The division of labor is exact: pnpm knows the package graph but not tasks, mise
 `dependsOn: ["^build"]` says once, for every consumer present and future, that internal packages build before their dependents typecheck, test, or build.
 That single rule is what makes every verb answerable from a fresh checkout: a workspace package's `dist/` is a build product, never a commit.
 Formatting and linting is Biome, invoked repo-wide by `check` and on staged files by the pre-commit hook, per the repo contract's hook discipline.
-Biome is pinned exactly, because a formatter's minor release can reformat the repo (Biome 2.6 began formatting YAML and Markdown, the hotfix of train 0.60.1); the update bot proposes the bump and the lint in CI decides whether it merges.
+Biome is pinned exactly, because a formatter's minor release can reformat the repo (Biome 2.6 began formatting YAML and Markdown, the hotfix of Plexus 0.60.1); the update bot proposes the bump and the lint in CI decides whether it merges.
 `biome.json` names its schema by the installed package's path, so the schema follows the pin and carries no version of its own.
-The concrete arrangement, the `mise.toml`, `turbo.json`, root `package.json`, hook config, Dockerfile, is not specified here: the preset ships it ([PLX-Updates](updates.md)), and staying current with the template *is* the conformant arrangement.
+The concrete arrangement, the `mise.toml`, `turbo.json`, root `package.json`, hook config, Dockerfile, is not specified here: the template ships it ([PLX-Updates](updates.md)), and staying current with the template *is* the conformant arrangement.
 
 
 ## Maintaining
 
-`plexus-ms/preset-repo-turbo` is the arrangement authority for this module: the template's `mise.toml`, `turbo.json`, `biome.json`, root `package.json`, and `hk.pkl` are the one encoding of § 1, and a change to the requirements here is a change to the template in the same train.
-The shared configs a generated repo extends (`@plexus-ms/config/biome`, `/tsconfig`) are published from `plexus-ms/primitives` at the train number (§ 1.6 PLX); the template carries only the one-line `extends`.
-The version lives in one place because the pin has one writer: the train writes the catalog entry in `pnpm-workspace.yaml`, a file the preset owns, and the manifests a tenant writes by hand follow it through `catalog:plexus` without the train ever touching them.
+`plexus-ms/template-repo-turbo` is the arrangement authority for this module: the template's `mise.toml`, `turbo.json`, `biome.json`, root `package.json`, and `hk.pkl` are the one encoding of § 1, and a change to the requirements here is a change to the template in the same version.
+The shared configs a generated repo extends (`@plexus-ms/config/biome`, `/tsconfig`) are a library, published from `plexus-ms/libraries` on a version line of its own (§ 1.5 PLX); the template carries only the one-line `extends`.
+Its range lives in one place, the `plexus` catalog of `pnpm-workspace.yaml`, and every manifest says `catalog:plexus`: the template states the range once and never rewrites it, the update bot is its one writer ([§ 2 PLX-Updates](updates.md)), and the manifests a tenant writes by hand follow without an edit.
+Until 0.119.0 the package carried the Plexus version and was pinned with it; in an app's dependency closure that number was a build input, and every version a repo took rebuilt every image, whether or not a config had changed.

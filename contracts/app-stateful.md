@@ -58,5 +58,5 @@ Production data arrives by restore or by real use, never by seed.
 ## Maintaining
 
 The profile is written against the one migration path the deploy verb has.
-A change to how the verb runs `migrate` ([§ 6 PLX-Delivery](../approaches/delivery.md)) is a change to § 2 here, in the same train.
+A change to how the verb runs `migrate` ([§ 6 PLX-Delivery](../approaches/delivery.md)) is a change to § 2 here, in the same version.
 The approaches on each side are those of [PLX-App](app.md).

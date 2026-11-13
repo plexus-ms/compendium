@@ -17,7 +17,7 @@ It is an approach at candidate maturity: one tenant runs it, which is one short 
 
 ## § 1 The playbook
 
-`plexus-ms/preset-repo-operations` generates `infrastructure.yml` on request, off by default: one line importing `plexus.infrastructure.playbook`, the tenant's own plays below it, run as `mise infrastructure`.
+`plexus-ms/template-repo-operations` generates `infrastructure.yml` on request, off by default: one line importing `plexus.infrastructure.playbook`, the tenant's own plays below it, run as `mise infrastructure`.
 The playbook runs before the platform layer's and targets different hosts, the inventory groups `proxmox`, `pbs`, `haproxy`, and `guests` for every VM on the hypervisor, the ingress VM and other tenants' guests included.
 Its plays are the host baseline on the infrastructure layer's own hosts (`plexus.host`, the same roles the platform playbook lists, tagged `host`), the hypervisor (`proxmox`, `guests`), the backup server (`pbs`), the ingress VM (`haproxy`), and what the infrastructure layer itself needs from every guest (`guest_agent`, which lets a backup freeze the file systems, and `netbird`, the overlay the guest is reached over from then on), the layer's plays tagged `infrastructure` and every role its name, so that `--tags proxmox --limit <hypervisor>` is one role on one host.
 
@@ -57,7 +57,7 @@ A guest of another tenant on the same hypervisor is an arrangement between tenan
 
 ## Maintaining
 
-The collection is `plexus.infrastructure` in `plexus-ms/primitives`, pinned and checked like the others ([Maintaining, PLX-Platform](platform.md)).
-Known debts, to be paid in this module: the Terraform modules under `primitives/terraform/` have no check under `verify` yet (`terraform validate` was deferred with molecule when the repos were consolidated); the backup token and encryption key are made by hand, encoded as a procedure in the roles' defaults until a primitive can write to the vault; the local-mail role reports a failed unit at most once a day rather than per failure, and a digest is the next step if that is still noisy.
+The collection is `plexus.infrastructure` in `plexus-ms/tooling`, pinned and checked like the others ([Maintaining, PLX-Platform](platform.md)).
+Known debts, to be paid in this module: the Terraform modules under `terraform/` in `tooling` have no check under `verify` yet (`terraform validate` was deferred with molecule when the repos were consolidated); the backup token and encryption key are made by hand, encoded as a procedure in the roles' defaults until a primitive can write to the vault; the local-mail role reports a failed unit at most once a day rather than per failure, and a digest is the next step if that is still noisy.
 The roles stay the single encoding of the hosts: no image, no template, no hand step before the first run.
 Field notes on Proxmox on Debian live in the compendium's miscellaneous section; what applies generally moves into the roles, what is one host's history stays in that tenant's repo.

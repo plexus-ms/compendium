@@ -39,7 +39,7 @@ modules: [PLX-Repo, PLX-JS, PLX-Delivery, PLX-Updates]
 ```
 
 A repo that follows only this module is a complete consumer; there is no global verdict to fail.
-What the marker buys is a precise answer to "is this repo behind": for each listed module, whether that module's requirements changed in a train newer than the declared version.
+What the marker buys is a precise answer to "is this repo behind": for each listed module, whether that module's requirements changed in a version newer than the declared version.
 
 
 ## § 2 mise and hk
@@ -89,7 +89,7 @@ The contract names no stack, and the pressure to let one in is constant: every n
 The test is whether a repo in a different stack could answer the line unchanged.
 If not, it belongs in a toolchain module.
 
-The marker's frontmatter is read by the staleness check (§ 13.4 PLX) once it ships, and by `ship` when it stamps `changed` on the modules; the format changes only with a major train.
+The marker's frontmatter is read by the staleness check (§ 13.4 PLX) once it ships, and by `ship` when it stamps `changed` on the modules; the format changes only with a major version.
 
 Approaches on the authors' side: [PLX-JS](../approaches/js.md), [§ 5 PLX-Delivery](../approaches/delivery.md), [PLX-Updates](../approaches/updates.md).
 On the operating side: [PLX-Delivery](../approaches/delivery.md), the hooks, the staleness check (§ 13.4 PLX).

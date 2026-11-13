@@ -33,4 +33,4 @@ Delete something only after checking what still references it; a guest removed f
 ## Maintaining
 
 The note becomes a module when a policy exists that a role enforces, and standard when two tenants follow it; until then its one requirement-shaped sentence stays prose.
-Engine and distribution majors are handled on the train like any other role change: the role learns the new version, the train ships it, the tenant applies it under supervision.
+Engine and distribution majors are handled like any other role change: the role learns the new major, a Plexus version ships it, the tenant applies it under supervision.

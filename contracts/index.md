@@ -10,7 +10,7 @@ A contract is the module written at a seam, the place where two sides owned by d
 |---|---|---|
 | Tenant to federation: [PLX-Tenancy](tenancy.md) | the tenant: [PLX-Platform](../approaches/platform.md), [PLX-Infrastructure](../approaches/infrastructure.md) | the Plexus upstream and all of its primitives |
 | Repo to its operators: [PLX-Repo](repo.md) | the authors: [PLX-JS](../approaches/js.md), [§ 5 PLX-Delivery](../approaches/delivery.md), [PLX-Updates](../approaches/updates.md) | [PLX-Delivery](../approaches/delivery.md), the hooks, the staleness check (§ 13.4 PLX) |
-| Platform to app: [PLX-App](app.md) | [PLX-Platform](../approaches/platform.md), [PLX-Ingress](../approaches/ingress.md), [PLX-Secrets](../approaches/secrets.md), [§ 6 PLX-Delivery](../approaches/delivery.md), [backups per service](../approaches/backup.md) | [PLX-Delivery](../approaches/delivery.md), the app preset |
+| Platform to app: [PLX-App](app.md) | [PLX-Platform](../approaches/platform.md), [PLX-Ingress](../approaches/ingress.md), [PLX-Secrets](../approaches/secrets.md), [§ 6 PLX-Delivery](../approaches/delivery.md), [backups per service](../approaches/backup.md) | [PLX-Delivery](../approaches/delivery.md), the app template |
 | Deployer to platform: [PLX-Environment](environment.md) | [PLX-Platform](../approaches/platform.md), the inventory record | [PLX-Delivery](../approaches/delivery.md), the deploy mount; [PLX-App](app.md) for the environment it is handed |
 | Infrastructure to platform: [PLX-Host](host.md) | [PLX-Infrastructure](../approaches/infrastructure.md), a provider's cloud, or another tenant's hypervisor ([§ 4 PLX-Tenancy](tenancy.md)) | [PLX-Platform](../approaches/platform.md), [§ 6 PLX-Delivery](../approaches/delivery.md) |
 

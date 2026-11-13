@@ -39,7 +39,7 @@ Substance stays partitioned because the tenant is the trust boundary.
 One greppable name threads through every layer.
 The label makes the boundary visible exactly where it otherwise blurs: staring at a host wondering whose service this is.
 The inventory groups are not on the list: the shipped playbooks target fixed group names (`platform`, `ci`, `proxmox`, `pbs`, `haproxy`, `guests`; [§ 1 PLX-Platform](../approaches/platform.md)), and a host runs one tenant's services, so the slug on a group would repeat what the repo already says.
-Until train 0.114.0 the repo was named `platform`; the name moved when `platform` came to mean the layer alone, with the infrastructure layer and the tenant's CI beside it in the same repo.
+Until Plexus 0.114.0 the repo was named `platform`; the name moved when `platform` came to mean the layer alone, with the infrastructure layer and the tenant's CI beside it in the same repo.
 
 
 ## § 3 Forge layout
@@ -82,4 +82,4 @@ A term like "operator" would name a relationship the standard has exactly one in
 The ambition of customer-1001 economics is measured here: whenever onboarding a tenant seems to force two tenants to share substance, that is a bug to file against this module, not an exception to normalize.
 
 Approaches on the tenant's side: [PLX-Platform](../approaches/platform.md), [PLX-Infrastructure](../approaches/infrastructure.md).
-On the upstream's side: the presets, `ship`, and the guarantees of § 1.6 PLX.
+On the upstream's side: the templates, `ship`, and the guarantees of § 1.6 PLX.

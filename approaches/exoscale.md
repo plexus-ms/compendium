@@ -70,7 +70,7 @@ The boot was clean: network, hostname and every cloud-init stage done 14.7 s aft
 Three seconds into the boot, `apt-daily-upgrade.service` started, the persistent timer catching up the daily run the weeks-old image had missed, and unattended-upgrades held the dpkg lock for 55 s.
 The user-data's `apt-get` calls in that window failed at once, so neither Docker nor the user `runner` came to exist, and the runner unit failed with `217/USER`.
 Whether the catch-up lands inside the user-data's window is timing, which fits every point above: random per instance, only with real user-data (a bare probe installs nothing), and never in a bare probe.
-From the train after 0.110.0, the user-data masks the apt timers and services and kills whichever of them already holds the lock before its first `apt-get` (`plexus-ci-apt-free`); a wait on the lock would cost the minute.
+From the version after 0.110.0, the user-data masks the apt timers and services and kills whichever of them already holds the lock before its first `apt-get` (`plexus-ci-apt-free`); a wait on the lock would cost the minute.
 The late boots and the network-step reading above predate this and may have other causes, so the trap stays.
 
 It is characterised, not pinpointed.

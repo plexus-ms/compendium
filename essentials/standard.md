@@ -44,7 +44,10 @@ Plexus revolves around tenants sharing methodology but never substance:
   A seam is named by its two sides and made explicit as exactly one contract (§ 1.3).
 - **Module**, **contract**, **approach**, **maturity** — see § 1.3.
 - **Declaration** — a repo's or app's `PLEXUS.md` marker: the Plexus version it was brought up to and the modules it follows (§ 1.4).
-- **Train** — one release of Plexus, tagged identically on every train repo and the compendium, whose number is the Plexus version (§ 1.5).
+- **Plexus version** — the one number Plexus carries: a plain semver tag stamped identically on `tooling`, the templates and the compendium, and recorded by every declaration (§ 1.5).
+- **Tooling** and **libraries** — the two ways a primitive reaches a tenant: tooling runs around an app and carries the Plexus version, a library is imported by an app and carries a version of its own (§ 1.5).
+- **Template** — a copier template a repo or an app is generated from and re-synced with (§ 13.3).
+  *Preset* is the update bot's word for a shared configuration and means nothing else in Plexus.
 
 Tenants usually build and ship software:
 
@@ -103,10 +106,10 @@ Ingress, secrets delivery, and backups are separate modules because they are sep
 Granularity is revisited while pages are written and when a reader has to hold two pages open.
 
 #### Frontmatter
-Every module page carries `code` (except for notes), `maturity`, `binds` (what the module is declared for: `repo`, `app`, `host`, or `organisation`), `depends` (the codes on the same side of every seam that a declaration of this module has to accompany), on approaches `consumes` (the contracts on the other side of a seam this module relies on, declared by that side), and, on standard modules only, `changed`, the train in which the module's requirements last changed.
+Every module page carries `code` (except for notes), `maturity`, `binds` (what the module is declared for: `repo`, `app`, `host`, or `organisation`), `depends` (the codes on the same side of every seam that a declaration of this module has to accompany), on approaches `consumes` (the contracts on the other side of a seam this module relies on, declared by that side), and, on standard modules only, `changed`, the version in which the module's requirements last changed.
 
 #### Page shape
-Numbered sections (`§ 1`, `§ 1.1`, …) hold requirements as `> - ` bullets followed by consumer prose; numbers are append-only within a major train, as in the map.
+Numbered sections (`§ 1`, `§ 1.1`, …) hold requirements as `> - ` bullets followed by consumer prose; numbers are append-only within a major version, as in the map.
 One trailing section headed *Maintaining*, unnumbered and never cited, holds the maintainer side: which primitives ship the module, what changes with it, what debts it carries, when it is promoted.
 The extractor treats that section as prose.
 
@@ -136,33 +139,51 @@ The staleness check (§ 13.4) verifies the first and leaves the second to the ot
 A declaration is stale for exactly those modules it lists whose `changed` is newer than its `plexus`; nothing else about it is stale.
 There is no global verdict.
 
-### § 1.5 Versioning and the train
+### § 1.5 Versioning
 
-Plexus has one version: the number of the **train**, a plain semver tag (`0.60.0`, no `v` prefix) stamped identically on every train repo, whether or not it changed, and on the compendium.
+Plexus has one version, the **Plexus version**: a plain semver tag (`0.60.0`, no `v` prefix) stamped identically on `tooling`, the three templates and the compendium, whether or not each of them changed.
 The number says *when*, not *how stable*; stability is the maturity axis of § 1.3.
-The train is the tested set: the only combination ever validated is the one the maintainers' tenants run together, so independent per-repo version lines would name compatibility cells nobody tests.
-Because an unchanged repo still gets the tag, every cross-repo pin can cite the train version and be right by construction.
+It names the tested set: the only combination ever validated is the one the maintainers' tenants run together, so independent per-repo version lines would name compatibility cells nobody tests.
+Because an unchanged repo still gets the tag, every cross-repo pin can cite the Plexus version and be right by construction.
 
-The train repos are `primitives`, `preset-repo-turbo`, `preset-app-nextjs`, `preset-repo-operations`, and `compendium`.
-`libraries` (npm semver via changesets, [§ 5 PLX-Delivery](../approaches/delivery.md)) rides outside the train.
-`primitives` carries everything the train versions in one repo: the four `plexus.*` Ansible collections and the Terraform modules (each collection's `galaxy.yml` version mirrors the tag exactly), the reusable workflows, the shared update-bot preset, and the packages `@plexus-ms/cli`, `@plexus-ms/cli-ci`, `@plexus-ms/lib` and `@plexus-ms/config`, published to npm at the train number, so that the tools, the config and the train a repo runs are one number.
-The tool that cuts the train, `plx-dev`, lives there too and is never published: the maintainers run it from their `primitives` checkout, so it is always the code at `main` and never a release behind the one it cuts.
-A train is cut in two phases: `primitives` first, whose release publishes those packages, then the presets and the compendium once the registry has them, because they pin them.
-Trains 0.77.0 to 0.99.0 do not exist; 0.100.0 is the first train of this layout, and the repos it consolidated (`platform`, `ci-cd`, `renovate-config`, and the cli's part of `packages`, since renamed `libraries`) are archived with their tags in place for anything still pinned there.
-The pre-train per-repo `vN` lines and the itops-era tags live on frozen in history, kept for existing pins and never retargeted.
+**What is versioned how.**
+Every primitive (§ 1.2) reaches a tenant in one of two ways, and the way decides how it is versioned.
+
+| | Tooling | Libraries |
+|---|---|---|
+| What | The `plexus.*` Ansible collections, the Terraform modules, the reusable workflows, `plx` and `plx-ci`, the shared update-bot preset, the templates. | `@plexus-ms/std`, `@plexus-ms/config`, and over time the application plumbing of § 4.6. |
+| Where it lives | `tooling` and the three `template-*` repos. | `libraries`. |
+| How a tenant consumes it | Around its apps: by tag, by a pin in `mise.toml`, by a template. | Inside its apps: as a dependency in a `package.json`. |
+| Version | The Plexus version, all of it together. | Each package its own semver, by changesets ([§ 5 PLX-Delivery](../approaches/delivery.md)). |
+| Who moves a tenant's pin | The pull request by which a repo takes a version (§ 13.3). | The update bot (§ 13.2). |
+
+The line follows from what a version number costs on each side.
+Tooling has no versioning of its own beyond a git tag, and only the combination is ever tested, so one number for all of it is the honest one.
+A library sits in an app's dependency closure, where its version is an input of the app's build: a number that moved while its files stood still would rebuild every image for nothing, so a library's version moves only when the library does.
+Two rules keep the line where it is.
+Tooling and libraries meet only through contracts (§ 1.3), never through a shared version number: nothing that carries the Plexus version is a dependency of an app.
+And a repo of its own is warranted only by releases of its own or by a technical necessity, as a copier template has to be a repository; everything else joins `tooling` or `libraries`.
+
+`tooling` carries everything of the first kind that is not a template: the four `plexus.*` Ansible collections and the Terraform modules (each collection's `galaxy.yml` version mirrors the tag exactly), the reusable workflows, the shared update-bot preset, and the packages `@plexus-ms/cli`, `@plexus-ms/cli-ci` and `@plexus-ms/lib`, published to npm at the Plexus version, so that the tools a repo runs and the version it is on are one number.
+The tool that cuts a version, `plx-dev`, lives there too and is never published: the maintainers run it from their `tooling` checkout, so it is always the code at `main` and never a release behind the one it cuts.
+A version is cut in two phases: `tooling` first, whose release publishes those packages, then the templates and the compendium once the registry has them, because they pin them.
+
+Versions 0.77.0 to 0.99.0 do not exist; 0.100.0 is the first version of the consolidated layout, and the repos it consolidated (`platform`, `ci-cd`, `renovate-config`, and the cli's part of `packages`, since renamed `libraries`) are archived with their tags in place for anything still pinned there.
+With 0.120.0 `primitives` became `tooling` and the `preset-*` repos became `template-*`: `primitives` is archived with its tags in place like the others, and `@plexus-ms/config` left it for `libraries` and a version line of its own.
+The per-repo `vN` lines from before the single version and the itops-era tags live on frozen in history, kept for existing pins and never retargeted.
 
 **Semver attaches to maturity.**
-A breaking change to a standard module's requirements forces a major train, with migration steps noted in the module; candidate and note modules change in any minor train.
-Minor bumps are routine trains, patch is reserved for hotfix trains.
-Section numbers in the map and in every module are append-only within a major train, so a citation written against one train stays right until the next major.
-The train reaches 1.0.0 once the modular standard with its first standard modules has shipped and settled; until then `0.x` promises nothing, and any train can change anything.
+A breaking change to a standard module's requirements forces a major version, with migration steps noted in the module; candidate and note modules change in any minor version.
+A minor bump is the routine, a patch is reserved for a hotfix.
+Section numbers in the map and in every module are append-only within a major version, so a citation written against one version stays right until the next major.
+The Plexus version reaches 1.0.0 once the modular standard with its first standard modules has shipped and settled; until then `0.x` promises nothing, and any version can change anything.
 
 **What `ship` writes.**
-`plx-dev ship`, run from the maintainers' `primitives` checkout over their workspace (`mise ship` there), writes the bookkeeping, tags every train repo, creates each tag's GitHub release and pushes, in one pass.
-It opens no pull request in any consumer: cutting a train and a repo taking it are separate events, and the taking is the repo's own (§ 13.3).
-Besides the compendium's stamps, the bookkeeping is every pin the train owns ([§ 1 PLX-Updates](../approaches/updates.md)): the collection's and the packages' versions in `primitives`, and in the presets and the compendium the workflow refs, the collection pin, the `plx` pin and the exact `@plexus-ms/config` pin.
-For the compendium it writes the version and timestamp in this document's frontmatter (a draft carries `v0` until its first train) and stamps `changed` on each standard module whose extracted requirement lines differ from the previous train's, using the same extractor `mise check` runs.
-It then publishes those facts as data: the compendium's release of the train carries the train manifest, the train's number and date and the catalogue of modules with each one's `changed`, which is how a repo without a compendium checkout learns whether a train concerns it ([§ 3 PLX-Updates](../approaches/updates.md)).
+`plx-dev ship`, run from the maintainers' `tooling` checkout over their workspace (`mise ship` there), writes the bookkeeping, tags every repo that carries the version, creates each tag's GitHub release and pushes, in one pass.
+It opens no pull request in any consumer: cutting a version and a repo taking it are separate events, and the taking is the repo's own (§ 13.3).
+Besides the compendium's stamps, the bookkeeping is every pin that names the Plexus version ([§ 1 PLX-Updates](../approaches/updates.md)): the collections' and the packages' versions in `tooling`, and in the templates and the compendium the workflow refs, the collection pin and the `plx` pin.
+For the compendium it writes the version and timestamp in this document's frontmatter (a draft carries `v0` until its first version) and stamps `changed` on each standard module whose extracted requirement lines differ from the previous version's, using the same extractor `mise check` runs.
+It then publishes those facts as data: the compendium's release of the version carries the module manifest, `modules.json`, with the version's number and date and the catalogue of modules with each one's `changed`, which is how a repo without a compendium checkout learns whether a version concerns it ([§ 3 PLX-Updates](../approaches/updates.md)).
 
 ### § 1.6 Upstream guarantees
 
@@ -172,7 +193,7 @@ The mitigations are structural, and the tenant can rely on them:
 
 - The `plexus-ms` repos are public and GPLv3-licensed; every change is reviewable, and nothing breaks on the day the upstream goes unmaintained: published versions keep resolving, tags keep resolving, and the repos remain forkable.
 - `@plexus-ms/*` packages are published to the public npm registry through OIDC trusted publishing; published versions are immutable and carry provenance attestations linking each version to its source commit and build.
-- A breaking change to a package on its own semver line is released as a semver major, with a migration note in the changelog; the train-versioned packages (`@plexus-ms/cli`, `@plexus-ms/cli-ci`, `@plexus-ms/lib`, `@plexus-ms/config`) follow the train's semver, so a breaking change to them, like one to a standard module, is a major train (§ 1.5).
+- A breaking change to a package on its own semver line is released as a semver major, with a migration note in the changelog; the packages that carry the Plexus version (`@plexus-ms/cli`, `@plexus-ms/cli-ci`, `@plexus-ms/lib`) follow its semver, so a breaking change to them, like one to a standard module, is a major version (§ 1.5).
 - Tenant substance, business logic, secrets, anything tenant-specific, never appears in a public package or a public repo.
 
 These are obligations of the maintainers, not of consumers, which is why they are prose here rather than requirements in a module.
@@ -180,31 +201,31 @@ They are the upstream's side of the tenant-to-federation seam (§ 1.3), whose te
 The tenant's decision on how unattended to let updates flow ([§ 2 PLX-Updates](../approaches/updates.md)) rests on them.
 
 Some pins reference git tags, which git itself lets move; a retargeted tag would silently change what a tenant executes, with no attestation.
-Every train tag is therefore locked by an immutable GitHub release, created by `ship` and verified by it: once published, the tag can neither be moved nor deleted, and `primitives` publishes its packages only from such a release.
+Every version tag is therefore locked by an immutable GitHub release, created by `ship` and verified by it: once published, the tag can neither be moved nor deleted, and `tooling` publishes its packages only from such a release.
 The tags of the archived repos predate this and stay as they were; referencing by commit SHA remains the alternative should attestation of tag-referenced artifacts ever be wanted.
 
 The repos that ship the methodology:
 
 | Repo | Offering |
 |---|---|
-| `primitives` | The train-versioned primitives in one repo: the `plexus.*` Ansible collections, one per layer with its playbook (`plexus.host` for the baseline every host gets, `plexus.platform`, `plexus.infrastructure`, `plexus.ci`), and reusable Terraform modules; the thin reusable workflows that mount the ops verbs on the forge; `plx` itself as `@plexus-ms/cli` with `@plexus-ms/lib`, the CI verbs as `@plexus-ms/cli-ci` (`plx-ci`), and the shared tool configs `@plexus-ms/config`; `plx-dev`, the unpublished tool that cuts the train; and the shared Renovate preset every Plexus repo extends in one line. |
-| `libraries` | The published `@plexus-ms/*` libraries for the web/Node/TypeScript world on their own semver: the `std` utilities, and over time the reusable application plumbing that keeps each app's domain core small. |
-| `preset-repo-turbo` | The copier template for a tenant app repo: a Turborepo monorepo with `apps/` consuming the packages, re-syncable via `copier update`. |
-| `preset-app-nextjs` | The copier template for a Next.js app inside an app repo: contract-verb scripts, Dockerfile, `compose.yaml` with the contract labels. |
-| `preset-repo-operations` | The copier template for a tenant's operations repo: one thin playbook per layer mounting the collection's, on request the infrastructure layer's and the CI layer's, the inventory with the standard groups, the `op://`-pointer env files, the collection pins, the `apps/` directory and workflow for third-party apps. |
+| `tooling` | The primitives that run around an app, at the Plexus version, in one repo: the `plexus.*` Ansible collections, one per layer with its playbook (`plexus.host` for the baseline every host gets, `plexus.platform`, `plexus.infrastructure`, `plexus.ci`), and reusable Terraform modules; the thin reusable workflows that mount the ops verbs on the forge; `plx` itself as `@plexus-ms/cli` with `@plexus-ms/lib`, and the CI verbs as `@plexus-ms/cli-ci` (`plx-ci`); `plx-dev`, the unpublished tool that cuts a version; and the shared Renovate preset every Plexus repo extends in one line. |
+| `libraries` | The primitives an app imports, the published `@plexus-ms/*` libraries for the web/Node/TypeScript world, each on its own semver: the `std` utilities, the shared tool configs `@plexus-ms/config`, and over time the reusable application plumbing that keeps each app's domain core small. |
+| `template-repo-turbo` | The copier template for a tenant app repo: a Turborepo monorepo with `apps/` consuming the packages, re-syncable via `copier update`. |
+| `template-app-nextjs` | The copier template for a Next.js app inside an app repo: contract-verb scripts, Dockerfile, `compose.yaml` with the contract labels. |
+| `template-repo-operations` | The copier template for a tenant's operations repo: one thin playbook per layer mounting the collection's, on request the infrastructure layer's and the CI layer's, the inventory with the standard groups, the `op://`-pointer env files, the collection pins, the `apps/` directory and workflow for third-party apps. |
 | `compendium` | This map, the modules, the manifesto, and the supporting reference docs. |
 
 The dogfood tenant `plexus` lives in its own organisation, `plexus-ms-tenant`, laid out like any tenant and bound by the modules it declares, not by anything in this section: the maintainers' organisation ships methodology, the tenant's holds substance, and the two never share an access boundary.
 
 ```mermaid
 flowchart TB
-  packages["LIBRARIES<br>@plexus-ms libraries;<br>npm semver + provenance"]
-  preset["PRESETS<br>repo + app templates"]
-  ops["PRIMITIVES<br>roles · workflows · plx · config"]
+  packages["LIBRARIES<br>std · config · plumbing;<br>npm semver + provenance"]
+  template["TEMPLATES<br>repo + app templates"]
+  ops["TOOLING<br>roles · workflows · plx"]
   boundary{{"SHARED METHODOLOGY<br><br>SEPARATE SUBSTANCE"}}
   packages -- "npm versions" --> boundary
-  preset -- "copier update" --> boundary
-  ops -- "train tags + npm at the train number" --> boundary
+  template -- "copier update" --> boundary
+  ops -- "version tags + npm at the Plexus version" --> boundary
   boundary --> acme["TENANT: fooCorp<br>forge org · operations repo · app repos<br>host(s) · vault · backups"]
   boundary --> initech["TENANT: barCorp<br>forge org · operations repo · app repos<br>host(s) · vault · backups"]
   boundary --> plexus["TENANT: plexus<br>dogfood; runs<br>plexus-ms.org"]
@@ -232,7 +253,7 @@ The structural conventions are self-policing, and the machinery is small:
 - A module below standard maturity carries neither keyword nor blockquote.
 - `plx requirements` checks all of that over the map and every module, validates module frontmatter, and prints a module's requirement lines on demand; `mise check` runs it, and the pre-commit and pre-push hooks run `mise check`.
   It writes no file: there is no generated requirements list to keep current.
-- Section numbers are append-only within a major train; insertions wait for a major.
+- Section numbers are append-only within a major version; insertions wait for a major.
 - Module pages live at `contracts/<slug>.md` or `approaches/<slug>.md`, the folder being the kind (§ 1.3), and a new module is added to the map section that owns its concern in the same commit.
 
 The compendium follows the repo contract it documents: tools pinned in `mise.toml`, `verify` as a verb, hooks through hk.
@@ -255,7 +276,7 @@ One short slug per tenant threads through every layer: forge org, hostnames, inv
 
 ### § 2.3 Forge and repo layout
 
-One trust domain, N release cycles, one operations repo: the ops side in a repo of its own, every other repo an app repo, app repos as monorepos by default, generated from the presets.
+One trust domain, N release cycles, one operations repo: the ops side in a repo of its own, every other repo an app repo, app repos as monorepos by default, generated from the templates.
 [§ 3 PLX-Tenancy](../contracts/tenancy.md).
 
 ### § 2.4 Arrangements between tenants
@@ -650,7 +671,7 @@ Keeping every consumer current with the decisions made once upstream.
 
 ### § 13.1 Propagation as versioned dependency
 
-A shared thing crosses a repo boundary only as a published, versioned artifact: packages, the workflow and verbs by train tag, the collection by train tag; consumers extend and override at the edge, never fork the base.
+A shared thing crosses a repo boundary only as a published, versioned artifact: packages, the workflow and verbs by version tag, the collection by version tag; consumers extend and override at the edge, never fork the base.
 [§ 1 PLX-Updates](../approaches/updates.md).
 
 ### § 13.2 Update bot
@@ -661,17 +682,17 @@ Every tenant repo runs a bot that watches its pins; how unattended a merge is fo
 ### § 13.3 Templates and re-sync
 
 What cannot be a dependency arrives through a copier template and is re-synced by `copier update`, as a pull request the repo opens for itself from its own CI (`plx update`); the three scaffolding tiers decide where a new artifact goes.
-A repo takes a train when it needs one and not whenever one is cut: a module it declares has changed, which it reads from the manifest the train publishes (§ 1.5), somebody asks, or a backstop age is exceeded; otherwise it rests on the train it has, which its immutable pins make safe (§ 1.6).
+A repo takes a version when it needs one and not whenever one is cut: a module it declares has changed, which it reads from the manifest the version publishes (§ 1.5), somebody asks, or a backstop age is exceeded; otherwise it rests on the version it has, which its immutable pins make safe (§ 1.6).
 [§ 3 PLX-Updates](../approaches/updates.md).
 
 ### § 13.4 Staleness check
 
 A hand-runnable verb run from the root of the maintainers' workspace, `plx doctor`, reads every marker in the workspace, compares each declared module's `changed` with the marker's `plexus`, verifies that every dependency is declared where § 1.4 says it is satisfied, and prints what is behind; it fixes nothing.
-It ships with train 0.61.0, after the first stamps of 0.60.0 gave it something to compare.
+It ships with Plexus 0.61.0, after the first stamps of 0.60.0 gave it something to compare.
 Mounting it on a schedule in each tenant, so that a tenant sees its own staleness without the maintainers' workspace, is the next step and waits for a tenant that is not also the maintainer.
 
 ### § 13.5 Tooling
 
-The verbs of a tenant repo and of an operator of many repos are commands of `plx`, the published `@plexus-ms/cli`: the workspace map, the staleness check (§ 13.4), a repo's pull of a train and the loop of it over many repos (§ 13.3), the requirements check (§ 1.8), the changeset a bump owes and the delivery verbs, `deploy-targets` and `deploy`, with the CI verbs of § 6.3 in `plx-ci` beside it; a tenant repo pins the tools in its `mise.toml` at the train number, written by the train, and its CI runs those pins.
-Cutting a train (§ 1.5) is the upstream's alone and is not in any published tool: `plx-dev`, run from the maintainers' `primitives` checkout.
+The verbs of a tenant repo and of an operator of many repos are commands of `plx`, the published `@plexus-ms/cli`: the workspace map, the staleness check (§ 13.4), a repo's pull of a version and the loop of it over many repos (§ 13.3), the requirements check (§ 1.8), the changeset a bump owes and the delivery verbs, `deploy-targets` and `deploy`, with the CI verbs of § 6.3 in `plx-ci` beside it; a tenant repo pins the tools in its `mise.toml` at the Plexus version, written by the version, and its CI runs those pins.
+Cutting a version (§ 1.5) is the upstream's alone and is not in any published tool: `plx-dev`, run from the maintainers' `tooling` checkout.
 [PLX-CLI](../approaches/cli.md) is the module: why the tool replaced the scripts, what it must not become, and the verbs still to be written.

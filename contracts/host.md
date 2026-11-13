@@ -40,7 +40,7 @@ A host that stops meeting § 1, a release upgrade or a changed address, is a inf
 ## Maintaining
 
 Keep this page a list of assumptions the platform roles actually make, verified against them when a role changes what it needs; an assumption no role relies on is deleted, not kept for completeness.
-A requirement arrives here when two implementations of the lower side disagree about something the roles depend on, and the page is promoted to standard maturity in that train.
+A requirement arrives here when two implementations of the lower side disagree about something the roles depend on, and the page is promoted to standard maturity in that version.
 
 Below the seam: [PLX-Infrastructure](../approaches/infrastructure.md), or a provider with nothing to declare.
 Above it: [PLX-Platform](../approaches/platform.md), and the deploy verb ([§ 6 PLX-Delivery](../approaches/delivery.md)), which reaches the host over the same SSH.

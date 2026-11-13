@@ -31,7 +31,7 @@ The environment names are those the pipeline asks for, `production` and `staging
 The deployment's slug on the host is the app name in `production` and `<app>-<environment>` otherwise, so that a tenant with production alone never meets the rule.
 
 The principle behind the record is one index in git, each value where it can live.
-Sensitivity is the one property that forces a value out of git; every other fact of an environment, host, port, domain, values, is better held in the record, diffed, greppable, propagated by the train, and readable when the vault is not.
+Sensitivity is the one property that forces a value out of git; every other fact of an environment, host, port, domain, values, is better held in the record, diffed, greppable, propagated with a version, and readable when the vault is not.
 The vault holds only what git cannot, and the record points at it.
 
 
@@ -45,7 +45,7 @@ The deployer never writes to the record, never holds a copy of it, and never car
 
 ## Maintaining
 
-`plexus.platform.apps`, `plexus.platform.secrets` and `plexus.platform.ingress` provide the platform's side and `plx deploy-targets` and `plx deploy --environment` the deployer's; all ship from `plexus-ms/primitives` on the train.
+`plexus.platform.apps`, `plexus.platform.secrets` and `plexus.platform.ingress` provide the platform's side and `plx deploy-targets` and `plx deploy --environment` the deployer's; all ship from `plexus-ms/tooling` at the Plexus version.
 The record's shape is the one § 3 PLX-Platform requires; this page owns the seam and names the sides, and a guarantee one side relies on from the other moves here when it is argued.
 Decided 2026-11-04 in the CI trial of the first tenant (`damage`), where one deploy host per app repo and non-secret facts in the vault were the two things that did not scale to a second environment; 1Password Environments was considered as a store for the record and rejected, since it would be a second database of intent beside the inventory and fail the degradation test.
 Promotion to standard, with the requirements of §§ 1 and 2 as blockquotes, waits for the second tenant; the branch names of an app repo matching the environment names is a deferral of PLX-Delivery decided together with it.

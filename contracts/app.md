@@ -131,8 +131,8 @@ The release publishes for the deploy hosts' platform (amd64 today); multi-arch p
 ## Maintaining
 
 The contract stays interior-blind; a requirement that names a database, a framework, or an ORM has wandered in from a profile or an approach and goes back there.
-The preset `plexus-ms/preset-app-nextjs` ships the arrangement that satisfies this page for a Next.js app: the Dockerfile, `compose.yaml` with the `web` service and the contract labels, the healthz route.
-When this page changes, the preset changes in the same train.
+The template `plexus-ms/template-app-nextjs` ships the arrangement that satisfies this page for a Next.js app: the Dockerfile, `compose.yaml` with the `web` service and the contract labels, the healthz route.
+When this page changes, the template changes in the same version.
 
 Approaches on the platform side: [PLX-Platform](../approaches/platform.md), [PLX-Ingress](../approaches/ingress.md), [PLX-Secrets](../approaches/secrets.md), [§ 6 PLX-Delivery](../approaches/delivery.md), [backups per service](../approaches/backup.md).
-On the app side: [PLX-Delivery](../approaches/delivery.md) and the preset.
+On the app side: [PLX-Delivery](../approaches/delivery.md) and the template.

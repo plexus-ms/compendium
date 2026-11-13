@@ -5,7 +5,7 @@ description: The two phases verify and release and the verbs inside them (check,
 code: PLX-Delivery
 maturity: standard
 binds: repo
-changed: 0.114.0
+changed: 0.120.0
 depends: [PLX-Repo]
 consumes: [PLX-App, PLX-Host, PLX-Environment]
 order: 17

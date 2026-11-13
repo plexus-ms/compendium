@@ -18,6 +18,6 @@ concurrency:
 
 jobs:
   verify:
-    uses: plexus-ms/tooling/.github/workflows/_check.yml@0.119.0
+    uses: plexus-ms/tooling/.github/workflows/_check.yml@0.120.0
     with:
       tasks: verify

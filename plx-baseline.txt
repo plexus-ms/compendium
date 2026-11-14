@@ -1,0 +1,59 @@
+# Known violations of `plx requirements`: burn them down, never add to them.
+# One per line, as often as each occurs; `plx requirements --write-baseline` rewrites the file.
+date-or-version approaches/cli.md: 0.106.0
+date-or-version approaches/cli.md: 0.110.0
+date-or-version approaches/cli.md: 0.111.0
+date-or-version approaches/cli.md: 0.111.0
+date-or-version approaches/cli.md: 0.113.0
+date-or-version approaches/cli.md: 0.118.0
+date-or-version approaches/cli.md: 0.71.0
+date-or-version approaches/delivery.md: 0.111.0
+date-or-version approaches/delivery.md: 0.111.0
+date-or-version approaches/delivery.md: 0.111.0
+date-or-version approaches/delivery.md: 0.111.0
+date-or-version approaches/delivery.md: 0.111.0
+date-or-version approaches/delivery.md: 0.111.0
+date-or-version approaches/delivery.md: 0.111.1
+date-or-version approaches/delivery.md: 0.112.0
+date-or-version approaches/delivery.md: 0.113.0
+date-or-version approaches/delivery.md: 0.120.0
+date-or-version approaches/delivery.md: 0.120.0
+date-or-version approaches/delivery.md: 2026-11-04
+date-or-version approaches/delivery.md: 2026-11-05
+date-or-version approaches/delivery.md: 2026-11-06
+date-or-version approaches/delivery.md: 2026-11-06
+date-or-version approaches/delivery.md: 2026-11-07
+date-or-version approaches/delivery.md: 2026-11-07
+date-or-version approaches/delivery.md: 2026-11-08
+date-or-version approaches/delivery.md: 2026-11-08
+date-or-version approaches/delivery.md: 2026-11-08
+date-or-version approaches/exoscale.md: 0.110.0
+date-or-version approaches/exoscale.md: 2026-11-06
+date-or-version approaches/exoscale.md: 2026-11-07
+date-or-version approaches/exoscale.md: 2026-11-07
+date-or-version approaches/exoscale.md: November 2026
+date-or-version approaches/exoscale.md: November 2026
+date-or-version approaches/js.md: 0.119.0
+date-or-version approaches/js.md: 0.60.1
+date-or-version approaches/platform.md: 0.114.0
+date-or-version approaches/platform.md: 0.114.0
+date-or-version approaches/secrets.md: 2026-11-04
+date-or-version contracts/environment.md: 2026-11-04
+date-or-version contracts/environment.md: 2026-11-09
+date-or-version contracts/tenancy.md: 0.114.0
+date-or-version essentials/standard.md: 0.100.0
+date-or-version essentials/standard.md: 0.120.0
+date-or-version essentials/standard.md: 0.60.0
+date-or-version essentials/standard.md: 0.61.0
+date-or-version essentials/standard.md: 0.77.0
+date-or-version essentials/standard.md: 0.99.0
+date-or-version miscellaneous/proxmox-on-debian.md: September 2026
+date-or-version nextjs/auth-guidelines.mdx: March 2025
+date-or-version nextjs/favicon-guidelines.mdx: in 2026
+date-or-version nextjs/favicon-guidelines.mdx: late 2025
+issue-id miscellaneous/brand/brand-kit.html: KIT-1
+issue-id miscellaneous/brand/brand-kit.html: KIT-2
+issue-id miscellaneous/brand/brand-kit.html: KIT-3
+issue-id miscellaneous/brand/brand-kit.html: KIT-4
+issue-id miscellaneous/brand/brand-kit.html: KIT-5
+issue-id miscellaneous/brand/brand-kit.html: KIT-6

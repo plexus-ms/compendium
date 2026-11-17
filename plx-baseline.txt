@@ -51,9 +51,3 @@ date-or-version miscellaneous/proxmox-on-debian.md: September 2026
 date-or-version nextjs/auth-guidelines.mdx: March 2025
 date-or-version nextjs/favicon-guidelines.mdx: in 2026
 date-or-version nextjs/favicon-guidelines.mdx: late 2025
-issue-id miscellaneous/brand/brand-kit.html: KIT-1
-issue-id miscellaneous/brand/brand-kit.html: KIT-2
-issue-id miscellaneous/brand/brand-kit.html: KIT-3
-issue-id miscellaneous/brand/brand-kit.html: KIT-4
-issue-id miscellaneous/brand/brand-kit.html: KIT-5
-issue-id miscellaneous/brand/brand-kit.html: KIT-6

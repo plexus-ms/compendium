@@ -29,7 +29,7 @@ The app's side of being deployed, the compose file, the readiness endpoint, the 
 
 Two phases, asked on two occasions: `verify` answers "is this sound", `release` answers "may this ship".
 Every repo answers the first; the second is answered by the repos that produce and run artifacts.
-Inside the phases are the verbs, each one job.
+Inside the phases are the verbs, each a job of its own except `build` and `test`, which share one machine and are therefore the two steps of one job (§ 2).
 `check` is lint, typecheck and the pure tests, repo-wide, the part of `verify` that needs no machine in particular and gates everything after it: a commit that fails here builds and launches nothing.
 `build` makes an app's image hermetically from its Dockerfile and pushes it to the registry as a candidate; `test` brings the app's own compose file up on that candidate and runs the app's tests against it, so a pull request is verified against the image that would ship.
 `publish` puts a tested candidate under its commit in the tenant's forge registry; `deploy` launches it where the operations repo's inventory places the app in the branch's environment.
@@ -54,11 +54,11 @@ Hand-run, `publish` publishes what it is pointed at.
 > - An app repo MUST carry `on_commit` (`check` on a push to any branch but its environment branches), `on_pr` (`check`, then `verify`) and `on_push` (`check`, `verify`, `release` on a push to an environment branch); a package repo MUST carry `on_pr` (`check`) and `on_push` (`check`, `publish` on its trunk); the operations repo MUST carry `on_commit` and `on_pr` (`check`) and `deploy`.
 > - A repo whose CI holds instances or a registry of the tenant's own MUST carry `housekeeping`, the daily retention of what its runs leave behind.
 > - A newer run for the same ref MUST cancel a `check` or `verify` still going for an older commit, and MUST NOT cancel a `release` once started.
-> - A job MUST be named after the verb it mounts; a workflow is named after the occasion it mounts the verbs on.
+> - A job MUST be named after the verb or verbs it mounts; a workflow is named after the occasion it mounts the verbs on.
 > - Reusable workflows live in `plexus-ms/tooling`, named with a leading underscore; a tenant repo SHOULD carry only the generated workflows and MUST NOT carry logic in workflow YAML.
 > - A tenant repo's workflows MUST reference the reusable ones by the version tag.
 
-A job is a verb; a workflow is a mount: the occasion that runs the verbs.
+A job is a verb, or two that want the same machine one after the other; a workflow is a mount: the occasion that runs the verbs.
 Three occasions ask the two questions of § 1.
 A commit pushed to a branch of its own (`on_commit`) asks the cheap half of "is this sound", `check` alone, so that a lint error is known before a pull request exists and nothing is built for work in progress.
 A pull request (`on_pr`) asks the whole of it, `check` then `verify`, as the merge result rather than the branch tip; a run that answers nobody is not started, which is why a pushed branch without a pull request gets no build, and why a Markdown-only change starts nothing while the next run that does start loses nothing, since the hashes see past it.
@@ -66,8 +66,10 @@ A push to an environment branch (`on_push`) asks "may this ship": `check`, `veri
 The chain inside each workflow is a `needs` chain of three reusable workflows, `_check.yml`, `_verify.yml` and `_release.yml`, and `check` gates `verify`: a failed lint launches no instance and builds no image.
 
 `verify` plans once for the whole repo and run.
-Its `plan` job computes every app's build and test hashes from one Turbo dry run, looks them up in the registry, reads where each app deploys from the operations repo's inventory when the run is going to release ([PLX-Environment](../contracts/environment.md)), and emits the matrices; `build` and `test` fan out over them, each leg one app and one hash, and `cleanup` deletes whatever `plan` launched for them.
-The forge's job graph is static and `needs` connects jobs, never the legs of a matrix, so the legs are independent: a broken app does not hold back a sound one, and a leg whose hash hit is skipped rather than run, which is why the chain's conditions read job results and never `success()`.
+Its `plan` job computes every app's build and test hashes from one Turbo dry run, looks them up in the registry, reads where each app deploys from the operations repo's inventory when the run is going to release ([PLX-Environment](../contracts/environment.md)), and emits the matrix; `build-and-test` fans out over it, each leg one app and what it owes, and `cleanup` deletes whatever `plan` launched for them.
+A leg owes the build where the app's image is missing and the test where its test tag is, so it is both, the test alone on a candidate the registry already holds, or the build alone for an app without tests, and the job shows under exactly those verbs: `build, test (<app>)`, `test (<app>)`, `build (<app>)`.
+The two verbs are steps of one job because the forge's job graph is static and `needs` connects jobs, never the legs of a matrix: as two jobs, every test waited for every build and wanted a second machine, which under `hybrid` booted beside the build and idled through it.
+As steps, an app's test starts when its own build ends, a failed build tests nothing, and the legs stay independent: a broken app does not hold back a sound one, and an app whose hashes both hit has no leg.
 `release` takes the plan's output: `publish` per app, then `deploy` per app with a target in the environment, as `_deploy.yml` nested inside it.
 A promotion never builds, a run by hand on an environment branch republishes and redeploys every app from the images it finds, and a run by hand on a branch that names no environment releases nothing.
 
@@ -79,7 +81,7 @@ Cancellation sits on `check` and `verify` and never on `release`.
 A newer push to the same ref cancels the verify still going for the older commit, whose verdict nobody waits for any more, and a cancelled verify's instances are deleted by its `cleanup`, which runs whatever the legs ended in; a `release` already started runs to its end, since a deploy cut off between migrate and up would strand the host, and deploys of one app to one host keep their own queue, at most one running and the newest waiting.
 
 Every mount is thin: checkout, secrets plumbing, one or two invocations of a verb, and the mount's logic is the strategy expression that says where the job runs (§ 8).
-`_check.yml` runs the repo's own tasks; `_verify.yml` is `plan`, `build`, `test` and `cleanup`, each one `plx-ci` invocation; `_release.yml` is `publish` and `deploy`; `_publish-package.yml` is the package shape of `publish`; `_deploy.yml` mounts `plx deploy`, `_deploy-targets.yml` mounts `plx deploy-targets` for the operations repo's `deploy`, `_housekeeping.yml` the retention; `_update.yml` and `_changeset.yml` are the mounts of [PLX-Updates](updates.md) and § 5.
+`_check.yml` runs the repo's own tasks; `_verify.yml` is `plan`, `build-and-test` and `cleanup`, the middle one two `plx-ci` invocations and the others one; `_release.yml` is `publish` and `deploy`; `_publish-package.yml` is the package shape of `publish`; `_deploy.yml` mounts `plx deploy`, `_deploy-targets.yml` mounts `plx deploy-targets` for the operations repo's `deploy`, `_housekeeping.yml` the retention; `_update.yml` and `_changeset.yml` are the mounts of [PLX-Updates](updates.md) and § 5.
 The tenant's own workflows are generated by the templates and carry the Plexus version; a tenant repo carries no reusable workflow of its own, and the underscore says at a glance which files are triggered and which are called.
 A tenant's workflows hold one secret, the CI vault's service account token; everything else a job needs is read from the vault `<owner>-ci` (§ 8, [§ 3 PLX-Secrets](secrets.md)).
 
@@ -262,7 +264,7 @@ The size is the job's, and the strategy maps it to a machine.
 |---|---|---|---|---|
 | `github` | the forge's runners (`ubuntu-latest`) | the forge's runners | `ghcr` | nothing |
 | `on-prem` | container slots on a runner host of the tenant's own | a privileged slot with a Docker daemon of its own | `own` | the runner host |
-| `hybrid` | container slots on a runner host of the tenant's own | a throwaway cloud instance per leg, launched by `plan` and gone after it | `own` | the runner host and a cloud account |
+| `hybrid` | container slots on a runner host of the tenant's own | a throwaway cloud instance per app that owes a build or a test, launched by `plan` and gone after it | `own` | the runner host and a cloud account |
 
 `github` is the default and the answer with nothing to operate: a fresh machine per job, destroyed afterwards, minutes billed beyond the free allowance, and the forge's largest machine on the free plan being `ubuntu-latest`, that is what `large` is there.
 `on-prem` is a tenant with hardware to spare: every size is a slot of a runner host, and a large slot is the one container of the host that runs privileged, with a Docker daemon inside it whose state dies with the job, so the job meets an empty machine with Docker.
@@ -289,10 +291,10 @@ A change to what a slot runs, its registration, its image, its limits, restarts 
 Where the runner host shares a hypervisor with production, CI is down whenever production is, and the fix that would rescue production cannot pass it; the deploy verb being hand-runnable and the fallback being one variable away is what makes that acceptable.
 
 **The instances** of `hybrid` are the one place a job's machine exists for the job alone.
-`plan` creates one per build and test leg from a stock Debian image with user-data that installs Docker and the runner, labels each with the run, the attempt and two deadlines, and waits for every runner to register; a leg's job then asks for the instance's unique label.
+`plan` creates one per leg, the machine an app's build and its test run on one after the other, from a stock Debian image with user-data that installs Docker and the runner, labels each with the run, the attempt and two deadlines, and waits for every runner to register; a leg's job then asks for the instance's unique label.
 The instances tear themselves down in layers, so that no layer has to be the last: the runner exits after its job and the instance deletes itself; no job having started by a deadline, it deletes itself; at the death deadline it mails and deletes itself, and five minutes later powers off whatever happened; `cleanup` deletes what the run launched, and the daily `housekeeping` whatever is stopped or past its deadline.
 A launched instance sometimes misses its boot; `plan` keeps it stopped under a label of its own, mails the tenant's alerts address, and launches one replacement, and `housekeeping` deletes a kept instance after fourteen days.
-Because an instance exists for one job of one attempt, a failed `build` or `test` is re-run only through a re-run of the whole run, which plans and launches afresh; "re-run failed jobs" queues the job for a runner that no longer exists.
+Because an instance exists for one job of one attempt, a failed `build-and-test` is re-run only through a re-run of the whole run, which plans and launches afresh; "re-run failed jobs" queues the job for a runner that no longer exists.
 The provider's measured behaviour and its IAM are the [Exoscale field notes](exoscale.md).
 
 **The vault** `<owner>-ci` holds what the strategy needs and nothing a workflow is handed otherwise; which items exist follows from the three answers:
@@ -328,7 +330,7 @@ The ops verbs are commands of `plx` and `plx-ci` ([PLX-CLI](cli.md)) and the reu
 The layering is load-bearing:
 
 - **Verbs** contain *all* the logic and stay hand-runnable.
-  `plx-ci plan [--test] [--deploy --environment <env> --inventory <dir>]` computes the hashes, looks them up, reads the deploy targets, and prints the builds, tests and deploys the run owes, with each leg's `runs-on`; `plx-ci build <app> <hash> <sha>`, `plx-ci test <app> <build> <hash>` and `plx-ci publish <app> <build> <sha>` are the three image verbs; `plx-ci registry` makes the candidates' registry reachable and `registry rotate` is the retention; `plx-ci hybrid create-instances`, `destroy-instances` and `sweep-instances` are the instances' lifecycle; `plx-ci report` compares what the registry holds for a run.
+  `plx-ci plan [--test] [--deploy --environment <env> --inventory <dir>]` computes the hashes, looks them up, reads the deploy targets, and prints the legs and deploys the run owes, each leg with what it owes, the build, the test or both, and its `runs-on`; `plx-ci build <app> <hash> <sha>`, `plx-ci test <app> <build> <hash>` and `plx-ci publish <app> <build> <sha>` are the three image verbs; `plx-ci registry` makes the candidates' registry reachable and `registry rotate` is the retention; `plx-ci hybrid create-instances`, `destroy-instances` and `sweep-instances` are the instances' lifecycle; `plx-ci report` compares what the registry holds for a run.
   `plx deploy-targets [inventory]` prints each app's deploy target per environment from an operations repo's inventory and refuses an app declared with a target in two files for the same environment; `plan --deploy` uses the same reader from `@plexus-ms/lib`.
   `plx deploy <host> <app> [--image <ref>]` is § 6: every command it sends to the host is one line of shell over a shared ssh connection, and `--dry-run` prints each line verbatim, so `git clone && plx -n deploy …` hands a stranded operator the exact commands, which is what passes the degradation test.
   Every verb reads the three answers as `CI_STRATEGY`, `CI_REGISTRY` and `CI_OVERLAY`, which the reusable workflows set from their inputs, and `--strategy` overrides the first by hand.
@@ -337,7 +339,7 @@ The layering is load-bearing:
 - **Reusable workflows** are thin mounts: `_check.yml`, `_verify.yml` and `_release.yml`, the three the tenant's `on_*` workflows chain, `_publish-package.yml`, `_deploy.yml`, `_deploy-targets.yml`, `_housekeeping.yml`, `_update.yml` and `_changeset.yml`; actionlint checks them under `mise :verify`.
   Each job is one or two `plx-ci` or `plx` invocations around the mount's plumbing: the checkout, the vault reads for the items § 8 names, the tool installs into the job's home and never with `sudo`, and the strategy expression for `runs-on`.
   A small or medium job runs on `${{ inputs.strategy == 'github' && 'ubuntu-latest' || 'ci-<size>' }}`; a large job takes its runner from `plan`'s matrix, which is the instance's unique label under `hybrid`, `ci-large` under `on-prem` and `ubuntu-latest` under `github`.
-  The result conditions of `_verify.yml` read job results and never `success()`, because a leg skipped by its hash is `skipped`, and the test job does not start in a cancelled run.
+  In `build-and-test` the steps `Build` and `Test` are gated on the leg's `build` flag and `test` hash, the job's display name is the verbs the leg owes, and the app's build-time key is a step output handed to `Build` alone, so the test that follows on the same machine does not hold it.
   `_deploy.yml` is nested inside `_release.yml` by its full name and the version ref, which the bookkeeping moves with every other, never by a relative `uses:`: a tenant calls the chain at a version tag, which is annotated, and the forge resolves a relative nested call to the tag object rather than its commit and fails to start the run (Plexus 0.111.0 shipped the relative form, tried at a branch where it works, and 0.111.1 is its hotfix).
   `_changeset.yml` is the one mount that writes back to the caller: the changeset `plx changeset` owes, committed to the bot's branch, pushed with a token the caller passes so that its checks run on the new tip.
   Logic never lives in the YAML.
@@ -361,6 +363,10 @@ Zero-downtime deploys (blue-green, rolling) stay outside until an app has traffi
   The environment branches stay `main` and `develop`: the hotfix flow, the promotion task and every page assume them, and the mount maps a branch to an environment name in one place.
 - 2026-11-06, the shape of 0.111.0: the phases `verify` and `release` with the verbs inside them; one pipeline for the three strategies, with the sizes as labels; `ci_registry` and `ci_overlay` as answers of their own; `CI_STRATEGY` as the escape hatch; the operations repo's `deploy` fans the verb over every app under `apps/` and relies on the verb's no-op, so `changed-apps` is gone; the operations repo's check is `on_commit` and `on_pr` on a small runner of its strategy.
 - 2026-11-08, hotfix shipped as 0.112.0: the nested `_deploy.yml` ref, above; and, after the first releases of the version failed on the rate limit, the Connect server on the runner host rather than a larger 1Password plan, since the reads that matter are the slots' and the server costs nothing but two containers beside the registry pair.
+- The one large job, decided after the strategies had run for two weeks: `build` and `test` are one job on one machine, `build-and-test`, and under `hybrid` one instance per app instead of one per build and one per test.
+  Launched together, a test's instance idled through the build, existed even when the build then failed, and counted its deadlines from the plan, so that a build nearing the ten-minute no-job deadline would have outlived it; launched after the build, it would have added its boot to every run.
+  The two hashes still decide separately what is owed, and the test still pulls the candidate from the registry rather than taking the builder's copy: the pull was measured at four to five seconds, and the manifest tested stays the one tagged.
+  There is one kind of instance since, each with the builder and the test's images ready, and § 2's requirement names a job after the verb or verbs it mounts.
 - 2026-11-07, at the trials of 0.111.0: `large` under `github` is `ubuntu-latest`, since the forge's larger runners need a paid plan; one role, `plexus.ci.actions_runners`, serves `on-prem` and `hybrid`, the large slot being the privileged one with a Docker daemon of its own; the slots register at the organisation as soon as a second repo of the tenant needs them, which the operations repo's `housekeeping` and `deploy` do under `hybrid`; `cpu.huge` (16 vCPU) is not used for the large jobs, since it costs twice `cpu.extra-large` and would have to be twice as fast; the GHCR retention deletes versions whose only tags are candidates older than thirty days.
 
 **Setting a tenant up**, once per tenant, by hand and recorded here until a second tenant makes a role of it.
@@ -376,9 +382,9 @@ The instance's own layers depend on nothing fetched: the self-delete calls the c
 The layers, from the common case to the last resort:
 
 1. The runner exits after its one job and the instance deletes itself; no mail.
-2. No job started within the no-job deadline (five minutes for a builder, longer for a test runner, which waits for the build): the instance deletes itself; no mail.
+2. No job started within the no-job deadline (ten minutes): the instance deletes itself; no mail.
    The timer is armed at boot and the deadline computed before the create call, so an instance that idles goes a minute or two after the announced time.
-3. The death deadline (thirty minutes): a mail through the relay, then self-deletion; five minutes after that, a power-off without network, armed as the first cloud-init step so that it holds even when nothing after it ran.
+3. The death deadline (forty-five minutes, five past the job's own timeout): a mail through the relay, then self-deletion; five minutes after that, a power-off without network, armed as the first cloud-init step so that it holds even when nothing after it ran.
 4. The run's `cleanup` job, after every leg an instance was launched for and whatever they ended in: deletes the instances this run and attempt launched, by their labels, retrying one the cloud refuses to delete while it is still starting, and removes the runner registrations nothing connected with; what it could not delete it names, and layers 2 and 5 take.
 5. The daily `housekeeping` in the operations repo: deletes every instance of the strategy that is stopped or past its death deadline, and mails when it removed something.
 
@@ -397,6 +403,9 @@ The first kept disk read (2026-11-06) showed a race in the user-data rather than
 | `github`, the dogfood tenant's one app | 2:30 | 1:07 for an `on_push` whose candidate existed | `check` 30 s, `plan` 16 s, the build 1:42 |
 
 A cancelled pull request run under `hybrid` deleted its four instances within the minute.
+
+With `build-and-test` as one job, on the same repo under `hybrid`, at the trial of the change: a pull request with every build hash missing took 7:41 on three instances (`plan` 87 s with the launch, the large jobs 5:26 from the first start to the last end, the slowest app's build 101 s and its tests 150 s), where the same day's run of two jobs took 8:14 on four instances for two of the three apps; an app's test started 33 s after its build ended instead of 50 s.
+A pull request that moved one app's test hash and no build hash took 5:52 on one instance.
 The forge-side jobs of a pull request were four to six billed minutes on the forge's runners and are none on a runner host.
 
 **Debts**, open as of Plexus 0.111.0:

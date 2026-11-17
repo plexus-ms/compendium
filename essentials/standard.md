@@ -438,9 +438,9 @@ The app is the unit of deployment, the repo the unit of promotion: a merge deplo
 
 ### § 6.3 Verbs, workflows and the pipeline
 
-Two phases, `verify` (`check`, `build`, `test`) and `release` (`publish`, `deploy`), each verb a job; a workflow is the occasion that mounts them, `on_commit`, `on_pr` and `on_push`: a check on every commit, the whole verify on every pull request, the release on the environment branches, an app's image built once per content and deployed from the registry on promotion; no tenant operates a CI control plane.
+Two phases, `verify` (`check`, `build`, `test`) and `release` (`publish`, `deploy`), each verb a job, `build` and `test` together as one; a workflow is the occasion that mounts them, `on_commit`, `on_pr` and `on_push`: a check on every commit, the whole verify on every pull request, the release on the environment branches, an app's image built once per content and deployed from the registry on promotion; no tenant operates a CI control plane.
 [§§ 1 and 2 PLX-Delivery](../approaches/delivery.md).
-Where the jobs run, the forge's runners, a runner host of the tenant's own, or slots on that host with a throwaway cloud instance per build and test, is [§ 8 PLX-Delivery](../approaches/delivery.md).
+Where the jobs run, the forge's runners, a runner host of the tenant's own, or slots on that host with a throwaway cloud instance per app to build and test, is [§ 8 PLX-Delivery](../approaches/delivery.md).
 
 ### § 6.4 Deploy semantics
 

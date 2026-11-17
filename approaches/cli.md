@@ -16,7 +16,7 @@ The page keeps the case that was made for the tool and the rules that keep it a 
 
 ## § 1 What exists
 
-The maintainers' helpers have moved: `plx`, published as `@plexus-ms/cli` from `tooling` with `@plexus-ms/lib` as its core, carries the workspace map (`overview`), the staleness check (`doctor`, § 13.4 PLX), the taking of a version a repo does for itself and the loop that runs it over many repos (`update`, `propagate`, [§ 3 PLX-Updates](updates.md)), the standard's requirements check (`requirements`, § 1.8 PLX) and the changeset a dependency bump owes (`changeset`, [§ 5 PLX-Delivery](delivery.md)).
+The maintainers' helpers have moved: `plx`, published as `@plexus-ms/cli` from `tooling` with `@plexus-ms/lib` as its core, carries the workspace map (`overview`), the repo's checks (`doctor`, § 13.4 PLX), the taking of a version a repo does for itself and the loop that runs it over many repos (`update`, `propagate`, [§ 3 PLX-Updates](updates.md)), the standard's requirements check (`requirements`, § 1.8 PLX) and the changeset a dependency bump owes (`changeset`, [§ 5 PLX-Delivery](delivery.md)).
 The maintainers run the workspace verbs as plain `plx` commands from the root of their workspace, whose `mise.toml` takes the newest release; the compendium pins it in its own `mise.toml` for `requirements`.
 The cutting of a version (`ship`, § 1.5 PLX) is in none of the published tools: it is `plx-dev`, the unpublished package `@plexus-ms/dev` in `tooling`, which the maintainers run from their checkout of it (§ 3).
 The ops verbs have followed: `deploy-targets` and `deploy` are commands of the tool ([§ 6 PLX-Delivery](delivery.md)), mounted on the forge by the thin reusable workflows next to it in `tooling`, which call the `plx` the tenant repo pins in its `mise.toml`, and run by hand from a checkout otherwise.
@@ -27,7 +27,7 @@ It is a package of its own so that the CI of one tenant can change without movin
 The verbs serve three roles: the upstream, which cuts a version (`plx-dev ship`); a tenant repo, which lives on one (`update`, `deploy`, `deploy-targets`, `changeset`); and an operator of many repos, the maintainers or a tenant's own (`overview`, `doctor`, `propagate`).
 Two tests draw the line between the first and the other two: the upstream's verbs work with no knowledge of any consumer, and the tenant's and the operator's work with published artifacts and the tenant's own repos alone ([PLX-Updates](updates.md), Maintaining).
 The upstream's verbs are therefore not in `plx`, and `@plexus-ms/lib` holds nothing that cuts a version, so that a tenant repo pins nothing it cannot run.
-The compendium's requirements check stays in `plx`: the compendium runs it from its pin in `mise check` like any repo's check, it knows no consumer, and `plx-dev ship` stamps `changed` with the same extractor, from `@plexus-ms/lib`.
+The compendium's requirements check stays in `plx`: the compendium runs it from its pin in `mise check` like any repo's check, and it knows no consumer.
 The platform template ships a playbook wrapper that prefixes the vault's CLI, and both repo templates ship the contract verbs and `sync` as mise tasks; those are the shell that remains.
 
 The discipline of the scripts was uniform: a header stating what the script did and how to run it by hand, strict mode, shellcheck clean, a `check` verb that enforced both.
@@ -40,9 +40,9 @@ What tipped the decision was the maintainers' own fog: dense bash with its quoti
 Three things in the shell-script surface were debts a script could not pay, and all three are answered by the same tool.
 
 **One parser instead of five.**
-The declaration marker (§ 1.4 PLX), a module's frontmatter (§ 1.3 PLX), copier's answers file, the app record in a tenant's inventory ([§ 3 PLX-Platform](platform.md)) and the labels in `compose.yaml` ([PLX-App](../contracts/app.md)) were each read by whichever awk or sed last touched them: `ship` edited markers and frontmatter, `staleness` read frontmatter, `deploy-targets` reads inventory records, `requirements.sh` read module pages, `overview` read answers files.
+The marker (§ 1.4 PLX), a module's frontmatter (§ 1.3 PLX), copier's answers file, the app record in a tenant's inventory ([§ 3 PLX-Platform](platform.md)) and the labels in `compose.yaml` ([PLX-App](../contracts/app.md)) were each read by whichever awk or sed last touched them: `ship` edited markers and frontmatter, `staleness` read frontmatter, `deploy-targets` reads inventory records, `requirements.sh` read module pages, `overview` read answers files.
 Each was honest about its limits, and together they were an unwritten contract: a quoted value, an indented list or a reordered key broke one of them silently.
-`@plexus-ms/lib` now holds one reader of the marker, the module frontmatter, the answers file and the inventory record, and one line-based editor of frontmatter; the compose labels are not parsed at all, the deploy verb reads `plexus.healthz` from the running container, which is reality rather than a parse.
+`@plexus-ms/lib` now holds one reader of the marker, the module frontmatter, the answers file and the inventory record, and one line-based editor of frontmatter; the compose file is not parsed at all: what the deploy verb needs of it, it asks the running container, which is reality rather than a parse.
 
 **Rung one of the ladder for the verbs themselves.**
 The deploy verb reached a tenant's CI as a checkout of the workflow repo at a version tag, a movable tag; the version tag now pins only the workflows, and every version tag is locked by an immutable release (§ 1.6 PLX).
@@ -51,8 +51,8 @@ A published `@plexus-ms/cli` is immutable and provenance-attested ([§ 5 PLX-Del
 For the verbs that is a tighter supply chain, not only better ergonomics.
 
 **The verbs not written yet.**
-`new tenant`, `new repo`, `new app`, and a `doctor` that runs the staleness check inside one tenant.
-§ 13.4 PLX defers the tenant-side staleness check to a tenant that is not also the maintainer, because a toolbox script cannot travel; a subcommand of a pinned tool can.
+`new tenant`, `new repo`, `new app`, and a `doctor` that runs the checks of § 13.4 PLX inside a tenant's own repo.
+A toolbox script cannot travel to a tenant's repo; a subcommand of a pinned tool can.
 Those are the primitives that move the marginal tenant's cost toward zero.
 
 
@@ -119,8 +119,7 @@ The verbs move in order of risk, each replacing one script and leaving the rest 
    The upstream's verb, `ship` with its bookkeeping and the dry run's preview of the consumers, left `plx` for `plx-dev`, an unpublished package in `tooling` that `mise ship` runs from the maintainers' checkout, which ended the release tool being a release of what it releases (§ 3); a published `plx-dev` pinned by the maintainers' workspace was the alternative, and was not taken because it would have kept that problem.
    `@plexus-ms/lib` was split along the same line, and the offline harness moved with `ship`, since it exercises cutting and taking a version end to end.
    The operator's verbs and `requirements` stayed in the base with the tenant's; the pre-cut canary, once it leaves `ship`, joins `plx-dev`.
-8. `new`, new ground, and `doctor` without a compendium checkout, so that a tenant runs its own staleness check.
-   The data is there since `ship` attaches the module manifest to the compendium's release ([PLX-Updates](updates.md), Maintaining), and `update` already reads it; `doctor` reading it too is what remains.
+8. `new`, new ground, and `doctor` run in a repo, with the checks of the requirements that bind the repo and its apps (§ 13.4 PLX).
 
 
 ## Maintaining
@@ -130,6 +129,6 @@ The verbs move in order of risk, each replacing one script and leaving the rest 
 Inside `tooling` the tools are workspace packages: `pnpm plx` runs the checkout's own build, which `pnpm install` produces, and the reusable workflows' `tooling-ref` input builds `plx-ci` from a checkout for a trial ([PLX-Delivery](delivery.md), Maintaining).
 The page became a candidate with the version that moved the deploy verb, once the tool described was one a tenant's CI runs and not only the maintainers' helpers; it becomes standard, with the rules of § 4 as its requirements, when two tenants' repos that are not the maintainers' pin it.
 
-Debts: the template's playbook wrapper is still shell outside the tool and is brought under a check or dissolved into its mise tasks; `new` and a `doctor` without a compendium checkout (§ 6) are not written; `plx-ci --version` reports the Plexus version only once `ship` writes it, so a build from a branch names the previous version.
+Debts: the template's playbook wrapper is still shell outside the tool and is brought under a check or dissolved into its mise tasks; `new` and a `doctor` run in a repo (§ 6) are not written; `plx-ci --version` reports the Plexus version only once `ship` writes it, so a build from a branch names the previous version.
 The copier version `plx` pins (`COPIER_VERSION` in `packages/lib/src/copier.ts`) carries a `// renovate:` annotation that a regex manager in the `renovate.json` of `tooling` reads; the bump is never automerged, because it changes how every consumer is propagated, and the next version ships it.
 The tool is a primitive of [PLX-Delivery](delivery.md), [PLX-Updates](updates.md) and § 13.4 PLX, and each of their Maintaining sections points here.

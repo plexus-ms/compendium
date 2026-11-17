@@ -5,7 +5,6 @@ description: Git holds op:// pointers and never values; the platform playbook re
 code: PLX-Secrets
 maturity: standard
 binds: host
-changed: 0.60.0
 depends: [PLX-Platform]
 consumes: [PLX-App]
 order: 22
@@ -17,12 +16,11 @@ This module is how the secret half gets there: one pointer syntax, resolved by a
 
 ## § 1 Where secrets live
 
-> - Secret values MUST live only in the tenant's vault; git holds only references.
-> - The vault SHOULD be 1Password.
-> - Secrets MUST be resolved when a platform playbook runs, never by the deploy verb.
-> - `.env.secret` on the host MUST be owned by the deploy user, mode 0600, never world-readable.
+> - `PLX-Secrets/VaultOnly`: Secret values MUST live only in the tenant's vault, git holding only references to them.
+> - `PLX-Secrets/OnePassword`: The vault SHOULD be 1Password.
 
-Two flows, both resolved when a platform playbook runs:
+Secrets are resolved when a platform playbook runs, never by the deploy verb, and `.env.secret` on the host is owned by the deploy user, mode 0600, never world-readable.
+There are two flows:
 
 - **Platform secrets** (deploy SSH key, registry credentials): the operations repo's committed `secrets.env` is a dotenv file of `op://` pointers, it holds no values, so it is safe in git, and the playbook wrapper (`ansible-playbookw`) runs `op run -- ansible-playbook <playbook>`, which resolves the pointers into env vars either playbook reads.
 - **App runtime secrets:** each entry of the app's inventory record `apps[].secrets` is the same kind of `op://` pointer, resolved from the vault by the platform playbook and written to `<app_dir>/.env.secret` on the host; the app's compose file loads it via `env_file`.
@@ -38,8 +36,7 @@ The app directory is where the two halves of the seam meet: the source repo brin
 
 ## § 2 Rotation
 
-> - The playbook MUST re-create the affected containers whenever `.env` or `.env.secret` changed; rotation MUST NOT be left to ride along on whenever the next deploy happens to run.
-
+The playbook re-creates the affected containers whenever `.env` or `.env.secret` changed, so that rotation never rides along on whenever the next deploy happens to run.
 Rotation is complete only when the running process holds the new value: environment is injected at container *creation*, so rewriting `.env.secret` on its own rotates a file, not a credential.
 The full loop, change the vault item → re-run the playbook → re-create the affected containers, closes inside the playbook: the roles that write the two files notify a handler each, and compose re-creates exactly the services whose environment differs.
 That handler is a bare `docker compose up -d`, the same invocation the verb and a human use: compose reads `.env` implicitly and the image is pinned in the file, so there is no env-file wiring to encode twice.
@@ -64,5 +61,5 @@ Decided 2026-11-04 in the first tenant's CI trial and written here as prose; it 
 
 `plexus.platform.secrets` writes `.env.secret` and owns its rotation handler; `plexus.platform.apps` does the same for `.env` ([§ 3 PLX-Platform](platform.md)).
 The secrets role runs before the apps role in the platform playbook, so the first `up` already sees the secrets; `mise platform -- --tags secrets,apps` is the rotation run.
-1Password is a suggested default behind a thin adapter: `op.env` is plain dotenv of pointers any vault CLI could resolve, so leaving it means replacing `op run` in the wrapper, not rewriting logic, and recording the substitution in the platform marker.
+1Password is a suggested default behind a thin adapter: `op.env` is plain dotenv of pointers any vault CLI could resolve, so leaving it means replacing `op run` in the wrapper, not rewriting logic, and listing `PLX-Secrets/OnePassword` under `deviations` in the operations repo's marker.
 A 1Password authorization timeout in automation most likely means an unlock prompt went unanswered; retry.

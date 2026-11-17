@@ -5,7 +5,6 @@ description: The one toolchain arrangement for JS/TS repos — pnpm workspace pl
 code: PLX-JS
 maturity: standard
 binds: repo
-changed: 0.120.0
 depends: [PLX-Repo]
 order: 16
 ---
@@ -17,14 +16,16 @@ A Python or Go repo takes the same repo contract with a toolchain module of its 
 
 ## § 1 The toolchain
 
-> - Every Plexus JS/TS repo MUST use the toolchain of this module.
-> - JS/TS app repos MUST use the monorepo pattern: pnpm workspace plus Turborepo.
-> - Turborepo owns the task graph: leaf tasks are `package.json` scripts, `turbo.json` states the task rules (`build`, `typecheck`, and `test` depend on `^build`), and the workspace edges are read from each `package.json`; the graph MUST NOT be re-encoded in mise tasks or CI configuration.
-> - Leaf projects MUST NOT carry a `mise.toml`; the root verbs delegate to turbo.
-> - An app's Dockerfile MUST NOT restate build incantations of its own; its build stage invokes the task graph's `build` entry, the one the verb runs ([§ 7 PLX-App](../contracts/app.md)).
-> - mise MUST install only node for the JS/TS toolchain; the package manager arrives through node itself: a `postinstall` hook enables corepack, which installs the pnpm version pinned in the root `package.json` `packageManager` field, the single pnpm pin (Turborepo requires the field anyway).
-> - The node version MUST be pinned exactly once: a `.node-version` file at the repo root, read by mise natively (`idiomatic_version_file_enable_tools`), by CI as a plain file, and by the image build as a build arg.
-> - JS-ecosystem dev tools (turbo, biome, …) MUST be devDependencies, on the PATH via mise's `_.path`, never mise `[tools]` entries; a `package.json` MUST NOT carry `engines`.
+> - `PLX-JS/TaskGraph`: The task graph MUST stay with Turborepo: leaf tasks are `package.json` scripts and the workspace edges are read from each `package.json`, never re-encoded in mise tasks or CI configuration.
+> - `PLX-JS/NoLeafMise`: A leaf project MUST NOT carry a `mise.toml`.
+> - `PLX-JS/DevTools`: JS-ecosystem dev tools (turbo, biome, …) MUST be devDependencies, never mise `[tools]` entries.
+> - `PLX-JS/NoEngines`: A `package.json` MUST NOT carry `engines`.
+
+A JS/TS repo takes this approach by being generated from `plexus-ms/template-repo-turbo`, and the template does the arrangement: an app repo is a pnpm workspace plus Turborepo; `turbo.json` states the task rules (`build`, `typecheck`, and `test` depend on `^build`); the root verbs delegate to turbo; an app's Dockerfile restates no build incantation of its own, its build stage invoking the task graph's `build` entry, the one the verb runs (`PLX-App/Dockerfile`).
+mise installs only node for the JS/TS toolchain, and the package manager arrives through node itself: a `postinstall` hook enables corepack, which installs the pnpm version pinned in the root `package.json` `packageManager` field, the single pnpm pin (Turborepo requires the field anyway).
+The node version is pinned exactly once, in a `.node-version` file at the repo root, read by mise natively (`idiomatic_version_file_enable_tools`), by CI as a plain file, and by the image build as a build arg.
+The dev tools are on the PATH through mise's `_.path`.
+The four requirements bind the people who add to that arrangement: a new package, a new tool, a new task.
 
 Each fact sits in its canonical home ([§ 2 PLX-Repo](../contracts/repo.md)): the pnpm version where pnpm itself and every update bot reads it, dev tools where npm's ecosystem versions them, the task graph where turbo reads it, and the node version in `.node-version`, the file the node ecosystem's own version managers converged on, which any consumer can read without a toolchain (`cat` in CI, an `ARG` in the Dockerfile, mise natively).
 `pnpm-workspace.yaml` (`packages:` globs plus a `catalog:` pinning shared dev-tool versions) owns install and linking; turbo owns ordering and caching on top of it.
@@ -34,12 +35,12 @@ That single rule is what makes every verb answerable from a fresh checkout: a wo
 Formatting and linting is Biome, invoked repo-wide by `check` and on staged files by the pre-commit hook, per the repo contract's hook discipline.
 Biome is pinned exactly, because a formatter's minor release can reformat the repo (Biome 2.6 began formatting YAML and Markdown, the hotfix of Plexus 0.60.1); the update bot proposes the bump and the lint in CI decides whether it merges.
 `biome.json` names its schema by the installed package's path, so the schema follows the pin and carries no version of its own.
-The concrete arrangement, the `mise.toml`, `turbo.json`, root `package.json`, hook config, Dockerfile, is not specified here: the template ships it ([PLX-Updates](updates.md)), and staying current with the template *is* the conformant arrangement.
+The concrete arrangement, the `mise.toml`, `turbo.json`, root `package.json`, hook config, Dockerfile, is not restated here: the template ships it ([PLX-Updates](updates.md)), and staying current with the template *is* the conformant arrangement.
 
 
 ## Maintaining
 
-`plexus-ms/template-repo-turbo` is the arrangement authority for this module: the template's `mise.toml`, `turbo.json`, `biome.json`, root `package.json`, and `hk.pkl` are the one encoding of § 1, and a change to the requirements here is a change to the template in the same version.
+`plexus-ms/template-repo-turbo` is the arrangement authority for this module: the template's `mise.toml`, `turbo.json`, `biome.json`, root `package.json`, and `hk.pkl` are the one encoding of § 1, and a change to § 1 here is a change to the template in the same version.
 The shared configs a generated repo extends (`@plexus-ms/config/biome`, `/tsconfig`) are a library, published from `plexus-ms/libraries` on a version line of its own (§ 1.5 PLX); the template carries only the one-line `extends`.
 Its range lives in one place, the `plexus` catalog of `pnpm-workspace.yaml`, and every manifest says `catalog:plexus`: the template states the range once and never rewrites it, the update bot is its one writer ([§ 2 PLX-Updates](updates.md)), and the manifests a tenant writes by hand follow without an edit.
 Until 0.119.0 the package carried the Plexus version and was pinned with it; in an app's dependency closure that number was a build input, and every version a repo took rebuilt every image, whether or not a config had changed.

@@ -5,7 +5,6 @@ description: A tenant's hosts as code — the plexus.host baseline and the plexu
 code: PLX-Platform
 maturity: standard
 binds: host
-changed: 0.114.0
 depends: [PLX-Tenancy]
 consumes: [PLX-Host, PLX-App, PLX-Environment]
 order: 20
@@ -22,9 +21,10 @@ The playbook, the host baseline, and the app record with the app lifecycle are t
 
 ## § 1 The playbook
 
-> - The tenant MUST mount the platform layer, in its operations repo, as the playbook the `plexus.platform` collection ships (`plexus.platform.playbook`), imported into a playbook file of the repo's own and run against the inventory group `platform`.
-> - The playbook MUST be re-runnable in whole at any time against any host of the group, and every play MUST carry its layer as a tag and every role its own name, so that a part of it is run with `--tags` and `--limit`.
-> - A tenant's own plays MUST follow the import in the same file, tagged the same way, and MUST NOT re-run or reorder the collection's.
+> - `PLX-Platform/OwnPlays`: A tenant's own plays MUST follow the import of the collection's playbook in the same file, tagged the same way, and MUST NOT re-run or reorder the collection's.
+
+The operations template mounts the platform layer as the playbook the `plexus.platform` collection ships (`plexus.platform.playbook`), imported into a playbook file of the repo's own and run against the inventory group `platform`.
+The playbook is re-runnable in whole at any time against any host of the group, and every play carries its layer as a tag and every role its own name, so that a part of it is run with `--tags` and `--limit`.
 
 One playbook per layer: `plexus.platform.playbook` for the app hosts, and beside it `plexus.infrastructure.playbook` ([PLX-Infrastructure](infrastructure.md)) and `plexus.ci.playbook` ([§ 8 PLX-Delivery](delivery.md)) for a tenant that has those layers, each targeting fixed inventory groups so that the playbook can be shipped rather than templated.
 The platform playbook has three plays on the group `platform`: the host baseline (§ 2, tagged `host`), the platform roles (tagged `platform`: `deploy_user`, `caddy`, `ingress`, `secrets`, `apps`), and the lock-down roles that have to run after everything that opens a port (`firewall`, `sshd`, tagged `host`).
@@ -50,10 +50,13 @@ Runtime truth is the host, never a file: what runs is what `docker ps` says, and
 
 ## § 3 The app record and the app lifecycle
 
-> - Every deployment a tenant runs, an app in an environment, MUST have one record in the tenant's inventory (`apps[]`) naming the app, its source repo (`apps[].repo`), its host (`apps[].host`), and its loopback port (`apps[].loopback_port`); the record MAY name its environment (`apps[].environment`), which is `production` when absent.
-> - App names MUST be unique per tenant and environment, across all of its repos; one app MAY have one record per environment.
-> - The deployment's slug on the host MUST be the app name in `production` and `<app>-<environment>` in any other environment; the app directory MUST be `<deploy root>/<slug>` and the compose project MUST be named the slug.
-> - Non-secret values the platform provides to an app MUST be declared in its record (`apps[].env`) and written by the platform playbook to `.env` in the app's directory on the host; the playbook is that file's only writer.
+> - `PLX-Platform/AppRecord`: Every deployment a tenant runs, an app in an environment, MUST have one record in the tenant's inventory (`apps[]`) naming the app, its source repo (`apps[].repo`), its host (`apps[].host`), and its loopback port (`apps[].loopback_port`).
+> - `PLX-Platform/UniqueAppName`: App names MUST be unique per tenant and environment, across all of its repos.
+> - `PLX-Platform/RecordValues`: Non-secret values the platform provides to an app MUST be declared in its record (`apps[].env`).
+
+A record may name its environment (`apps[].environment`), which is `production` when absent, and one app has one record per environment it runs in.
+The deployment's slug on the host is the app name in `production` and `<app>-<environment>` in any other environment; the app directory is `<deploy root>/<slug>` and the compose project is named the slug.
+The platform playbook writes the record's values to `.env` in the app's directory on the host, and is that file's only writer.
 
 The record is the platform's whole knowledge of a deployment, and the app name is the join key across repos: the inventory record, the compose project, and the host directory all key on it, which is why it is unique per tenant rather than per repo.
 An environment adds a second record for the same app, with its own host, port, values and secret pointers, on the same VM or another; the slug rule keeps production records exactly as they were, so a tenant without a staging environment sees no change.

@@ -5,7 +5,6 @@ description: The two phases verify and release and the verbs inside them (check,
 code: PLX-Delivery
 maturity: standard
 binds: repo
-changed: 0.122.0
 depends: [PLX-Repo]
 consumes: [PLX-App, PLX-Host, PLX-Environment]
 order: 17
@@ -17,20 +16,22 @@ This module is everything between a verified commit and a running container or a
 
 It binds a repo.
 Which sections bind which kind of repo is said at each section: an app repo releases images and deploys them, a package repo releases packages, the operations repo deploys third-party apps and releases nothing.
-The app's side of being deployed, the compose file, the readiness endpoint, the Dockerfile, is [PLX-App](../contracts/app.md); the host's side is [PLX-Host](../contracts/host.md).
+The app's side of being deployed, the compose file, the healthcheck, the Dockerfile, is [PLX-App](../contracts/app.md); the host's side is [PLX-Host](../contracts/host.md).
 
 
 ## § 1 The verbs and the two phases
 
-> - Every repo MUST answer `verify`: perform every automated step that ascertains code quality (§ 3 PLX-Repo), as `check`, the steps that need no machine in particular, and, in a repo that builds images, `build` and `test` on the image that would ship.
-> - A repo that publishes or runs an artifact MUST do so through `release`: `publish`, a versioned artifact from verified code into a registry, and `deploy`, a published artifact launched into an execution environment.
-> - `release` MUST act only on content that `verify` has passed, in the same run or in an earlier one whose result the registry holds; `deploy` MUST launch only an artifact so published; neither verb re-verifies.
-> - Whatever operates on a repo without having written it MUST reach it only through these verbs; the incantations behind them are the repo's own.
+> - `PLX-Delivery/ReleaseVerified`: A release, run by the pipeline or by hand, MUST publish only content that `verify` has passed and deploy only an artifact so published.
+
+Every repo answers `verify`, every automated step that ascertains code quality (`PLX-Repo/VerbSemantics`): `check`, the steps that need no machine in particular, and, in a repo that builds images, `build` and `test` on the image that would ship.
+A repo that publishes or runs an artifact does so through `release`: `publish`, a versioned artifact from verified code into a registry, and `deploy`, a published artifact launched into an execution environment.
+`release` acts on content that `verify` has passed in the same run or in an earlier one whose result the registry holds, and neither verb re-verifies.
+Whatever operates on a repo without having written it reaches it only through these verbs (`PLX-Repo/OperatorBoundary`); the incantations behind them are the repo's own.
 
 Two phases, asked on two occasions: `verify` answers "is this sound", `release` answers "may this ship".
 Every repo answers the first; the second is answered by the repos that produce and run artifacts.
 Inside the phases are the verbs, each a job of its own except `build` and `test`, which share one machine and are therefore the two steps of one job (§ 2).
-`check` is lint, typecheck and the pure tests, repo-wide, the part of `verify` that needs no machine in particular and gates everything after it: a commit that fails here builds and launches nothing.
+`check` is lint, typecheck and every other static check, repo-wide, the part of `verify` that needs no machine in particular and gates everything after it: a commit that fails here builds and launches nothing.
 `build` makes an app's image hermetically from its Dockerfile and pushes it to the registry as a candidate; `test` brings the app's own compose file up on that candidate and runs the app's tests against it, so a pull request is verified against the image that would ship.
 `publish` puts a tested candidate under its commit in the tenant's forge registry; `deploy` launches it where the operations repo's inventory places the app in the branch's environment.
 `deploy` never builds: the operations repo deploys images it never built, a rollback re-launches an image that was published long ago, and a re-run deploys the same artifact again.
@@ -48,17 +49,17 @@ Hand-run, `publish` publishes what it is pointed at.
 
 ## § 2 Workflows and the pipeline
 
-> - A tenant MUST NOT operate its own CI control plane.
-> - The forge SHOULD be GitHub; a tenant SHOULD NOT self-host a forge.
-> - Every repo MUST run `check` on every pull request, tested as the merge result, in a workflow `on_pr`; a change to nothing but Markdown SHOULD start no run.
-> - An app repo MUST carry `on_commit` (`check` on a push to any branch but its environment branches), `on_pr` (`check`, then `verify`) and `on_push` (`check`, `verify`, `release` on a push to an environment branch); a package repo MUST carry `on_pr` (`check`) and `on_push` (`check`, `publish` on its trunk); the operations repo MUST carry `on_commit` and `on_pr` (`check`) and `deploy`.
-> - A repo whose CI holds instances or a registry of the tenant's own MUST carry `housekeeping`, the daily retention of what its runs leave behind.
-> - A newer run for the same ref MUST cancel a `check` or `verify` still going for an older commit, and MUST NOT cancel a `release` once started.
-> - A job MUST be named after the verb or verbs it mounts; a workflow is named after the occasion it mounts the verbs on.
-> - Reusable workflows live in `plexus-ms/tooling`, named with a leading underscore; a tenant repo SHOULD carry only the generated workflows and MUST NOT carry logic in workflow YAML.
-> - A tenant repo's workflows MUST reference the reusable ones by the version tag.
+> - `PLX-Delivery/NoControlPlane`: A tenant MUST NOT operate its own CI control plane.
+> - `PLX-Delivery/Forge`: The forge SHOULD be GitHub, used as the hosted service and not self-hosted.
+> - `PLX-Delivery/GeneratedWorkflows`: A tenant repo SHOULD carry only the workflows its template generates.
+> - `PLX-Delivery/NoWorkflowLogic`: A tenant repo MUST NOT carry logic in workflow YAML.
 
-A job is a verb, or two that want the same machine one after the other; a workflow is a mount: the occasion that runs the verbs.
+The templates generate the workflows, and the reusable workflows they call live in `plexus-ms/tooling`, named with a leading underscore and referenced by the version tag.
+With them every repo runs `check` on every pull request, tested as the merge result, in a workflow `on_pr`, and a change to nothing but Markdown starts no run.
+An app repo carries `on_commit` (`check` on a push to any branch but its environment branches), `on_pr` (`check`, then `verify`) and `on_push` (`check`, `verify`, `release` on a push to an environment branch); a package repo carries `on_pr` (`check`) and `on_push` (`check`, `publish` on its trunk); the operations repo carries `on_commit` and `on_pr` (`check`) and `deploy`.
+A repo whose CI holds instances or a registry of the tenant's own carries `housekeeping`, the daily retention of what its runs leave behind.
+
+A job is a verb, or two that want the same machine one after the other, and is named after the verb or verbs it mounts; a workflow is a mount, named after the occasion that runs the verbs.
 Three occasions ask the two questions of § 1.
 A commit pushed to a branch of its own (`on_commit`) asks the cheap half of "is this sound", `check` alone, so that a lint error is known before a pull request exists and nothing is built for work in progress.
 A pull request (`on_pr`) asks the whole of it, `check` then `verify`, as the merge result rather than the branch tip; a run that answers nobody is not started, which is why a pushed branch without a pull request gets no build, and why a Markdown-only change starts nothing while the next run that does start loses nothing, since the hashes see past it.
@@ -95,18 +96,17 @@ Leaving GitHub means adjusting the mounts, never the logic: a tenant on another 
 
 ## § 3 Environment branches and promotion
 
-> - App repos MUST use environment branches: `main`→`production`, `develop`→`staging`; `production` and `staging` are the environment names a deploy asks the platform inventory for ([PLX-Environment](../contracts/environment.md)).
-> - The operations repo SHOULD have a single `main`; environments are inventory groups, never branches.
-> - Apps MUST NOT use changesets.
-> - A hotfix branches from `main` and merges to `main`; it MUST be back-merged `main → develop` immediately.
-> - Promotion MUST be a fast-forward of `main` to `develop`; `main` MUST NOT carry merge commits of its own.
-> - A release MUST act per app and on content: an app whose inputs, its own directory plus every workspace package it depends on, did not change is neither built nor redeployed.
-> - `develop` MUST stay promotable; unfinished or still-soaking work lives on feature branches, never parked on `develop`.
-> - Selective promotion (cherry-picks, path-restricted merges) MUST NOT be used.
-> - A tenant SHOULD start with a single web monorepo (one repo holding `apps/` and `packages/` for one web ecosystem) and add a further app repo only for a product that persistently needs a release cycle of its own.
-> - Staging and prod MAY share a VM or take one each; both sit inside one tenant's trust domain, and [PLX-Tenancy](../contracts/tenancy.md) partitions tenants, not environments.
+> - `PLX-Delivery/EnvironmentBranches`: An app repo MUST use environment branches: `main`→`production`, `develop`→`staging`.
+> - `PLX-Delivery/OperationsTrunk`: The operations repo SHOULD have a single `main`, its environments being inventory groups, never branches.
+> - `PLX-Delivery/NoAppChangesets`: An app repo MUST NOT use changesets.
+> - `PLX-Delivery/HotfixBackMerge`: A hotfix, branched from `main` and merged to `main`, MUST be back-merged `main → develop` immediately.
+> - `PLX-Delivery/FastForwardPromotion`: Promotion MUST be a fast-forward of `main` to `develop`, so that `main` carries no merge commits of its own.
+> - `PLX-Delivery/PromotableDevelop`: `develop` MUST stay promotable; unfinished or still-soaking work lives on feature branches, never parked on `develop`.
+> - `PLX-Delivery/NoSelectivePromotion`: Selective promotion (cherry-picks, path-restricted merges) MUST NOT be used.
+> - `PLX-Delivery/SingleMonorepo`: A tenant SHOULD start with a single web monorepo (one repo holding `apps/` and `packages/` for one web ecosystem) and add a further app repo only for a product that persistently needs a release cycle of its own.
 
 This section binds app repos.
+`production` and `staging` are the environment names a deploy asks the platform inventory for ([PLX-Environment](../contracts/environment.md)); staging and production may share a VM or take one each, since both sit inside one tenant's trust domain and [PLX-Tenancy](../contracts/tenancy.md) partitions tenants, not environments.
 An app release has no version number to reconcile: a release is an image keyed by git SHA, and the deploy that follows is keyed by the same SHA.
 Branches map to deploy targets; "promote staging to prod" is fast-forwarding `main` to `develop` (`git push origin origin/develop:main`, the `promote` task the template ships), never a merge commit.
 A merge commit on `main` is a commit `develop` does not know, so the next promotion has to merge again, and `main` becomes a chain of promotion merges that says nothing; a fast-forward keeps `main` a pointer into `develop`'s history, and git refuses the push when it would be anything else.
@@ -118,6 +118,7 @@ An app without a record in an environment has no deployment there, and a push to
 The operations repo itself needs no environment branches because it has no release cycle of its own to promote: staging and prod are two inventory groups in one file, and a playbook run targets one of them.
 
 The model: **the unit of deployment is the app; the unit of promotion is the repo.**
+A release acts per app and on content: an app whose inputs, its own directory plus every workspace package it depends on, did not change is neither built nor redeployed.
 A merge to an environment branch releases into that environment every app, and builds exactly the ones whose inputs changed: a docs-only merge builds nothing, a `packages/ui` change rebuilds its dependents, an unchanged app is published from the candidate the registry holds and left running where the host already serves it.
 The decision is a content hash per app, Turbo's hash of the app's `build` task over its own directory and every workspace package it depends on (§ 4), one definition that covers merge commits, squash merges, multi-commit direct pushes and force-pushes identically; stateless, no bookkeeping.
 Promotion builds nothing that `develop` built: an app whose candidate exists for the promoted tree is published and deployed from it (§ 2), and only an app whose inputs on `main` differ from everything the registry has seen is built again.
@@ -134,10 +135,8 @@ Granularity problems are solved by moving a product into a release cycle of its 
 
 ## § 4 Releasing an image
 
-> - An app's image MUST be built hermetically from its Dockerfile and pushed to the tenant's registry tagged with the git SHA it was built from.
-> - The image MUST be pushed under the tenant's own organisation, with the repo's own forge token, never with a token that crosses an organisation.
-
 This section binds app repos.
+An app's image is built hermetically from its Dockerfile and pushed to the tenant's registry tagged with the git SHA it was built from, under the tenant's own organisation, with the repo's own forge token, never with a token that crosses an organisation.
 An app's image is built once per content, in `verify`, and published under its commit in `release`.
 `build` builds from the Dockerfile the app contract asks for ([§ 7 PLX-App](../contracts/app.md)) and pushes the candidate to the registry (§ 8) as `build-<hash>`, Turbo's hash of the app's `build` task, which is also the build ID inside the image; `test` adds `test-<hash>`, the hash of its `test` task, to the manifest when the tests passed on it; `publish` copies the tested manifest to the tenant's forge registry under `<sha>`, which remains the reference a deploy takes, with the two hash tags beside it.
 The hashes are what `plan` looks up, so a lockfile change or a force-push rebuilds nothing whose inputs did not change, and a change to specs alone re-runs the tests on the existing image.
@@ -195,7 +194,7 @@ deploy(host, tenant, app, image_ref):
                                             # same image, idempotent, roll-forward-only
         → swap the staged file into place, keeping the previous one
         → docker compose up -d
-        → poll /healthz
+        → wait for the app service's healthcheck
         → on failure: restore the previous file, docker compose up -d, alert
 ```
 
@@ -206,9 +205,9 @@ The verb reads everything from git (the compose file) and from the host (`docker
 Rollback needs no memory across runs: the verb keeps the previous compose file until the run ends, and the image it pins is still in the host's cache.
 The rollback path never pulls: it has to work while the registry is down or a tag has been pruned, so it re-launches the cached image under the compose file it was serving from.
 
-The healthcheck poll is deadline-based, not one-shot: the verb retries `/healthz` until it answers 200 or a deadline expires (reference: ~60 s).
-A transient blip inside the window is absorbed; only sustained not-ready fails the deploy.
-Because `/healthz` carries readiness semantics including hard dependencies, a down database fails the deploy, correctly, since the new code cannot serve, and the ensuing rollback is harmless by idempotence.
+The wait is deadline-based, not one-shot: the verb waits until the app service reports healthy or a deadline expires (reference: ~60 s).
+A transient blip inside the window is absorbed; only sustained unhealthiness fails the deploy.
+Because the healthcheck covers the hard dependencies, a down database fails the deploy, correctly, since the new code cannot serve, and the ensuing rollback is harmless by idempotence.
 The verb never needs to diagnose *why* readiness failed; it only ever acts on *whether*.
 
 The alert is deliberately minimal: hand-run, it is the verb's nonzero exit and its stderr; mounted in CI, the failing job *is* the alert, surfaced however the forge notifies.
@@ -216,7 +215,7 @@ A richer channel is an observability concern (§ 12.4 PLX).
 
 Rollback's limit: it re-ups the previous image; it never reverses a migration.
 By the time the healthcheck fails, `migrate` has already run, and the old code comes back up against the new schema.
-That is sound only because the stateful profile makes it sound: every migration is backward-compatible with the release currently in production.
+That is sound only because the stateful profile makes it sound: every migration is backward-compatible with the release currently in production (`PLX-App/Stateful/ExpandContract`).
 For the rare deploy that deliberately breaks that discipline, reverting is a restore from backup, not a re-up.
 
 Two more edges, named rather than implied.
@@ -236,8 +235,8 @@ The verb ends without pulling or restarting when the host already serves the app
 
 ## § 7 Failed deploys and recovery
 
-> - While a staging deploy is red, `develop → main` MUST NOT be merged.
-> - Recovery MUST be a re-run of the failed job or a hand-run deploy of the same artifact, never an empty commit.
+> - `PLX-Delivery/PromotionFreeze`: While a staging deploy is red, `develop → main` MUST NOT be merged.
+> - `PLX-Delivery/Recovery`: Recovery from a failed deploy MUST be a re-run of the failed job or a hand-run deploy of the same artifact, never an empty commit.
 
 A failed deploy parks promotion, and recovery is named, not improvised.
 The changed set carries no memory, so the pipeline never *rediscovers* a failed deploy: after the rollback and alert (§ 6), the environment branch is ahead of what actually runs, and the next unrelated merge will not close the gap.
@@ -247,16 +246,16 @@ A red staging deploy directly falsifies `develop`'s prod-readiness, hence the pr
 
 ## § 8 Where the jobs run
 
-> - A repo MUST answer where its jobs run with one strategy, `github`, `on-prem` or `hybrid`, as the template answer `ci_strategy`; the repo variable `CI_STRATEGY` MAY override it for the next run, and `github` MUST remain a working answer for every repo.
-> - Every job MUST declare a size, `small`, `medium` or `large`, and ask for its runner by it: the label `ci-<size>` where the tenant's own runners serve the size, `ubuntu-latest` where the forge's do.
-> - A runner of the tenant's own MUST serve only that tenant's private repos.
-> - CI's credentials MUST live in the vault `<owner>-ci` ([§ 3 PLX-Secrets](secrets.md)), read with one service account token, the one CI secret a repo holds; a workflow MUST NOT be handed a secret any other way.
+> - `PLX-Delivery/PrivateRunners`: A runner of the tenant's own MUST serve only that tenant's private repos.
+> - `PLX-Delivery/CIVault`: CI's credentials MUST live in the vault `<owner>-ci` ([§ 3 PLX-Secrets](secrets.md)), read with one service account token, the one CI secret a repo holds, and reach a workflow in no other way.
 
 This section binds every repo that mounts a verb on the forge.
-Three questions decide it, each a template answer per repo and a fact rather than a secret: the **strategy**, where a job of each size runs; the **registry**, where the candidates of § 4 live; the **overlay**, how a deploy reaches the app hosts.
+Three questions of the template decide it, each answered per repo and a fact rather than a secret: the **strategy** (`ci_strategy`: `github`, `on-prem` or `hybrid`), where a job of each size runs; the **registry**, where the candidates of § 4 live; the **overlay**, how a deploy reaches the app hosts.
+The repo variable `CI_STRATEGY` overrides the strategy for the next run, and `github` remains a working answer for every repo.
 
 **Sizes.**
-Every job has a size that says what machine it wants, and the sizes are the labels a job asks for: `check` is medium, since lint, typecheck and the pure tests want cores and a few gigabytes; `build` and `test` are large, a machine with Docker and the memory for an image build or a browser; `plan`, `publish`, `deploy`, `cleanup` and `housekeeping` are small, a shell with a token.
+Every job has a size, `small`, `medium` or `large`, that says what machine it wants, and asks for its runner by it: the label `ci-<size>` where the tenant's own runners serve the size, `ubuntu-latest` where the forge's do.
+`check` is medium, since lint and typecheck want cores and a few gigabytes; `build` and `test` are large, a machine with Docker and the memory for an image build or a browser; `plan`, `publish`, `deploy`, `cleanup` and `housekeeping` are small, a shell with a token.
 The size is the job's, and the strategy maps it to a machine.
 
 **Strategies.**
@@ -368,7 +367,7 @@ Zero-downtime deploys (blue-green, rolling) stay outside until an app has traffi
 - The one large job, decided after the strategies had run for two weeks: `build` and `test` are one job on one machine, `build-and-test`, and under `hybrid` one instance per app instead of one per build and one per test.
   Launched together, a test's instance idled through the build, existed even when the build then failed, and counted its deadlines from the plan, so that a build nearing the ten-minute no-job deadline would have outlived it; launched after the build, it would have added its boot to every run.
   The two hashes still decide separately what is owed, and the test still pulls the candidate from the registry rather than taking the builder's copy: the pull was measured at four to five seconds, and the manifest tested stays the one tagged.
-  There is one kind of instance since, each with the builder and the test's images ready, and § 2's requirement names a job after the verb or verbs it mounts.
+  There is one kind of instance since, each with the builder and the test's images ready, and § 2 names a job after the verb or verbs it mounts.
 - 2026-11-07, at the trials of 0.111.0: `large` under `github` is `ubuntu-latest`, since the forge's larger runners need a paid plan; one role, `plexus.ci.actions_runners`, serves `on-prem` and `hybrid`, the large slot being the privileged one with a Docker daemon of its own; the slots register at the organisation as soon as a second repo of the tenant needs them, which the operations repo's `housekeeping` and `deploy` do under `hybrid`; `cpu.huge` (16 vCPU) is not used for the large jobs, since it costs twice `cpu.extra-large` and would have to be twice as fast; the GHCR retention deletes versions whose only tags are candidates older than thirty days.
 
 **Setting a tenant up**, once per tenant, by hand and recorded here until a second tenant makes a role of it.
@@ -432,4 +431,4 @@ Preview environments per PR are deliberately absent: a single staging per app co
 `plexus-ms/libraries` does not carry the Plexus version (§ 1.5 PLX): npm semver via changesets is its versioning, and the Plexus version says nothing about it.
 It is generated from `template-repo-turbo` like a tenant's web repo and takes its arrangement by taking Plexus versions; `plx` and `@plexus-ms/lib` left it for `tooling`, where they carry the Plexus version (§ 1.5 PLX), because they run around an app and are never imported by one.
 `@plexus-ms/config` went with them and came back with 0.120.0: an app's manifests depend on it, so it is a library.
-§§ 5 and 6 carry no requirements yet: one package repo and one deploy verb are their consumers, and they gain requirements when a second consumer of each exists.
+§§ 4 to 6 carry no requirements: what they describe is done by the tooling and the templates, and the requirements the deploy verb serves are PLX-App's.

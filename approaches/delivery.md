@@ -182,7 +182,7 @@ Application plumbing, the "standardize boundaries" edges (framework glue, common
 ## § 6 Deploy semantics
 
 This section binds every repo that deploys: app repos through their pipeline, the operations repo for the third-party apps under its `apps/`.
-It describes what the shared deploy verb (`plx deploy`, [PLX-CLI](cli.md)) does, so the contract requirements riding on it ([§ 5 PLX-App](../contracts/app.md), [§ 2 PLX-AppStateful](../contracts/app-stateful.md)) make sense.
+It describes what the shared deploy verb (`plx deploy`, [PLX-CLI](cli.md)) does, so the contract requirements riding on it ([`PLX-App/Healthcheck`](../contracts/app.md), [§ 9.2 PLX-App](../contracts/app.md)) make sense.
 The verb's behaviour is documented here rather than required; the contracts it serves are what carry requirements.
 
 ```

@@ -5,7 +5,6 @@ description: How an organisation becomes a Plexus tenant — one trust domain sh
 code: PLX-Tenancy
 maturity: standard
 binds: organisation
-changed: 0.114.0
 depends: []
 order: 0
 ---
@@ -13,8 +12,8 @@ order: 0
 A **tenant** is one trust domain in the federation: its own forge org, repos, hosts, secrets vault, backups.
 Nominally a distinct legal person or organisation, but the boundary that matters is *access*, not legal personality; `plexus` itself is a tenant without being a distinct legal person.
 This module is the contract at the seam between a tenant and the federation: what the upstream's primitives assume of a tenant, with what the tenant may assume of the upstream stated in § 1.6 PLX.
-It binds the organisation, and the tenant's operations repo declares it.
-The sections bind the tenant; the upstream's side stays prose in the map, since it binds the maintainers and not a consumer.
+It binds the organisation, and an organisation is bound by it by being a tenant.
+The requirements bind the tenant, and none of them has a check: they are facts of an organisation, which no repo can test; the upstream's side stays prose in the map, since it binds the maintainers and not a consumer.
 
 What spans the tenants is separate trust domains sharing a *methodology*, not a *runtime*: federation under a common standard, not multi-tenancy.
 Nothing federates at runtime.
@@ -23,8 +22,8 @@ Tenants never talk to each other, no shared identity, no inter-instance protocol
 
 ## § 1 Trust domain
 
-> - All tenants MUST share the methodology: the modules of this standard and the primitives they ship.
-> - Tenants MUST NOT share substance: hosts and root access, forge org and repo access, secrets vaults, databases, backups, domains.
+> - `PLX-Tenancy/SharedMethodology`: All tenants MUST share the methodology: the modules of this standard and the primitives they ship.
+> - `PLX-Tenancy/NoSharedSubstance`: Tenants MUST NOT share substance: hosts and root access, forge org and repo access, secrets vaults, databases, backups, domains.
 
 Methodology is knowledge and code-shaped-as-knowledge; no tenant owns it.
 Substance stays partitioned because the tenant is the trust boundary.
@@ -32,11 +31,11 @@ Substance stays partitioned because the tenant is the trust boundary.
 
 ## § 2 Slug and labels
 
-> - Every tenant MUST have a short slug (e.g. `acme`, `initech`, `plexus`).
-> - Every deployed service MUST carry the label `plexus.tenant=<slug>`.
-> - The slug SHOULD additionally appear consistently in the tenant's forge org name, VM hostnames, and vault name.
+> - `PLX-Tenancy/Slug`: Every tenant MUST have a short slug (e.g. `acme`, `initech`, `plexus`).
+> - `PLX-Tenancy/SlugEverywhere`: The slug SHOULD appear consistently in the tenant's forge org name, VM hostnames, and vault name.
 
 One greppable name threads through every layer.
+Every deployed service carries it as the label `plexus.tenant=<slug>`, which the app contract requires (`PLX-App/TenantLabel`).
 The label makes the boundary visible exactly where it otherwise blurs: staring at a host wondering whose service this is.
 The inventory groups are not on the list: the shipped playbooks target fixed group names (`platform`, `ci`, `proxmox`, `pbs`, `haproxy`, `guests`; [§ 1 PLX-Platform](../approaches/platform.md)), and a host runs one tenant's services, so the slug on a group would repeat what the repo already says.
 Until Plexus 0.114.0 the repo was named `platform`; the name moved when `platform` came to mean the layer alone, with the infrastructure layer and the tenant's CI beside it in the same repo.
@@ -44,11 +43,13 @@ Until Plexus 0.114.0 the repo was named `platform`; the name moved when `platfor
 
 ## § 3 Forge layout
 
-> - Tenant repos SHOULD be partitioned by separate forge orgs.
-> - A tenant MUST hold its ops side (inventory, host definitions, playbooks, deployment configs) in exactly one repo, the operations repo; every other tenant repo is an app repo.
-> - The operations repo MUST NOT hold the source of an app the tenant builds itself; it MAY hold third-party apps the tenant merely operates ([§ 2 PLX-App](../contracts/app.md)).
-> - The operations repo SHOULD be named `operations` and the default web monorepo `web`; further app repos are named after their product.
+> - `PLX-Tenancy/SeparateOrgs`: Each tenant's repos SHOULD sit in a forge org of the tenant's own.
+> - `PLX-Tenancy/OperationsRepo`: A tenant MUST hold its ops side (inventory, host definitions, playbooks, deployment configs) in exactly one repo, the operations repo.
+> - `PLX-Tenancy/NoAppSourceInOperations`: The operations repo MUST NOT hold the source of an app the tenant builds itself.
+> - `PLX-Tenancy/RepoNames`: The operations repo SHOULD be named `operations` and the default web monorepo `web`.
 
+Every tenant repo other than the operations repo is an app repo, and further app repos are named after their product.
+The operations repo holds the third-party apps the tenant merely operates, each under `apps/<app-name>/` ([§ 2 PLX-App](../contracts/app.md)).
 Org membership governs code access; a person in tenant A's org is simply not in tenant B's.
 Inside the org, the layout follows three cardinalities: one trust domain, N release cycles, one operations repo.
 A **repo** is one release cycle and one toolchain contract ([PLX-Repo](../contracts/repo.md)) inside a tenant.
@@ -63,15 +64,16 @@ That is the design working, not friction: the ops-side act of binding an app to 
 
 ## § 4 Arrangements between tenants
 
-> - Tenants sharing physical hardware MUST be separated by hypervisor virtualization; two tenants MUST NOT co-mingle inside one VM.
-> - Platform concerns (ingress, secrets, backups, monitoring) SHOULD be kept per-tenant as well.
-> - Distinct legal persons sharing platform root access or further platform concerns MUST document the arrangement in writing: e.g. a one-page document defining the relationship, plus a data-processing agreement where applicable.
+> - `PLX-Tenancy/HypervisorSeparation`: Tenants sharing physical hardware MUST be separated by hypervisor virtualization, never co-mingled inside one VM.
+> - `PLX-Tenancy/PerTenantPlatform`: Platform concerns (ingress, secrets, backups, monitoring) SHOULD be kept per tenant as well.
+> - `PLX-Tenancy/WrittenArrangement`: Distinct legal persons sharing platform root access or further platform concerns MUST write the arrangement down.
 
+The written arrangement can be a one-page document defining the relationship, plus a data-processing agreement where applicable.
 At small scale, pooling workloads on one physical host is the correct economics, and virtualization draws the boundary.
 The common form is one tenant obtaining its infrastructure from another: the second tenant runs the hypervisor ([PLX-Infrastructure](../approaches/infrastructure.md)), and the first tenant's VM is one of its guests.
 Be clear about what that buys and what it does not: virtualization solves performance and fault isolation, but it *centralizes* access rather than partitioning it.
 The hypervisor side sees everything, a hypervisor has unrestricted control over every VM, so the host is a critical attack vector, and it does nothing for legal controllership; hence the written arrangement.
-Where the guest's backups ride along on the hypervisor's backup path, or its local mail goes through the relay of the tenant that runs the hypervisor, the guest tenant's platform marker records the deviation from § 4 with its reason.
+Where the guest's backups ride along on the hypervisor's backup path, or its local mail goes through the relay of the tenant that runs the hypervisor, the guest tenant's operations repo lists `PLX-Tenancy/PerTenantPlatform` under `deviations` in its marker and gives the reason in the marker's body.
 Sharing ingress, networking, or secrets across tenants beyond that is a red flag: if the economics seem to force it, file an issue against the standard rather than normalizing the exception.
 
 

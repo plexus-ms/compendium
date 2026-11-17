@@ -26,7 +26,7 @@ The standard has two layers.
 The **map** is this document: prose and pointers, no requirements, no normative keywords.
 A **module** is a page under `contracts/` or `approaches/` that covers one concern a consumer could adopt or reject on its own, and it is where requirements live.
 
-A module at standard maturity (§ 1.3) states its requirements as blockquoted bullets at the head of each numbered section, using the capitalised keywords of BCP 14 ([RFC 2119](https://www.rfc-editor.org/rfc/rfc2119), [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174)).
+A module at standard maturity states its requirements as named, blockquoted bullets at the head of each numbered section (§ 1.3), using the capitalised keywords of BCP 14 ([RFC 2119](https://www.rfc-editor.org/rfc/rfc2119), [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174)).
 Everything outside such a bullet is informative: the prose below a requirements block explains and motivates, but never binds.
 
 ### § 1.2 Vocabulary
@@ -42,11 +42,11 @@ Plexus revolves around tenants sharing methodology but never substance:
   Decided once, reused, versioned and published, or otherwise propagated (§ 13).
 - **Seam** — where two sides owned by different people or tools meet: one layer and the next, or the authors of a repo and whatever runs it.
   A seam is named by its two sides and made explicit as exactly one contract (§ 1.3).
-- **Module**, **contract**, **approach**, **maturity** — see § 1.3.
-- **Declaration** — a repo's or app's `PLEXUS.md` marker: the Plexus version it was brought up to and the modules it follows (§ 1.4).
-- **Plexus version** — the one number Plexus carries: a plain semver tag stamped identically on `tooling`, the templates and the compendium, and recorded by every declaration (§ 1.5).
+- **Module**, **contract**, **profile**, **approach**, **requirement**, **check**, **maturity** — see § 1.3.
+- **Marker** — the `PLEXUS.md` at the root of every repo and every app: an app's profile, and the requirements the unit does not meet, with the reasons (§ 1.4).
+- **Plexus version** — the one number Plexus carries: a plain semver tag stamped identically on `tooling`, the templates and the compendium; a repo is on the version its `plx` pin names (§ 1.5).
 - **Tooling** and **libraries** — the two ways a primitive reaches a tenant: tooling runs around an app and carries the Plexus version, a library is imported by an app and carries a version of its own (§ 1.5).
-- **Template** — a copier template a repo or an app is generated from and re-synced with (§ 13.3).
+- **Template** — a copier template a repo or an app is generated from and re-synced with; the template is what does an approach (§ 1.3, § 13.3).
   *Preset* is the update bot's word for a shared configuration and means nothing else in Plexus.
 
 Tenants usually build and ship software:
@@ -76,68 +76,85 @@ A module has a kind and a maturity, and the two are independent axes.
 #### Contracts and approaches
 The modules' kind divides them into `contracts/` and `approaches/`.
 
-- A **contract** is the module written at a seam: what the two sides owe each other, so that either side can be replaced without the other noticing.
+- A **contract** is the interface at a seam: what the two sides owe each other, so that either side can be replaced without the other noticing.
+  It consists of named requirements (below), each saying which side it binds.
   Contracts are opinionated interfaces, not tool-neutral ones: the repo contract names mise, the app contract names compose, the host contract names Debian.
+  A unit is bound by a contract by being what the contract binds: every repo by the repo contract, every app by the app contract, every tenant by the tenancy contract; no file lists them.
   See the [contracts index](../contracts/index.md) for the table of all seams.
-- An **approach** is an opinionated way to live on one side of a seam: to provide a contract, to consume it, or to do a side's own job; every module that is not a contract is one.
+- A **profile** is a named variant of a contract, and a unit takes exactly one of its contract's profiles: an app is `stateless` or `stateful` ([PLX-App](../contracts/app.md)).
+  A profile is a part of its contract's page, with requirements named under it, and the unit states its profile in its marker (§ 1.4).
+- An **approach** is one way to live on one side of a seam: to provide a contract, to consume it, or to do a side's own job; every module that is not a contract is one.
+  It consists of a page that says why and a template that does it, with the tooling the template pins.
+  Where an approach varies, the variation is its template's questions, as many as it needs: the delivery approach asks, among others, where a repo's CI jobs run and where its images are kept ([§ 8 PLX-Delivery](../approaches/delivery.md)).
+  A unit takes an approach by its answers file for that template, which records the answers it gave.
   A tenant can replace an approach with its own and remain a Plexus tenant as long as it keeps the contracts.
 
 **Three rules for contracts and approaches:**
 
-- One seam, one contract; a contract may have profiles, which are parts of it and not seams of their own.
+- One seam, one contract; a profile is a part of its contract, not a seam of its own.
   A new contract needs a new named seam with two owners, and a page that cannot name its seam is an approach.
-- A module reaches across a seam only through a contract, and says so in `consumes`; `depends` stays on its own side and is composition: you took this piece, so you have the whole it belongs to.
-  `mise verify` refuses a `consumes` entry that is not a contract, a `depends` entry that crosses the dev/ops seam (`repo` and `app` against `host` and `organisation`), and any dependency of a contract on an approach.
-- A contract page is two-sided: its sections say which side they bind, and its Maintaining section lists the approaches on each side.
+- A module reaches across a seam only through a contract; on its own side of the seams it is composed with other modules: you took this piece, so you have the whole it belongs to.
+  A page's frontmatter records both, for the reader (below).
+- A contract page is two-sided: each of its requirements says which side it binds, and its Maintaining section lists the approaches on each side.
   A guarantee that one side relies on from an approach on the other side moves into the contract at that seam, and the approach keeps the how.
+
+#### Requirements and checks
+A **requirement** is one obligation, stated on one line of a module page: a blockquoted bullet that opens with the requirement's name in backticks and a colon, as in `` > - `PLX-App/LoopbackPort`: … ``.
+A name has the form `<module>[/<profile>]/<name>`: the module's code, the profile where the requirement belongs to one, and a name of its own, each segment capitalised, as in `PLX-App/LoopbackPort` and `PLX-App/Stateful/MigrateService`.
+A requirement is cited by its name, in code and in prose; section numbers cite the prose around it.
+
+A **check** is a test that `plx doctor` runs in a repo for one requirement (§ 13.4).
+Only a requirement on the side of the unit that runs it, the repo or the app, can have one; a requirement that binds the platform, the deployer, an operator or an organisation has none.
+Below each block of requirements, the page names those that have a check, and says what the check covers where it covers only part of its requirement; a requirement the page does not name there has no check.
+
+In an approach, what the template does is prose, since the template is how the approach is done.
+A requirement remains only where the approach binds people, to a choice or an act no template can make for them, and such a requirement has no check.
+An approach is verified upstream instead: its template is rendered, and the checks of the contracts are run on the result.
 
 #### Maturity: note vs. candidate vs. standard
 - A **note** is written knowledge: no primitives, no requirements; a page the map links to and nothing more.
 - A **candidate** has shipped primitives and at least one consumer, and still no requirements: a candidate for standard, waiting on its second consumer.
 - A **standard** module has requirements and at least two consumers.
 
-Only candidate and standard modules carry a code, `PLX-` plus one capitalised word, unique across the compendium, and only they can be declared.
+Only candidate and standard modules carry a code, `PLX-` plus one capitalised word, unique across the compendium.
 Notes have titles and no code.
 
 #### Granularity
 Modules are cut for understanding: one module per concern a reader can hold in their head, so that someone who needs to know how delivery works reads one page and not four.
-A module says at each section which kind of consumer it binds, and a consumer that follows a module without one of its sections owns that in its marker body.
+A module says at each section which kind of consumer it binds, and a unit that does not meet one of its requirements owns that in its marker (§ 1.4).
 Ingress, secrets delivery, and backups are separate modules because they are separate concerns to the reader, although one playbook mounts them; the delivery verbs, the branch model and the deploy semantics are one module because a reader of any of them needs the others.
 Granularity is revisited while pages are written and when a reader has to hold two pages open.
 
 #### Frontmatter
-Every module page carries `code` (except for notes), `maturity`, `binds` (what the module is declared for: `repo`, `app`, `host`, or `organisation`), `depends` (the codes on the same side of every seam that a declaration of this module has to accompany), on approaches `consumes` (the contracts on the other side of a seam this module relies on, declared by that side), and, on standard modules only, `changed`, the version in which the module's requirements last changed.
+Every module page carries `code` (except for notes), `maturity`, `binds` (what the module binds: `repo`, `app`, `host`, or `organisation`), `depends` (the modules on the same side of every seam that this one is composed with) and, on approaches, `consumes` (the contracts on the other side of a seam this module relies on).
+`depends` and `consumes` are informative: they show the reader how the modules fit together, and no tool reads them.
 
 #### Page shape
-Numbered sections (`§ 1`, `§ 1.1`, …) hold requirements as `> - ` bullets followed by consumer prose; numbers are append-only within a major version, as in the map.
+Numbered sections (`§ 1`, `§ 1.1`, …) hold requirements as named `> - ` bullets followed by prose; numbers are append-only within a major version, as in the map.
 One trailing section headed *Maintaining*, unnumbered and never cited, holds the maintainer side: which primitives ship the module, what changes with it, what debts it carries, when it is promoted.
 The extractor treats that section as prose.
 
-### § 1.4 The declaration marker
+### § 1.4 The marker
 
-A consumer says what it follows in a `PLEXUS.md` marker at the root of each repo and each app:
+Every repo and every app carries a `PLEXUS.md` marker at its root (`PLX-Repo/Marker`, `PLX-App/Marker`):
 
 ```markdown
 ---
-plexus: 0.60.0
-modules: [PLX-Repo, PLX-JS, PLX-Delivery, PLX-Updates]
+profile: stateful
+deviations: [PLX-App/Stateful/MigrateService]
 ---
 
-- Free-form prose: what this repo is, how to find your way.
-- Owned deviations, one bullet each, with rationale.
+- Free-form prose: what this app is, how to find your way.
+- `PLX-App/Stateful/MigrateService`: the image migrates its own schema on startup and offers no separate migrate step.
 ```
 
-`plexus` is the Plexus version the repo or app was last brought up to; `modules` is the list of module codes it follows.
-Machine checks read only the frontmatter; the body is for humans, and it is where a deviation from a requirement is owned in a sentence of rationale..
+The frontmatter holds two fields.
+`profile` is an app's profile, `stateless` or `stateful`, and only an app's marker carries it.
+`deviations` lists by name the requirements the unit does not meet, and the body gives the reason for each, one bullet per deviation; otherwise the body is free-form prose for humans.
+Machine checks read only the frontmatter.
 
-**Dependencies.**
-A module's `depends` (§ 1.3) is satisfied by the declaring unit itself, by an enclosing declaration (an app's by its repo, a repo's by the tenant's operations repo), or by a contained one (a repo's by an app inside it).
-What a module `consumes` is never the declaring unit's to satisfy: PLX-Ingress consumes PLX-App, and it is the apps that declare PLX-App; PLX-Platform consumes PLX-Host, and the side that provides the host declares it, or, for a rented machine, nobody does.
-The staleness check (§ 13.4) verifies the first and leaves the second to the other side.
-
-**Staleness is per module.**
-A declaration is stale for exactly those modules it lists whose `changed` is newer than its `plexus`; nothing else about it is stale.
-There is no global verdict.
+What a unit follows is not listed: a repo is bound by the repo contract and an app by the app contract by being one (§ 1.3), and a unit takes an approach by its answers file for the approach's template.
+The Plexus version is not in the marker either: a repo is on the version its `plx` pin names (§ 1.5), and an app is on its repo's.
 
 ### § 1.5 Versioning
 
@@ -145,6 +162,7 @@ Plexus has one version, the **Plexus version**: a plain semver tag (`0.60.0`, no
 The number says *when*, not *how stable*; stability is the maturity axis of § 1.3.
 It names the tested set: the only combination ever validated is the one the maintainers' tenants run together, so independent per-repo version lines would name compatibility cells nobody tests.
 Because an unchanged repo still gets the tag, every cross-repo pin can cite the Plexus version and be right by construction.
+A tenant repo records the version it is on in one place, its `plx` pin in `mise.toml`, moved by the pull request by which it takes a version (§ 13.3).
 
 **What is versioned how.**
 Every primitive (§ 1.2) reaches a tenant in one of two ways, and the way decides how it is versioned.
@@ -182,8 +200,7 @@ The Plexus version reaches 1.0.0 once the modular standard with its first standa
 `plx-dev ship`, run from the maintainers' `tooling` checkout over their workspace (`mise ship` there), writes the bookkeeping, tags every repo that carries the version, creates each tag's GitHub release and pushes, in one pass.
 It opens no pull request in any consumer: cutting a version and a repo taking it are separate events, and the taking is the repo's own (§ 13.3).
 Besides the compendium's stamps, the bookkeeping is every pin that names the Plexus version ([§ 1 PLX-Updates](../approaches/updates.md)): the collections' and the packages' versions in `tooling`, and in the templates and the compendium the workflow refs, the collection pin and the `plx` pin.
-For the compendium it writes the version and timestamp in this document's frontmatter (a draft carries `v0` until its first version) and stamps `changed` on each standard module whose extracted requirement lines differ from the previous version's, using the same extractor `mise check` runs.
-It then publishes those facts as data: the compendium's release of the version carries the module manifest, `modules.json`, with the version's number and date and the catalogue of modules with each one's `changed`, which is how a repo without a compendium checkout learns whether a version concerns it ([§ 3 PLX-Updates](../approaches/updates.md)).
+For the compendium it writes the version and timestamp in this document's frontmatter (a draft carries `v0` until its first version).
 
 ### § 1.6 Upstream guarantees
 
@@ -215,7 +232,7 @@ The repos that ship the methodology:
 | `template-repo-operations` | The copier template for a tenant's operations repo: one thin playbook per layer mounting the collection's, on request the infrastructure layer's and the CI layer's, the inventory with the standard groups, the `op://`-pointer env files, the collection pins, the `apps/` directory and workflow for third-party apps. |
 | `compendium` | This map, the modules, the manifesto, and the supporting reference docs. |
 
-The dogfood tenant `plexus` lives in its own organisation, `plexus-ms-tenant`, laid out like any tenant and bound by the modules it declares, not by anything in this section: the maintainers' organisation ships methodology, the tenant's holds substance, and the two never share an access boundary.
+The dogfood tenant `plexus` lives in its own organisation, `plexus-ms-tenant`, laid out like any tenant and bound by the contracts and the approaches it takes, not by anything in this section: the maintainers' organisation ships methodology, the tenant's holds substance, and the two never share an access boundary.
 
 ```mermaid
 flowchart TB
@@ -249,9 +266,9 @@ This map and the modules say what and how, in sober prose; the modules' requirem
 The structural conventions are self-policing, and the machinery is small:
 
 - The map carries no requirement and no normative keyword.
-- A standard module carries its requirements as `> - ` lines under numbered headings; blockquotes are reserved for them.
+- A standard module carries its requirements as named `> - ` lines under numbered headings (§ 1.3); blockquotes are reserved for them.
 - A module below standard maturity carries neither keyword nor blockquote.
-- `plx requirements` checks all of that over the map and every module, validates module frontmatter, and prints a module's requirement lines on demand; `mise check` runs it, and the pre-commit and pre-push hooks run `mise check`.
+- `plx requirements` checks all of that over the map and every module, validates module frontmatter, checks that every section and requirement name a page cites exists, and prints a module's requirement lines on demand; `mise check` runs it, and the pre-commit and pre-push hooks run `mise check`.
   It writes no file: there is no generated requirements list to keep current.
 - Section numbers are append-only within a major version; insertions wait for a major.
 - Module pages live at `contracts/<slug>.md` or `approaches/<slug>.md`, the folder being the kind (§ 1.3), and a new module is added to the map section that owns its concern in the same commit.
@@ -345,7 +362,7 @@ Everything a repo does before an artifact exists: the one way to run it, the too
 
 ### § 4.1 Repo contract
 
-A declaration marker, mise and hk as the one executable answer to "how do I run you", and the three standard verbs `dev`, `build`, `verify`, each answering from a fresh checkout, with `lint`, `check` and `test` as the recommended decomposition of `verify`.
+A marker, mise and hk as the one executable answer to "how do I run you", and the three standard verbs `dev`, `build`, `verify`, each answering from a fresh checkout, with `verify` made of `check`, `lint` included, and `test`.
 [PLX-Repo](../contracts/repo.md) is the contract every other repo- and app-level module depends on.
 
 ### § 4.2 Toolchains
@@ -401,17 +418,17 @@ Approaches to coding agents will follow in the future.
 
 ## § 5 Application
 
-The seam between dev and ops, made explicit as a contract an app satisfies and a profile sharpens.
+The seam between dev and ops, made explicit as a contract every app satisfies in one of its profiles.
 
 ### § 5.1 App contract
 
-Run shape in `compose.yaml`, environment through two files, one HTTP port on loopback, a readiness `/healthz`, logs on stdout, and a CI reference: the profile-neutral base the platform relies on for every app.
-[PLX-App](../contracts/app.md).
+Run shape in a compose file, environment through two files, one HTTP port on loopback, a healthcheck in the compose file, logs on stdout, a Dockerfile for an app the tenant builds, and a pipeline through the verbs: what the platform relies on for every app.
+[§§ 1 to 7 PLX-App](../contracts/app.md).
 
 ### § 5.2 Profiles
 
-Every app takes exactly one.
-[PLX-AppStateless](../contracts/app-stateless.md) for apps holding no state; [PLX-AppStateful](../contracts/app-stateful.md) for apps with data services of their own, with backup labels, an idempotent one-shot `migrate`, expand/contract discipline, and a seed task.
+Every app takes exactly one profile of the app contract and names it in its marker.
+`stateless` is for apps holding no state ([§ 8 PLX-App](../contracts/app.md)); `stateful` is for apps with data services of their own, with backup labels, an idempotent one-shot `migrate`, expand/contract discipline, and a seed script ([§ 9 PLX-App](../contracts/app.md)).
 Further profiles append here as they are needed.
 
 ### § 5.3 Background jobs
@@ -444,8 +461,8 @@ Where the jobs run, the forge's runners, a runner host of the tenant's own, or s
 
 ### § 6.4 Deploy semantics
 
-Render the compose file with the image pinned, pull, migrate, swap, up, poll readiness, roll back on failure, store nothing.
-[§ 6 PLX-Delivery](../approaches/delivery.md), prose without requirements until a second deploy verb exists, with the fence around the verb in the module's Maintaining section.
+Render the compose file with the image pinned, pull, migrate, swap, up, wait for the healthcheck, roll back on failure, store nothing.
+[§ 6 PLX-Delivery](../approaches/delivery.md), prose, since the tooling does it, with the fence around the verb in the module's Maintaining section.
 
 ### § 6.5 Failed deploys and recovery
 
@@ -494,7 +511,7 @@ Packages and system activity record, personal admins, unattended security upgrad
 
 ### § 7.3 Ingress
 
-The proxy's routes are rendered from the app record, public host to loopback port, and `/healthz` is fenced at the edge; the proxy is the substitutable piece.
+The proxy's routes are rendered from the app record, public host to loopback port; the proxy is the substitutable piece.
 [PLX-Ingress](../approaches/ingress.md).
 
 ### § 7.4 App environment and secrets delivery
@@ -583,7 +600,7 @@ Immutable, provenance-attested packages, movable tags named as the accepted edge
 ### § 10.3 Network isolation
 
 Not covered beyond tenancy.
-Tenants are separated by hypervisor and never share a VM ([§ 4 PLX-Tenancy](../contracts/tenancy.md)); apps publish to loopback only and reach the world through the proxy ([§ 4 PLX-App](../contracts/app.md)); isolation between guests of one hypervisor is still to be written.
+Tenants are separated by hypervisor and never share a VM ([§ 4 PLX-Tenancy](../contracts/tenancy.md)); apps publish to loopback only and reach the world through the proxy ([`PLX-App/LoopbackPort`](../contracts/app.md)); isolation between guests of one hypervisor is still to be written.
 
 ### § 10.4 Vulnerabilities
 
@@ -622,7 +639,7 @@ A stateless app is reconstructable from git and the registry; a host from the pl
 ### § 11.5 Operating databases
 
 Not covered yet.
-The stateful profile defaults to one database container per app that dies with it ([§ 1 PLX-AppStateful](../contracts/app-stateful.md)); upgrades of the engine, tuning, and when a shared instance is warranted are still to be written.
+The stateful profile defaults to one database container per app that dies with it ([`PLX-App/Stateful/OwnDatabase`](../contracts/app.md)); upgrades of the engine, tuning, and when a shared instance is warranted are still to be written.
 
 ### § 11.6 Retention and deletion
 
@@ -647,7 +664,7 @@ The host baseline records system activity locally (sysstat) and an observability
 ### § 12.3 Logs
 
 Not covered beyond the contract.
-Apps write to stdout and stderr and never manage log files ([§ 6 PLX-App](../contracts/app.md)); shipping and retention are the platform's job and have no module.
+Apps write to stdout and stderr and never manage log files ([`PLX-App/Logs`](../contracts/app.md)); shipping and retention are the platform's job and have no module.
 
 ### § 12.4 Alerting channels
 
@@ -657,7 +674,7 @@ Today a failed deploy alerts as the failing CI job, hosts mail failed units to a
 ### § 12.5 Uptime
 
 Not covered yet.
-`/healthz` is fenced from the public precisely so that it does not become an uptime oracle; a tenant pointing an external monitor at it records the deviation ([§ 2 PLX-Ingress](../approaches/ingress.md)).
+An app's healthcheck is declared in its compose file and run by the container engine on the host ([`PLX-App/Healthcheck`](../contracts/app.md)); what an external monitor watches, and how it learns that an app is down, is still to be written.
 
 ### § 12.6 Capacity
 
@@ -682,17 +699,18 @@ Every tenant repo runs a bot that watches its pins; how unattended a merge is fo
 ### § 13.3 Templates and re-sync
 
 What cannot be a dependency arrives through a copier template and is re-synced by `copier update`, as a pull request the repo opens for itself from its own CI (`plx update`); the three scaffolding tiers decide where a new artifact goes.
-A repo takes a version when it needs one and not whenever one is cut: a module it declares has changed, which it reads from the manifest the version publishes (§ 1.5), somebody asks, or a backstop age is exceeded; otherwise it rests on the version it has, which its immutable pins make safe (§ 1.6).
+A repo takes a version by its step and a schedule; modules do not drive updates, and a change to a module's text does not by itself bring a version to any repo.
+Between the versions it takes, a repo rests on the one it has, which its immutable pins make safe (§ 1.6).
 [§ 3 PLX-Updates](../approaches/updates.md).
 
-### § 13.4 Staleness check
+### § 13.4 The repo's checks
 
-A hand-runnable verb run from the root of the maintainers' workspace, `plx doctor`, reads every marker in the workspace, compares each declared module's `changed` with the marker's `plexus`, verifies that every dependency is declared where § 1.4 says it is satisfied, and prints what is behind; it fixes nothing.
-It ships with Plexus 0.61.0, after the first stamps of 0.60.0 gave it something to compare.
-Mounting it on a schedule in each tenant, so that a tenant sees its own staleness without the maintainers' workspace, is the next step and waits for a tenant that is not also the maintainer.
+`plx doctor` is a hand-runnable verb run in a repo: it runs the checks of the requirements that bind the repo and its apps (§ 1.3) and prints each that fails; it fixes nothing.
+It needs no compendium checkout: the checks travel with the `plx` the repo pins, so a repo is checked against the version it is on.
+Which version that is, is the repo's `plx` pin (§ 1.5), and whether to take a newer one is § 13.3's question, not a finding of the checks.
 
 ### § 13.5 Tooling
 
-The verbs of a tenant repo and of an operator of many repos are commands of `plx`, the published `@plexus-ms/cli`: the workspace map, the staleness check (§ 13.4), a repo's pull of a version and the loop of it over many repos (§ 13.3), the requirements check (§ 1.8), the changeset a bump owes and the delivery verbs, `deploy-targets` and `deploy`, with the CI verbs of § 6.3 in `plx-ci` beside it; a tenant repo pins the tools in its `mise.toml` at the Plexus version, written by the version, and its CI runs those pins.
+The verbs of a tenant repo and of an operator of many repos are commands of `plx`, the published `@plexus-ms/cli`: the workspace map, the repo's checks (§ 13.4), a repo's pull of a version and the loop of it over many repos (§ 13.3), the requirements check (§ 1.8), the changeset a bump owes and the delivery verbs, `deploy-targets` and `deploy`, with the CI verbs of § 6.3 in `plx-ci` beside it; a tenant repo pins the tools in its `mise.toml` at the Plexus version, written by the version, and its CI runs those pins.
 Cutting a version (§ 1.5) is the upstream's alone and is not in any published tool: `plx-dev`, run from the maintainers' `tooling` checkout.
 [PLX-CLI](../approaches/cli.md) is the module: why the tool replaced the scripts, what it must not become, and the verbs still to be written.

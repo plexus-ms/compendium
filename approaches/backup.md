@@ -5,12 +5,12 @@ description: The label-driven backup job that is not yet shipped — per-service
 maturity: note
 binds: host
 depends: [PLX-Platform]
-consumes: [PLX-AppStateful]
+consumes: [PLX-App]
 order: 23
 ---
 
-This page is a note: written knowledge about a path Plexus intends to ship, with no primitives behind it yet and therefore no requirements and no code to declare.
-It is here so the design is a decision, not drift, and so the stateful profile's `plexus.backup` label ([§ 1 PLX-AppStateful](../contracts/app-stateful.md)) has the home it points at.
+This page is a note: written knowledge about a path Plexus intends to ship, with no primitives behind it yet and therefore no requirements and no code.
+It is here so the design is a decision, not drift, and so the stateful profile's `plexus.backup` label ([`PLX-App/Stateful/BackupLabel`](../contracts/app.md)) has the home it points at.
 
 
 ## § 1 The intended path
@@ -29,7 +29,7 @@ A backup without a hand-runnable restore is write-only storage; a restore test t
 
 Until the label-driven path ships, a tenant whose infrastructure layer backs up whole VMs ([PLX-Infrastructure](infrastructure.md)), encrypted, copied off-site, and restored end to end on a schedule, meets what this page is for: schedule and retention live as code in the operations repo, and the restore is proven rather than assumed.
 The two paths are complements, not rivals: a VM backup restores a host, a per-service dump restores one app's data onto any host.
-An app whose state is not a separate data service (an SQLite file inside the app's volume) is outside the label vocabulary either way and records its interim arrangement in its marker.
+An app whose state is not a separate data service (an SQLite file inside the app's volume) is outside the label vocabulary either way and records its interim arrangement in its marker's body.
 
 
 ## Maintaining

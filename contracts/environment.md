@@ -16,7 +16,7 @@ The app itself never learns where it runs; what it is handed is the subject of [
 This is why the record is not PLX-App: the two contracts have different pairs of sides, and the deployer needs exactly what the app never sees, the host, the user, and which environment a branch maps to.
 
 The contract is written informatively for now: it has one deployer and one platform, and no requirement has had to be argued yet.
-The maturity rule (§ 1.3 PLX) promotes it when a second tenant declares it.
+The maturity rule (§ 1.3 PLX) promotes it when a second tenant uses it.
 
 
 ## § 1 The record

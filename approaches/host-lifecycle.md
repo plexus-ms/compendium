@@ -17,7 +17,7 @@ It is a note: one baseline role (`plexus.host.upgrades`, [§ 2 PLX-Platform](pla
 
 Tenant hosts run the distribution's unattended security upgrades, the default of the `plexus.host.upgrades` role.
 Everything beyond that, kernel-update reboots, engine major bumps, release upgrades, host rebuilds, is a supervised operator act for now.
-A host that reboots unattended on a schedule is a tenant's choice, recorded in its platform marker; the roles leave the host up by default.
+A host that reboots unattended on a schedule is a tenant's choice, recorded in the body of its operations repo's marker; the roles leave the host up by default.
 
 A full patching and lifecycle policy is deliberately deferred until patch drift is observable: visibility first, then an honest policy.
 That visibility is an observability concern (§ 12 PLX), and the policy is written when the data exists to write it against.

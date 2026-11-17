@@ -69,7 +69,7 @@ A few hundred lines of TypeScript with a YAML dependency read in half an hour at
 
 Taking a version moves the workflow refs and the tool's pin alike, in one pull request per consumer, so the verbs a workflow asks for are the ones the pinned `plx` has; a workflow that asks for a verb the pinned `plx` lacks still fails as a usage error, loudly.
 
-The maintainers' workspace takes no pin: its `mise.toml` asks for the newest release, for the operator's verbs, since `propagate` runs whatever `plx` the operator has, like the `update` it loops over, and `propagate --now` is how a hotfix reaches the repos that need it.
+The maintainers' workspace takes no pin: its `mise.toml` asks for the newest release, for the operator's verbs, since `propagate` runs whatever `plx` the operator has, like the `update` it loops over, and `propagate --now` takes the newest version in every repo at once.
 The workspace exempts the tool from mise's minimum release age (`minimum_release_age_excludes`), as pnpm and the update bot already exempt `@plexus-ms`, so that a fresh release is not held back for a day; mise also caches a tool's version list, so an update right after a version is `mise cache clear npm:@plexus-ms/cli && mise up npm:@plexus-ms/cli`.
 The tool that cuts the version takes neither a pin nor a release: `mise ship` in `tooling` builds `plx-dev` from that checkout and runs it over the workspace the checkout sits in, so the release tool is the code at `main` and cannot be older than what it releases.
 Until Plexus 0.118.0, `ship` was a verb of the published `plx` and refused to run behind the registry's newest release, which meant updating the workspace's `plx` before every version and building `plx` locally to ship a change to the bookkeeping; the split by role (§ 6) ended both.
@@ -100,8 +100,8 @@ A tenant's restore drill scripts and per-app backup hooks are the prototypes of 
 
 The verbs move in order of risk, each replacing one script and leaving the rest as they are:
 
-1. Done: the parser library, with `overview` and `doctor` (the staleness check) on top of it.
-2. Done, pulled ahead of the ops verbs because it is maintainer-only and had the best harness to diff against: `ship`, with `propagate` as a verb of its own and the compendium's requirements check as `requirements`, so that the `changed` comparator and `mise check` share one extractor.
+1. Done: the parser library, with `overview` and `doctor` on top of it.
+2. Done, pulled ahead of the ops verbs because it is maintainer-only and had the best harness to diff against: `ship`, with `propagate` as a verb of its own and the compendium's requirements check as `requirements`, so that the citable index `ship` writes and `mise check` share one extractor.
    The ten scenarios of the toolbox's harness run as an integration test against real git in `packages`.
    The dry run keeps its honest preview in scratch clones; that scratch work is the one documented exception to "a dry run performs no effect", performed in every mode because nothing the operator owns changes.
    Done, and the first verb a repo's CI runs rather than the maintainers' workspace: `changeset`, mounted on the update bot's pull requests by the reusable `_changeset.yml`, with the runner taking `plx` as one line in the repo's tools table.
@@ -112,7 +112,7 @@ The verbs move in order of risk, each replacing one script and leaving the rest 
    Tested with the fake Io and with a fake `ssh` on `PATH` that runs each step locally against a scratch app dir with fake `docker` and `curl`, the old offline harness reborn; the dogfood tenant's deploys are the proof in production.
    With it the workflow repo lost its last script, and the workflows' one check is actionlint.
 5. Done: `update`, the tenant side of a version: the pull request by which a repo takes a version, made from inside the repo in a worktree of its branch, mounted by the templates' `update.yml` on a schedule in the tenant's own CI and run by hand otherwise.
-   It decides first whether the repo needs the version ([§ 3 PLX-Updates](updates.md)), and it is the only thing that opens that pull request: `ship` ends at the release, and `propagate` is `update` run in every generated repo under a directory.
+   It decides first which version, if any, the repo takes, by the version's step and the repo's interval ([§ 3 PLX-Updates](updates.md)), and it is the only thing that opens that pull request: `ship` ends at the release, and `propagate` is `update` run in every generated repo under a directory.
    It is tested in the harness `ship` came with, against real git and the fake forge.
 6. Done, as `plx-ci` (versions 0.106.0 to 0.111.0): the CI verbs, written in TypeScript from the start rather than ported, with the cloud's API and the registry's S3 spoken through `curl` so that the jobs need no provider's CLI; tested against fakes of the cloud, the registry and the forge.
 7. Done: the split by role (§ 1).

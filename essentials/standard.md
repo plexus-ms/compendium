@@ -699,7 +699,8 @@ Every tenant repo runs a bot that watches its pins; how unattended a merge is fo
 ### § 13.3 Templates and re-sync
 
 What cannot be a dependency arrives through a copier template and is re-synced by `copier update`, as a pull request the repo opens for itself from its own CI (`plx update`); the three scaffolding tiers decide where a new artifact goes.
-A repo takes a version by its step and a schedule; modules do not drive updates, and a change to a module's text does not by itself bring a version to any repo.
+A repo takes a version by its step and a schedule: a patch, a hotfix, at once; a minor, routine, at its next scheduled pull; a major, a changed contract, only when asked, with the migration note.
+Modules do not drive updates, and a change to a module's text does not by itself bring a version to any repo.
 Between the versions it takes, a repo rests on the one it has, which its immutable pins make safe (§ 1.6).
 [§ 3 PLX-Updates](../approaches/updates.md).
 

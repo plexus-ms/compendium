@@ -1,7 +1,7 @@
 ---
 title: PLX-JS – the JS/TS toolchain
 short_title: PLX-JS
-description: The one toolchain arrangement for JS/TS repos — pnpm workspace plus Turborepo behind the standard verbs, node pinned once in .node-version, dev tools as devDependencies, Biome for format and lint.
+description: The one toolchain arrangement for JS/TS repos — pnpm workspace plus Turborepo behind the standard verbs, node pinned in mise.toml and in the image's base, dev tools as devDependencies, Biome for format and lint.
 code: PLX-JS
 maturity: standard
 binds: repo
@@ -23,11 +23,15 @@ A Python or Go repo takes the same repo contract with a toolchain module of its 
 
 A JS/TS repo takes this approach by being generated from `plexus-ms/template-repo-turbo`, and the template does the arrangement: an app repo is a pnpm workspace plus Turborepo; `turbo.json` states the task rules (`build`, `typecheck`, and `test` depend on `^build`); the root verbs delegate to turbo; an app's Dockerfile restates no build incantation of its own, its build stage invoking the task graph's `build` entry, the one the verb runs (`PLX-App/Dockerfile`).
 mise installs only node for the JS/TS toolchain, and the package manager arrives through node itself: a `postinstall` hook enables corepack, which installs the pnpm version pinned in the root `package.json` `packageManager` field, the single pnpm pin (Turborepo requires the field anyway).
-The node version is pinned exactly once, in a `.node-version` file at the repo root, read by mise natively (`idiomatic_version_file_enable_tools`), by CI as a plain file, and by the image build as a build arg.
+Node has two homes, one per place it runs.
+The toolchain's node is a major in the `[tools]` of the root `mise.toml`, which mise installs for a developer and for CI alike, and which mise resolves to a release of that major; the update bot proposes only a new major.
+The image's node is the base image of the app's Dockerfile, a tag of the same major pinned by digest, so that the same inputs give the same image; the update bot moves tag and digest together.
+A node major waits for approval on the update bot's dependency dashboard, and moves both homes in one pull request ([§ 2 PLX-Updates](updates.md)).
 The dev tools are on the PATH through mise's `_.path`.
 The four requirements bind the people who add to that arrangement: a new package, a new tool, a new task.
 
-Each fact sits in its canonical home ([§ 2 PLX-Repo](../contracts/repo.md)): the pnpm version where pnpm itself and every update bot reads it, dev tools where npm's ecosystem versions them, the task graph where turbo reads it, and the node version in `.node-version`, the file the node ecosystem's own version managers converged on, which any consumer can read without a toolchain (`cat` in CI, an `ARG` in the Dockerfile, mise natively).
+Each fact sits in its canonical home ([§ 2 PLX-Repo](../contracts/repo.md)): the pnpm version where pnpm itself and every update bot reads it, dev tools where npm's ecosystem versions them, the task graph where turbo reads it, the toolchain's node among the tools mise installs, and the image's node in the Dockerfile's `FROM`, where docker and the update bot read it.
+The image's node cannot come from the toolchain's pin: with a digest the tag no longer chooses the image, so a version passed in as a build argument would choose nothing.
 `pnpm-workspace.yaml` (`packages:` globs plus a `catalog:` pinning shared dev-tool versions) owns install and linking; turbo owns ordering and caching on top of it.
 The division of labor is exact: pnpm knows the package graph but not tasks, mise knows tasks but not the graph, turbo knows both.
 `dependsOn: ["^build"]` says once, for every consumer present and future, that internal packages build before their dependents typecheck, test, or build.

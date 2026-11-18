@@ -28,7 +28,7 @@ The verbs serve three roles: the upstream, which cuts a version (`plx-dev ship`)
 Two tests draw the line between the first and the other two: the upstream's verbs work with no knowledge of any consumer, and the tenant's and the operator's work with published artifacts and the tenant's own repos alone ([PLX-Updates](updates.md), Maintaining).
 The upstream's verbs are therefore not in `plx`, and `@plexus-ms/lib` holds nothing that cuts a version, so that a tenant repo pins nothing it cannot run.
 The compendium's requirements check stays in `plx`: the compendium runs it from its pin in `mise check` like any repo's check, and it knows no consumer.
-The platform template ships a playbook wrapper that prefixes the vault's CLI, and both repo templates ship the contract verbs and `sync` as mise tasks; those are the shell that remains.
+The platform template ships a playbook wrapper that prefixes the vault's CLI, and both repo templates ship the contract verbs as mise tasks; those are the shell that remains.
 
 The discipline of the scripts was uniform: a header stating what the script did and how to run it by hand, strict mode, shellcheck clean, a `check` verb that enforced both.
 Each passed the second-reader and degradation tests of the [manifesto](../essentials/manifesto.md), and volume alone was no reason to replace them.
@@ -46,7 +46,7 @@ Each was honest about its limits, and together they were an unwritten contract: 
 
 **Rung one of the ladder for the verbs themselves.**
 The deploy verb reached a tenant's CI as a checkout of the workflow repo at a version tag, a movable tag; the version tag now pins only the workflows, and every version tag is locked by an immutable release (§ 1.6 PLX).
-The playbook wrapper and the `promote` and `sync` tasks still reach a tenant by copier, the second rung of § 4.3 PLX.
+The playbook wrapper and the `promote` task still reach a tenant by copier, the second rung of § 4.3 PLX.
 A published `@plexus-ms/cli` is immutable and provenance-attested ([§ 5 PLX-Delivery](delivery.md)), pinned in a repo's `mise.toml` at the Plexus version, and moved by the pull request in which the repo takes a version ([§ 1 PLX-Updates](updates.md)).
 For the verbs that is a tighter supply chain, not only better ergonomics.
 

@@ -43,7 +43,7 @@ An app that does not meet a requirement of this page lists the requirement's nam
 > - `PLX-App/SourceRepo`: Every app MUST have exactly one source repo: an app repo for software the tenant builds, or the operations repo, at `apps/<app-name>/`, for third-party software the tenant merely operates.
 > - `PLX-App/ComposeDelivery`: The deployer MUST bring the compose file to the app's host directory through the deploy verb, rendered from the invoking checkout of the source repo at deploy time with the image ref pinned (§ 3), and the platform playbooks MUST NOT copy it.
 
-`plx doctor` checks `PLX-App/Compose` and `PLX-App/TenantLabel`.
+`plx doctor` checks of `PLX-App/Compose` that `docker/compose.yaml` exists and declares the app service, and of `PLX-App/TenantLabel` that every service carries a `plexus.tenant` label with a value, not that the value is the tenant's slug.
 
 The compose file and the Dockerfile of a built app (§ 7) sit side by side in the app's `docker/` directory.
 App-owned infrastructure means services that live and die with the app; a database container is the stateful profile's case (§ 9).
@@ -69,7 +69,7 @@ Same verb, two mounts.
 > - `PLX-App/ReservedPrefix`: The app MUST NOT define keys of its own under the prefix `PLEXUS_`, which is reserved for the bindings the platform provides.
 > - `PLX-App/ImageRef`: A built app's compose file MUST reference the app's own image as `${PLEXUS_DEPLOYMENT_IMAGE}`.
 
-`plx doctor` checks `PLX-App/EnvFileLoad`, `PLX-App/ImageRef` for a built app, and of `PLX-App/NoCommittedValues` that the source repo tracks no `.env` and no `.env.secret`.
+`plx doctor` checks `PLX-App/EnvFileLoad` on the app service, `PLX-App/ImageRef` for a built app, and of `PLX-App/NoCommittedValues` that the source repo tracks no `.env` and no `.env.secret`.
 
 With `.env.secret` optional, the same compose file runs in development with a local `.env` alone.
 The seam is "the platform hands the app an environment", and nothing more is said about it.
@@ -95,7 +95,7 @@ The deploy verb pins the concrete ref in place of `${PLEXUS_DEPLOYMENT_IMAGE}` w
 > - `PLX-App/LoopbackPort`: The app's compose file MUST publish that port as `127.0.0.1:${PLEXUS_LOOPBACK_PORT}:<container-port>` and MUST NOT fix a host port of its own.
 > - `PLX-App/PathPrefix`: Where an app is served under a path prefix of a host it shares with other apps of the same tenant, the platform MUST strip the prefix before a request reaches the app, and the app MUST serve from its own root.
 
-`plx doctor` checks `PLX-App/SinglePort` and `PLX-App/LoopbackPort`.
+`plx doctor` checks of `PLX-App/SinglePort` that the app service publishes exactly one port, not that it speaks plain HTTP, and checks `PLX-App/LoopbackPort`.
 
 The host side of the binding is not the app's to choose: the loopback port is assigned by the platform and written to the app directory by the platform playbook ([§ 3 PLX-Platform](../approaches/platform.md)).
 TLS, hostnames, and the host→port binding are likewise the platform's job; public host and loopback port alike are deployment substance, so the app stays deployable under any hostname and next to any neighbour.
@@ -107,8 +107,8 @@ A path prefix is the platform's promise in the other direction: an app stays as 
 
 > - `PLX-App/Healthcheck`: The app service MUST declare a `healthcheck` in the compose file that is cheap, free of side effects, and healthy only when the app can serve real requests.
 
-`plx doctor` checks of `PLX-App/Healthcheck` that the app service declares a `healthcheck`.
-The deploy verb refuses a compose file whose app service declares none, before it reaches the host.
+`plx doctor` checks of `PLX-App/Healthcheck` that the app service declares a `healthcheck` with a test of its own that is not disabled.
+The deploy verb applies the same test and refuses a compose file that fails it, before it reaches the host.
 
 The deploy verb's rollback decision rides on the healthcheck: after `up` it waits for the app service's container to report `healthy`, and rolls back when it does not ([§ 6 PLX-Delivery](../approaches/delivery.md)).
 Declared in the compose file, the healthcheck is part of the run shape and versions with the code; it names no path the platform has to know, and a third-party image is checked the same way, with whatever command its image allows.
@@ -185,7 +185,7 @@ An app moving from bind directories to volumes migrates each host once, with the
 > - `PLX-App/Stateful/ExpandContract`: Every migration MUST be backward-compatible with the release currently in production.
 > - `PLX-App/Stateful/BreakingMigration`: Whoever deploys a migration that cannot be backward-compatible MUST deploy it as a deliberate act, with a fresh backup taken first.
 
-`plx doctor` checks `PLX-App/Stateful/MigrateService`.
+`plx doctor` checks of `PLX-App/Stateful/MigrateService` that a `migrate` service under `profiles: ["migrate"]` runs on the app service's image.
 
 `migrate` is the one contract step the deploy pipeline invokes against production data, hence the precision.
 It runs as a container from the very image being deployed (`docker compose run --rm migrate`, [§ 6 PLX-Delivery](../approaches/delivery.md)): the image carries its own migration tooling, dev runs the identical step with the identical command, and the deploy host needs docker and nothing else.

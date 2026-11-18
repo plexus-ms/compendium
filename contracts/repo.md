@@ -59,7 +59,7 @@ The verbs live only at the root; a per-app `mise.toml` would be a second encodin
 > - `PLX-Repo/FreshCheckout`: Every verb MUST succeed from a fresh checkout; installing dependencies and building internal workspace packages first is the repo's own business, never the caller's.
 > - `PLX-Repo/OperatorBoundary`: Whatever operates on a repo without having written it, the pipeline first, MUST reach it only through the standard verbs and the image build of `PLX-App/Dockerfile`.
 
-`plx doctor` checks `PLX-Repo/Verbs` and `PLX-Repo/SubVerbs`.
+`plx doctor` checks of `PLX-Repo/Verbs` that `dev`, `build` and `verify` exist as root mise tasks, and of `PLX-Repo/SubVerbs` that `lint`, `check`, `test` and `verify` do, not what they run, in which order, or whether they pass.
 
 The verbs are the stack-neutral layer every repo answers, and a stack that has no use for a verb answers it with a documented no-op, never with a missing verb.
 `PLX-Repo/OperatorBoundary` binds the operating side, not the repo.

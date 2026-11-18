@@ -35,6 +35,7 @@ That single rule is what makes every verb answerable from a fresh checkout: a wo
 Formatting and linting is Biome, invoked repo-wide by `check` and on staged files by the pre-commit hook, per the repo contract's hook discipline.
 Biome is pinned exactly, because a formatter's minor release can reformat the repo (Biome 2.6 began formatting YAML and Markdown, the hotfix of Plexus 0.60.1); the update bot proposes the bump and the lint in CI decides whether it merges.
 `biome.json` names its schema by the installed package's path, so the schema follows the pin and carries no version of its own.
+The app contract names no stack, so where it asks a stateful app for a `seed` entry point (`PLX-App/Stateful/Seed`) this toolchain spells it: a `seed` script in the app's `package.json`, run by a developer against a fresh database and never by the deploy verb.
 The concrete arrangement, the `mise.toml`, `turbo.json`, root `package.json`, hook config, Dockerfile, is not restated here: the template ships it ([PLX-Updates](updates.md)), and staying current with the template *is* the conformant arrangement.
 
 

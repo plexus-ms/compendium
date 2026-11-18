@@ -428,7 +428,7 @@ Run shape in a compose file, environment through two files, one HTTP port on loo
 ### § 5.2 Profiles
 
 Every app takes exactly one profile of the app contract and names it in its marker.
-`stateless` is for apps holding no state ([§ 8 PLX-App](../contracts/app.md)); `stateful` is for apps with data services of their own, with backup labels, an idempotent one-shot `migrate`, expand/contract discipline, and a seed script ([§ 9 PLX-App](../contracts/app.md)).
+`stateless` is for apps holding no state ([§ 8 PLX-App](../contracts/app.md)); `stateful` is for apps with data services of their own, with backup labels, an idempotent one-shot `migrate`, expand/contract discipline, and a seed entry point ([§ 9 PLX-App](../contracts/app.md)).
 Further profiles append here as they are needed.
 
 ### § 5.3 Background jobs

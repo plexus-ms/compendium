@@ -194,10 +194,11 @@ A third-party image that migrates its own schema on startup and offers no separa
 
 ### § 9.3 Seed
 
-> - `PLX-App/Stateful/Seed`: A stateful app MUST provide a `seed` script in its `package.json` that loads development sample data, and the deploy verb MUST NOT run it.
+> - `PLX-App/Stateful/Seed`: A stateful app MUST provide a `seed` entry point that loads development sample data, and the deploy verb MUST NOT run it.
 
-`plx doctor` checks of `PLX-App/Stateful/Seed` that the script exists.
+`plx doctor` checks of `PLX-App/Stateful/Seed`, where the app is a JS app, that its `package.json` has a `seed` script.
 
+The contract names no stack, so it names no file for the entry point; a JS app spells it as a `seed` script in its `package.json` ([PLX-JS](../approaches/js.md)).
 The seed may assume a fresh database, right after `migrate`.
 Production data arrives by restore or by real use, never by seed.
 

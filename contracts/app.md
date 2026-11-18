@@ -22,6 +22,9 @@ The backup job only needs *"which services hold state and of what type"*, answer
 An **app** is one deployable unit satisfying this contract.
 Its **source repo**, the repo holding its compose file and marker, is an app repo for software the tenant builds, or the tenant's operations repo for third-party software the tenant merely operates (§ 2).
 Whether an app is built or third-party follows from where it lives: an app under the operations repo's `apps/` is third-party, every other app is built.
+The operations repo is the repo generated from the operations template, `plexus-ms/template-repo-operations` (§ 1.6 PLX).
+That is how the tools know it, by the template its answers file names, and so how they know an app under its `apps/` as third-party.
+A tenant that replaces the template says in its operations repo's marker body that it is the operations repo, and the tools do not know it: they take the apps under its `apps/` for built apps, and `plx doctor` holds them to a built app's checks.
 The repo answers [PLX-Repo](repo.md); the verbs the pipeline calls on an app are that contract's.
 
 
@@ -45,6 +48,7 @@ An app that does not meet a requirement of this page lists the requirement's nam
 
 `plx doctor` checks of `PLX-App/Compose` that `docker/compose.yaml` exists and declares the app service, and of `PLX-App/TenantLabel` that every service carries a `plexus.tenant` label with a value, not that the value is the tenant's slug.
 
+The **app service** is the service of the compose file named `web`; wherever this page says the app service, the deploy verb and `plx doctor` mean that service.
 The compose file and the Dockerfile of a built app (§ 7) sit side by side in the app's `docker/` directory.
 App-owned infrastructure means services that live and die with the app; a database container is the stateful profile's case (§ 9).
 The platform reads runtime truth from the host (`docker ps`, labels), never from a bookkeeping database, which is why the labels matter.

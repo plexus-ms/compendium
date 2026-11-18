@@ -49,7 +49,7 @@ Until Plexus 0.114.0 the repo was named `platform`; the name moved when `platfor
 > - `PLX-Tenancy/RepoNames`: The operations repo SHOULD be named `operations` and the default web monorepo `web`.
 
 Every tenant repo other than the operations repo is an app repo, and further app repos are named after their product.
-The operations repo holds the third-party apps the tenant merely operates, each under `apps/<app-name>/` ([§ 2 PLX-App](../contracts/app.md)).
+The operations repo holds the third-party apps the tenant merely operates, each under `apps/<app-name>/`, and the tools know it as the repo generated from the operations template ([PLX-App](../contracts/app.md)).
 Org membership governs code access; a person in tenant A's org is simply not in tenant B's.
 Inside the org, the layout follows three cardinalities: one trust domain, N release cycles, one operations repo.
 A **repo** is one release cycle and one toolchain contract ([PLX-Repo](../contracts/repo.md)) inside a tenant.

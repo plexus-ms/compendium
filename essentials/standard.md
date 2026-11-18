@@ -52,7 +52,7 @@ Plexus revolves around tenants sharing methodology but never substance:
 Tenants usually build and ship software:
 
 - **Repo** — one release cycle and one toolchain inside a tenant bundled in one forge repository ([PLX-Repo](../contracts/repo.md)).
-  A tenant can have any number of **app repos** holding the dev side, and has exactly one **operations repo** holding the ops side.
+  A tenant can have any number of **app repos** holding the dev side, and has exactly one **operations repo** holding the ops side, which the tools know as the repo generated from the operations template ([PLX-App](../contracts/app.md)).
 - **App** — one deployable unit satisfying the app contract ([PLX-App](../contracts/app.md)).
   It lives in an app repo for software the tenant builds, or the operations repo for third-party software the tenant merely operates.
 - **Verb** — a stateless, hand-runnable procedure that does one operational thing, authored portably.

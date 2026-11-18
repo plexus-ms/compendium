@@ -42,7 +42,7 @@ Three things in the shell-script surface were debts a script could not pay, and 
 **One parser instead of five.**
 The marker (§ 1.4 PLX), a module's frontmatter (§ 1.3 PLX), copier's answers file, the app record in a tenant's inventory ([§ 3 PLX-Platform](platform.md)) and the labels in `compose.yaml` ([PLX-App](../contracts/app.md)) were each read by whichever awk or sed last touched them: `ship` edited markers and frontmatter, `staleness` read frontmatter, `deploy-targets` reads inventory records, `requirements.sh` read module pages, `overview` read answers files.
 Each was honest about its limits, and together they were an unwritten contract: a quoted value, an indented list or a reordered key broke one of them silently.
-`@plexus-ms/lib` now holds one reader of the marker, the module frontmatter, the answers file and the inventory record, and one line-based editor of frontmatter; the compose file is not parsed at all: what the deploy verb needs of it, it asks the running container, which is reality rather than a parse.
+`@plexus-ms/lib` now holds one reader of the marker, the module frontmatter, the answers file and the inventory record, and one line-based editor of frontmatter; the compose file is parsed for one fact only, whether the app service declares a healthcheck, which the deploy verb refuses to go without; everything else the verb needs of it, it asks the running container, which is reality rather than a parse.
 
 **Rung one of the ladder for the verbs themselves.**
 The deploy verb reached a tenant's CI as a checkout of the workflow repo at a version tag, a movable tag; the version tag now pins only the workflows, and every version tag is locked by an immutable release (§ 1.6 PLX).
@@ -85,7 +85,7 @@ Three rules keep a CLI a bag of verbs rather than a system:
   A stranded operator copies the printed commands; that is the degradation test, kept.
 - The tool has no configuration file of its own.
   It reads the artifacts that already exist: markers, inventory, answers files, `compose.yaml`, module pages.
-- The host side needs bash, docker and curl, and nothing else; that stays true.
+- The host side needs bash and docker, and nothing else; that stays true.
   Every command the deploy verb sends over ssh is a one-liner the dry run prints verbatim, so what reaches a host is readable in the plan, not in a script shipped alongside.
 
 
@@ -108,8 +108,8 @@ The verbs move in order of risk, each replacing one script and leaving the rest 
 3. Done: `changed-apps` and `deploy-targets`.
    Read-only, run in CI: each reusable workflow calls `plx` after `mise install`, and the tenant repo takes `plx` as one line in its tools table, written by the repo templates and moved with each version the repo takes.
    `changed-apps` was retired by Plexus 0.111.0 in favour of the content hashes of `plx-ci plan`, which Turbo computes over the same workspace graph.
-4. Done: `deploy`, as a sequence of fine-grained ssh steps over one multiplexed connection, each a one-liner the dry run prints verbatim, the readiness poll the one remote loop, cleanup and the connection's close in a `finally`.
-   Tested with the fake Io and with a fake `ssh` on `PATH` that runs each step locally against a scratch app dir with fake `docker` and `curl`, the old offline harness reborn; the dogfood tenant's deploys are the proof in production.
+4. Done: `deploy`, as a sequence of fine-grained ssh steps over one multiplexed connection, each a one-liner the dry run prints verbatim, the wait for the app service's health the one remote loop, cleanup and the connection's close in a `finally`.
+   Tested with the fake Io and with a fake `ssh` on `PATH` that runs each step locally against a scratch app dir with a fake `docker`, the old offline harness reborn; the dogfood tenant's deploys are the proof in production.
    With it the workflow repo lost its last script, and the workflows' one check is actionlint.
 5. Done: `update`, the tenant side of a version: the pull request by which a repo takes a version, made from inside the repo in a worktree of its branch, mounted by the templates' `update.yml` on a schedule in the tenant's own CI and run by hand otherwise.
    It decides first which version, if any, the repo takes, by the version's step and the repo's interval ([§ 3 PLX-Updates](updates.md)), and it is the only thing that opens that pull request: `ship` ends at the release, and `propagate` is `update` run in every generated repo under a directory.

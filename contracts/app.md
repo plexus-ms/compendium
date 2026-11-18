@@ -108,9 +108,14 @@ A path prefix is the platform's promise in the other direction: an app stays as 
 > - `PLX-App/Healthcheck`: The app service MUST declare a `healthcheck` in the compose file that is cheap, free of side effects, and healthy only when the app can serve real requests.
 
 `plx doctor` checks of `PLX-App/Healthcheck` that the app service declares a `healthcheck`.
+The deploy verb refuses a compose file whose app service declares none, before it reaches the host.
 
-The deploy verb's rollback decision rides on the healthcheck: after `up` it waits for the app service to turn healthy, and rolls back when it does not ([§ 6 PLX-Delivery](../approaches/delivery.md)).
+The deploy verb's rollback decision rides on the healthcheck: after `up` it waits for the app service's container to report `healthy`, and rolls back when it does not ([§ 6 PLX-Delivery](../approaches/delivery.md)).
 Declared in the compose file, the healthcheck is part of the run shape and versions with the code; it names no path the platform has to know, and a third-party image is checked the same way, with whatever command its image allows.
+
+The deploy's wait is bounded, so the healthcheck's timing matters as much as its command.
+Docker probes every five seconds inside the start period unless told otherwise, and every `interval` after it, so an app ready a moment after a fresh start can be seen healthy only many seconds later, or not before the wait runs out.
+A `start_period` at least as long as the deploy's wait, with a short `start_interval` such as `1s`, brings the first probes within a second of a fresh start, and `interval` stays as long as the steady state wants.
 
 What a healthcheck should cover follows from its meaning.
 It includes the hard dependencies the app cannot serve without, such as its own database with a short bounded timeout, and leaves out soft or third-party dependencies the app survives degraded: a down database fails the deploy, correctly, since the new code cannot serve, while a slow mail provider does not.

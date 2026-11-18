@@ -198,6 +198,7 @@ deploy(host, tenant, app, image_ref):
         → on failure: restore the previous file, docker compose up -d, alert
 ```
 
+Before staging, the verb refuses a rendered file whose app service declares no `healthcheck` (`PLX-App/Healthcheck`), which it could never see turn healthy, and never reaches the host.
 A failure anywhere before the swap, a pull or a migrate, leaves the host exactly as it was, so the previous release keeps serving from its own compose file; the failing job is the alert.
 
 The verb reads everything from git (the compose file) and from the host (`docker ps` is runtime truth) and stores nothing.
@@ -205,10 +206,10 @@ The verb reads everything from git (the compose file) and from the host (`docker
 Rollback needs no memory across runs: the verb keeps the previous compose file until the run ends, and the image it pins is still in the host's cache.
 The rollback path never pulls: it has to work while the registry is down or a tag has been pruned, so it re-launches the cached image under the compose file it was serving from.
 
-The wait is deadline-based, not one-shot: the verb waits until the app service reports healthy or a deadline expires (reference: ~60 s).
+The wait is deadline-based, not one-shot: the verb waits until the app service's container reports `healthy` to Docker or a deadline expires (reference: ~60 s).
 A transient blip inside the window is absorbed; only sustained unhealthiness fails the deploy.
 Because the healthcheck covers the hard dependencies, a down database fails the deploy, correctly, since the new code cannot serve, and the ensuing rollback is harmless by idempotence.
-The verb never needs to diagnose *why* readiness failed; it only ever acts on *whether*.
+The verb never needs to diagnose *why* the app service did not turn healthy; it only ever acts on *whether*.
 
 The alert is deliberately minimal: hand-run, it is the verb's nonzero exit and its stderr; mounted in CI, the failing job *is* the alert, surfaced however the forge notifies.
 A richer channel is an observability concern (§ 12.4 PLX).
@@ -219,7 +220,7 @@ That is sound only because the stateful profile makes it sound: every migration 
 For the rare deploy that deliberately breaks that discipline, reverting is a restore from backup, not a re-up.
 
 Two more edges, named rather than implied.
-A *first* deploy has no previous compose file: if the poll fails, the verb simply fails loudly; nothing was serving before, so nothing is lost, and bringing a new app up is the operator's supervised act.
+A *first* deploy has no previous compose file: if the app service does not turn healthy, the verb simply fails loudly; nothing was serving before, so nothing is lost, and bringing a new app up is the operator's supervised act.
 And `compose up -d` re-creates containers in place, so every deploy buys its simplicity with a few seconds of downtime, the accepted trade at this scale; zero-downtime choreography is a deferred decision with a trigger (§ 6.9 PLX), not an ambient expectation.
 
 The verb renders the app's `compose.yaml` from the invoking checkout onto the host, pinning the image ref in place of `${PLEXUS_DEPLOYMENT_IMAGE}`.
@@ -334,7 +335,7 @@ The layering is load-bearing:
   `plx deploy-targets [inventory]` prints each app's deploy target per environment from an operations repo's inventory and refuses an app declared with a target in two files for the same environment; `plan --deploy` uses the same reader from `@plexus-ms/lib`.
   `plx deploy <host> <app> [--image <ref>]` is § 6: every command it sends to the host is one line of shell over a shared ssh connection, and `--dry-run` prints each line verbatim, so `git clone && plx -n deploy …` hands a stranded operator the exact commands, which is what passes the degradation test.
   Every verb reads the three answers as `CI_STRATEGY`, `CI_REGISTRY` and `CI_OVERLAY`, which the reusable workflows set from their inputs, and `--strategy` overrides the first by hand.
-  All of them are tested in `plexus-ms/tooling`, the deploy verb against a fake `ssh` on `PATH` that runs each line locally in a scratch app dir with fake `docker` and `curl`, the instance verbs against a fake cloud.
+  All of them are tested in `plexus-ms/tooling`, the deploy verb against a fake `ssh` on `PATH` that runs each line locally in a scratch app dir with a fake `docker`, the instance verbs against a fake cloud.
   A tenant repo pins both tools in its `mise.toml` at the Plexus version, and the pins are written together with the workflow refs when the repo takes a version ([§ 1 PLX-Updates](updates.md)), so the verbs a workflow asks for are the ones the pinned tools have.
 - **Reusable workflows** are thin mounts: `_check.yml`, `_verify.yml` and `_release.yml`, the three the tenant's `on_*` workflows chain, `_publish-package.yml`, `_deploy.yml`, `_deploy-targets.yml`, `_housekeeping.yml`, `_update.yml` and `_changeset.yml`; actionlint checks them under `mise :verify`.
   Each job is one or two `plx-ci` or `plx` invocations around the mount's plumbing: the checkout, the vault reads for the items § 8 names, the tool installs into the job's home and never with `sudo`, and the strategy expression for `runs-on`.

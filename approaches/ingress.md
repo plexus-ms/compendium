@@ -32,6 +32,10 @@ The reverse proxy is Caddy, and the platform playbook writes the host's routes i
 What sits in front of the VM is a host-level fact, set once in the root config: a layer-4 ingress that routes by SNI may announce the real peer with the PROXY protocol, and a CDN's forwarded client address is believed only from that CDN's published ranges, so the app sees the actual client, and nothing bypassing the proxy can forge it.
 
 
+The proxy also refuses `/healthz` from outside, for every app, and the fence is the same everywhere: the inventory has no record field for it and no per-app exception.
+It is defence in depth: many apps answer their healthcheck on that conventional path, and such a route often probes a database, which is nothing to expose.
+The deploy does not depend on the fence: the app contract fixes no health path, and the deploy waits for the container's health as Docker reports it ([§ 5 PLX-App](../contracts/app.md)).
+
 ## Maintaining
 
 Two roles of `plexus.platform` carry this module: `caddy` installs and enables the server, `ingress` renders the routes after it in the platform playbook (`--tags ingress` for the routes alone).

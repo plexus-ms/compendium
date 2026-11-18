@@ -511,7 +511,7 @@ Packages and system activity record, personal admins, unattended security upgrad
 
 ### § 7.3 Ingress
 
-The proxy's routes are rendered from the app record, public host to loopback port; the proxy is the substitutable piece.
+The proxy's routes are rendered from the app record, public host to loopback port; the proxy is the substitutable piece, and it refuses `/healthz` from outside for every app.
 [PLX-Ingress](../approaches/ingress.md).
 
 ### § 7.4 App environment and secrets delivery
@@ -674,7 +674,7 @@ Today a failed deploy alerts as the failing CI job, hosts mail failed units to a
 ### § 12.5 Uptime
 
 Not covered yet.
-An app's healthcheck is declared in its compose file and run by the container engine on the host ([`PLX-App/Healthcheck`](../contracts/app.md)); what an external monitor watches, and how it learns that an app is down, is still to be written.
+An app's healthcheck is declared in its compose file and run by the container engine on the host ([`PLX-App/Healthcheck`](../contracts/app.md)), and the proxy refuses `/healthz` from outside ([PLX-Ingress](../approaches/ingress.md)); what an external monitor watches, and how it learns that an app is down, is still to be written.
 
 ### § 12.6 Capacity
 

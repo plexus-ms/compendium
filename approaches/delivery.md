@@ -341,6 +341,7 @@ The layering is load-bearing:
   Each job is one or two `plx-ci` or `plx` invocations around the mount's plumbing: the checkout, the vault reads for the items § 8 names, the tool installs into the job's home and never with `sudo`, and the strategy expression for `runs-on`.
   A small or medium job runs on `${{ inputs.strategy == 'github' && 'ubuntu-latest' || 'ci-<size>' }}`; a large job takes its runner from `plan`'s matrix, which is the instance's unique label under `hybrid`, `ci-large` under `on-prem` and `ubuntu-latest` under `github`.
   In `build-and-test` the steps `Build` and `Test` are gated on the leg's `build` flag and `test` hash, the job's name is fixed at `build, test`, since a name computed from the leg shows unevaluated on a skipped job, and the app's build-time key is a step output handed to `Build` alone, so the test that follows on the same machine does not hold it.
+  The test's install, the app's dependencies and Chromium's headless shell with its system libraries, is started in the background before `Build` and awaited after it, by a step that prints its log and takes its outcome; a build that fails leaves it to the end of the job.
   `_deploy.yml` is nested inside `_release.yml` by its full name and the version ref, which the bookkeeping moves with every other, never by a relative `uses:`: a tenant calls the chain at a version tag, which is annotated, and the forge resolves a relative nested call to the tag object rather than its commit and fails to start the run (Plexus 0.111.0 shipped the relative form, tried at a branch where it works, and 0.111.1 is its hotfix).
   `_changeset.yml` is the one mount that writes back to the caller: the changeset `plx changeset` owes, committed to the bot's branch, pushed with a token the caller passes so that its checks run on the new tip.
   Logic never lives in the YAML.
@@ -407,6 +408,8 @@ A cancelled pull request run under `hybrid` deleted its four instances within th
 
 With `build-and-test` as one job, on the same repo under `hybrid`, at the trial of the change: a pull request with every build hash missing took 7:41 on three instances (`plan` 87 s with the launch, the large jobs 5:26 from the first start to the last end, the slowest app's build 101 s and its tests 150 s), where the same day's run of two jobs took 8:14 on four instances for two of the three apps; an app's test started 33 s after its build ended instead of 50 s.
 A pull request that moved one app's test hash and no build hash took 5:52 on one instance.
+With the test's install beside the build, one app's leg spent 97 s on the build and the install together instead of 120 s: the install's 33 s left the path, and the build beside it took 10 s longer, 6 s of them in the prune.
+A leg that only tests waits for the install as before, 28 s with the headless shell alone instead of 33 s with both browsers; every spec passed on the shell.
 The forge-side jobs of a pull request were four to six billed minutes on the forge's runners and are none on a runner host.
 
 **Debts**, open as of Plexus 0.111.0:

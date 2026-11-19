@@ -45,6 +45,7 @@ The playbook is deliberately not called a deploy.
 Deploying is the verb's act ([§ 6 PLX-Delivery](delivery.md)), keyed by an image, while the playbook binds apps to a host and hands them their environment.
 A fresh host is reached as root once (`mise platform -- -u root --limit <host>`), which creates the admins; every later run connects as an admin, and the first of those closes root logins.
 Ops changes are applied by `mise platform` in the tenant's operations repo, dry-run first with `-- --check --diff`.
+No playbook of any layer is mounted on CI: the playbooks act as root on every host, so an operator applies them.
 Ansible skips `command` tasks in check mode, so pull, up, and login only show in the real run.
 The opt-in roles of the baseline (`hostname`, `netbird`, `alloy`) run where the inventory sets `<role>_enabled`, and `mail` where `mail_smtp` is set.
 The shipped playbook therefore lists them unconditionally and the tenant decides per group or host.
@@ -61,6 +62,8 @@ Every host the collections touch gets the same baseline from the `plexus.host` c
 - sshd closed to root and passwords once an admin has logged in (`sshd`).
 
 The opt-in roles add a hostname (`hostname`), an overlay network (`netbird`), local mail to a mailbox (`mail`), the container engine (`docker`) and an observability agent (`alloy`).
+`hostname` names the host after `hostname_fqdn`, the FQDN the host reports unless the inventory sets it; where the role is off, a provider-named host keeps the name its image gave it.
+`netbird` joins a host to the overlay with a setup key from the playbook's environment (`NETBIRD_SETUP_KEY`), needed only on the run that joins it.
 An app host adds the deploy user and the container engine (`plexus.platform.deploy_user`, `plexus.host.docker`); the proxy is [PLX-Ingress](ingress.md)'s.
 A host that runs the tenant's own CI runners instead of apps takes the baseline, the container engine, and `plexus.ci.actions_runners`, through the CI playbook ([§ 8 PLX-Delivery](delivery.md)).
 `plexus.host` has no playbook of its own: it is the layer every other layer stands on, and each layer's playbook lists its roles in the order that layer needs.

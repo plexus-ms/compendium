@@ -82,6 +82,8 @@ A commit pushed to a branch of its own (`on_commit`) asks the cheap half of "is 
 A pull request (`on_pr`) asks the whole of it, `check` then `verify`, on the merge result rather than the branch tip.
 A run that answers nobody is not started: a pushed branch without a pull request gets no build, and a Markdown-only change starts nothing, while the next run that does start loses nothing, since the hashes see past it.
 A push to an environment branch (`on_push`) asks "may this ship": `check`, `verify`, then `release` into the branch's environment, `main` into production and `develop` into staging (§ 3).
+Unlike `on_commit` and `on_pr`, it has no paths filter.
+The forge counts a branch created at a commit the repo already knows as a push of no files, and a filtered workflow would start nothing for it; the hashes make a Markdown-only push cheap anyway.
 Inside each workflow the reusable workflows `_check.yml`, `_verify.yml` and `_release.yml` form a `needs` chain, and `check` gates `verify`: a failed lint launches no instance and builds no image.
 
 `verify` plans once for the whole repo and run.
@@ -166,7 +168,7 @@ Promotion is the whole repo: `develop → main` asserts *everything on `develop`
 Selective promotion would put on prod a repo state that never existed on staging, destroying the one guarantee environment branches exist to give.
 
 Two boundaries of the model.
-The operations repo has no release cycle: its ops side is not an app and the deploy verb never touches it; applying it is a playbook run, its own mount, on its own occasions.
+The operations repo has no release cycle: its ops side is not an app and the deploy verb never touches it; applying it is a playbook run by an operator, never by CI, on its own occasions ([§ 1 PLX-Platform](platform.md)).
 Third-party apps hosted in the operations repo are the exception that proves it: they *are* apps, so the deploy verb does touch them.
 It is mounted on the operations repo's `main` and fanned out over every app under `apps/` with a target in the inventory, the verb itself telling an unchanged app from a changed one.
 And the escape valve is a repo split, not a process patch.
@@ -187,12 +189,22 @@ An app's image is built once per content, in `verify`, and published under its c
 
 The hashes are what `plan` looks up, so a lockfile change or a force-push rebuilds nothing whose inputs did not change, and a change to specs alone re-runs the tests on the existing image.
 The build is hermetic: it runs inside the Dockerfile, so the artifact is correct from any host.
-What *build* means is encoded once, in the repo's task graph, which the Dockerfile invokes exactly as the `build` verb does.
+What *build* means is encoded once, in the packages' `build` scripts, which the Dockerfile runs as the `build` verb does: the app's after those of the workspace packages it depends on.
+It runs them with pnpm, not through Turbo.
+The context may hold this app alone, and Turbo's strict environment mode would hide the build ID and the key from the app's build.
 It is reproducible as far as the stack allows.
 The context is `turbo prune --docker`, so an app's image is independent of the other apps' dependencies, and the base image is pinned by digest.
+`plx-ci build` completes the pruned context to the layout of the repo root, so the one Dockerfile builds from either; its source in `tooling` states how.
 The build ID and the app's server-actions key are fixed from outside, the key read from the vault item `app_<name>`, and timestamps are zeroed.
-What still drifts (Next's preview-mode keys, a package installed at build time) is measured and listed, never gated.
+What still drifts is measured and listed, never gated: a package installed at build time, and Next's preview-mode keys.
+Those cannot be fixed from outside: Next keeps them only in a cache file, which it does not use inside a container, so it draws them at random on every build there.
 Publishing for one platform (amd64) is the default; multi-arch is a deferred decision with a trigger (§ 6.7 PLX).
+
+`test` brings the app's `docker/compose.yaml` up with the override `docker/compose.ci.yaml` beside it, on the machine the job runs on.
+The candidate arrives as `PLEXUS_DEPLOYMENT_IMAGE` and the app's port as `PLEXUS_LOOPBACK_PORT`, as the deploy verb and the platform would hand them over, and the override stands in for `.env` and `.env.secret` with throwaway values.
+The specs run on the runner, outside the stack, with `CI`, `PLEXUS_LOOPBACK_PORT` and `E2E_BASE_URL` set, and with whatever the override's `x-plexus-ci.env` adds, such as the address of the stack's database published to the runner.
+The deploy verb never reads the override, and an app without a `test` script needs none.
+The header of `plx-ci test` states the steps.
 
 The layer cache lives in the registry beside the candidates (`<app>:cache`).
 A build on a fresh machine, the forge's runner or an instance launched for it, starts from the last build's layers and never round-trips a cache through the forge.
@@ -213,7 +225,9 @@ How a release runs:
 - **Two phases.** Changesets accumulate on `main`; `changesets/action` opens a "version packages" PR that bumps versions and writes changelogs; merging it publishes.
   The only manual step is recording a changeset with each publishable change; versioning and publishing run in CI, never locally.
   `on_pr` runs the contract verb plus a `changeset status` guard that fails when a publishable change ships without a changeset; an empty changeset records a no-release change.
+  The "version packages" branch is exempt from the guard: `changeset version` builds it by consuming the changeset files it releases, so changed packages without changesets is its expected state.
 - **The bot's changesets.** The update bot writes no changesets, so its branches are exempt from the guard.
+  The guard counts any file changed under a package's directory, so a devDependency bump would trip it, though it owes no release.
   They get their changeset from `plx changeset`, mounted on the bot's pull requests by `_changeset.yml` and committed to the bot's branch under an author the bot ignores ([§ 2 PLX-Updates](updates.md)).
   A moved runtime dependency owes a patch, a moved peer range a major, a devDependency nothing; the verb's header in `tooling` states the rule in full.
   The rule is the ecosystem's (pnpm's `update --changeset` and Renovate's proposed `changesets` option apply the same one).
@@ -298,6 +312,7 @@ Anything outside it is either an existing tool's job or an architecture change, 
 The verb has one name and three callers.
 An app repo's `release` runs it per app with a target in the environment, after `publish` (§ 4), from the target `plan` read in the inventory.
 The operations repo's `deploy` runs it for the third-party apps under its `apps/`, from `main`, with the image already pinned in the committed file, each app's target looked up in the inventory by the `deploy-targets` verb.
+An app without a `plexus_deploy_target` in the inventory file that declares it has no deployment, and the job's log names it.
 Hand-run, it is `plx deploy deploy@host app --image <ref>` from any checkout that has the compose file.
 `plx -n deploy …` prints every ssh line it would run, which is what makes a forge-less deploy possible, with or without the tool.
 The deploy host is substance: the inventory record's `plexus_deploy_target` ([PLX-Environment](../contracts/environment.md)).
@@ -365,6 +380,7 @@ On the forge's runners and on an instance the job starts the pair itself for its
 Retention is rotation, never garbage collection: writes go to the current month, reads consult both months, and the daily `housekeeping` creates the next month's bucket and deletes the one from two months ago whole.
 That costs one cold build per app a month.
 Under `ghcr` the `housekeeping` of the app repo deletes the package versions whose only tags are candidates older than thirty days; a version carrying a commit is never deleted.
+It is mounted in the app repo because only that repo's own workflow token may delete versions of the packages it published.
 `own` also carries Turbo's remote cache for `check`, in a bucket `<owner>-ci-turbo` with a lifecycle rule, served to the job by a cache server on loopback with a token minted for the job.
 A task whose inputs did not change is then replayed from any earlier job on any runner.
 
@@ -439,6 +455,8 @@ The address the strategy mails to is a fact, the template answer `alerts_email`,
 - `own`: a storage key with read and write on the buckets plus their creation and deletion, the bucket `<owner>-ci-turbo` with a lifecycle rule expiring objects after thirty days, and the first `<owner>-ci-registry-<YYYY-MM>`.
 - `on-prem` and `hybrid`: a runner host in the inventory group `ci`, applied by the operations repo's `ci.yml` (`plexus.ci.playbook`), on the overlay with a policy that lets it reach the app hosts' SSH.
   Its playbook environment holds the App's credentials and, under `own`, the storage key; its slots are set by size (`actions_runners_slots`).
+  Both reach the playbook as `op://` pointers the tenant adds to the operations repo's `secrets.env`, which the wrapper resolves from the vault ([PLX-Secrets](secrets.md)); the generated file holds neither.
+  The role reads them as `CI_APP_CLIENT_ID`, `CI_APP_PRIVATE_KEY` and `REGISTRY_ENDPOINT`, `REGISTRY_REGION`, `REGISTRY_ACCESS_KEY`, `REGISTRY_SECRET_KEY`.
   A Connect server is created in 1Password (Developer tools, Infrastructure Secrets Management) with access to the CI vault.
   Its `1password-credentials.json` and access token go into the item `1password-connect` and reach the role as `CI_CONNECT_CREDENTIALS` and `CI_CONNECT_TOKEN`.
   A tenant that wants no upstream registry between it and its runners builds the runner image on the host from the same Dockerfile (`actions_runners_image_build`).
@@ -465,7 +483,8 @@ The verbs are tested in `tooling`, the deploy verb against a fake `ssh` and a fa
 A workflow is forge-specific and disposable, while a verb is portable and permanent, which is why logic never lives in the YAML.
 
 The templates generate the tenant's workflows: `plexus-ms/template-repo-turbo` for an app repo and, with `publishes_packages`, a package repo; `plexus-ms/template-repo-operations` for the operations repo.
-The upstream repos that are no template's consumer (`tooling`, `compendium`, `template-repo-turbo`) mount `_check.yml` with `tasks: verify` by hand.
+The upstream repos that are no template's consumer (`tooling`, `compendium` and the three templates) mount `_check.yml` with `tasks: verify` by hand.
+A template's `verify` renders it as a newborn repo and runs that repo's own lint or check ([PLX-Updates](updates.md)).
 
 §§ 4 to 6 carry no requirements: what they describe is done by the tooling and the templates, and the requirements the deploy verb serves are PLX-App's.
 Preview environments per pull request are deliberately absent, a deferred decision with its trigger in § 6.8 PLX.

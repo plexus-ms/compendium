@@ -1,11 +1,5 @@
 # Known violations of `plx requirements`: burn them down, never add to them.
 # One per line, as often as each occurs; `plx requirements --write-baseline` rewrites the file.
-date-or-version approaches/exoscale.md: 0.110.0
-date-or-version approaches/exoscale.md: 2026-11-06
-date-or-version approaches/exoscale.md: 2026-11-07
-date-or-version approaches/exoscale.md: 2026-11-07
-date-or-version approaches/exoscale.md: November 2026
-date-or-version approaches/exoscale.md: November 2026
 date-or-version approaches/js.md: 0.119.0
 date-or-version approaches/js.md: 0.60.1
 date-or-version approaches/platform.md: 0.114.0

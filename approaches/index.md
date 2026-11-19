@@ -4,7 +4,8 @@ description: One page per opinionated way to live on one side of a seam — prov
 order: 3
 ---
 
-An approach is an opinionated way to provide or consume a contract, or to do one side's own job ([§ 1.3 PLX](../essentials/standard.md)); a tenant can replace one with its own and remain a Plexus tenant as long as it keeps the contracts.
+An approach is an opinionated way to provide or consume a contract, or to do one side's own job ([§ 1.3 PLX](../essentials/standard.md)).
+A tenant can replace one with its own and remain a Plexus tenant as long as it keeps the contracts.
 A repo takes an approach by its answers file for the approach's template (§ 1.3 PLX); the map (§ 2 to § 13 PLX) says which concern each one covers.
 The columns *Depends on* and *Consumes* repeat each page's frontmatter for the reader; no tool reads them.
 

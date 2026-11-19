@@ -10,18 +10,20 @@ order: 27
 
 This page is the field record of the cloud side of [§ 8 PLX-Delivery](delivery.md): the facts that shaped the throwaway instances and that a tenant on the same provider would otherwise rediscover.
 It is a note: it states no requirement, and nothing here is a primitive.
-Numbers are measurements of November 2026 and age from there; no tenant's identifiers, bucket names or key ids appear here, since those are substance.
+Numbers are measurements and age; git history dates each of them.
+No tenant's identifiers, bucket names or key ids appear here, since those are substance.
 
 
 ## § 1 Why Exoscale
 
 The strategy needs a provider that bills per second, in EUR, has an API that creates a Debian instance with user-data in one call, and runs Docker on a plain VM.
-Exoscale met all four in November 2026; the rejections below are the measurements that ruled the others out.
+Exoscale meets all four; the rejections below are the measurements that ruled the others out.
 It also credits every running instance with outbound traffic (1.42 GiB per hour of runtime into the organisation's pool), which covers the layer traffic of a build.
 
 - Instance limit: 20 across all zones for a new organisation; types up to `cpu.huge` and `standard.huge`.
-- `cpu.extra-large` (8 vCPU, 16 GB) cost €0.23 per hour, billed per second; a 100 GB disk €0.02 per hour, billed also while the instance is stopped.
-  `cpu.huge` (16 vCPU, 32 GB) costs exactly twice that, so it would have to halve every build and test to break even, which a build bound by its single-threaded steps and a test suite bound by its browser will not; the large jobs stay on `cpu.extra-large` (decided 2026-11-07, unmeasured).
+- `cpu.extra-large` (8 vCPU, 16 GB) costs €0.23 per hour, billed per second; a 100 GB disk €0.02 per hour, billed also while the instance is stopped.
+  `cpu.huge` (16 vCPU, 32 GB) costs exactly twice that, so it would have to halve every build and test to break even.
+  A build bound by its single-threaded steps and a test suite bound by its browser will not, so the large jobs run on `cpu.extra-large`; the speed-up is unmeasured.
 - Object storage bills egress to the internet per gigabyte; traffic between an instance and a bucket of the same zone does not count, which is why the builders and the registry bucket share one zone.
 
 
@@ -39,9 +41,11 @@ Measured from the create call to cloud-init's `final` stage on the stock templat
 The create call itself takes about 21 s, and the instance type barely matters.
 With Docker installed by cloud-init the figure rises to 39–50 s; pulling a Postgres image afterwards takes 5–7 s.
 A stopped instance is back on SSH about 17 s after `start`.
-A `create-instance` operation is usually done within the minute and once stayed `pending` past it (2026-11-07), so the launch waits three minutes for one; an instance in state `starting` cannot be deleted (`HTTP 400: Only running or stopped instances can be deleted`), which the cleanup retries every ten seconds for two minutes.
+A `create-instance` operation is usually done within the minute and has stayed `pending` past it, so the launch waits three minutes for one.
+An instance in state `starting` cannot be deleted (`HTTP 400: Only running or stopped instances can be deleted`), which the cleanup retries every ten seconds for two minutes.
 A security group with no rules drops all inbound traffic.
-The group the instances run in admits SSH (TCP 22) and nothing else, so that the launch can read a missed instance; without that rule the launch's diagnosis times out whatever state the instance is in, and reads like a dead boot.
+The group the instances run in admits SSH (TCP 22) and nothing else, so that the launch can read a missed instance.
+Without that rule the launch's diagnosis times out whatever state the instance is in, and reads like a dead boot.
 
 
 ## § 3 User-data
@@ -60,27 +64,31 @@ An instance sometimes never comes online: no SSH, no runner registration, no clo
 What is known, from 29 launches on one day with 7 misses, and none in 93 bare probe boots:
 
 - It is random per instance, not per zone, type or time of day.
-- It was only ever seen on instances launched from a GitHub-hosted job, three creates within one second, each with a 100 GB disk and real user-data; bare probes from a workstation, single creates with marker user-data, never stalled, not even while a workflow's launches were stalling in the same minute.
+- It was only ever seen on instances launched from a GitHub-hosted job, three creates within one second, each with a 100 GB disk and real user-data.
+  Bare probes from a workstation, single creates with marker user-data, never stalled, not even while a workflow's launches were stalling in the same minute.
 - At least one miss was a late boot rather than a dead one: the instance came up two to five minutes after creation.
   Whether the others would have come up was not observed, because they deleted themselves first.
-- The one stalled boot whose log was read placed the stall at the network step: the Exoscale datasource hands cloud-init no network configuration, cloud-init applies a fallback DHCP configuration on a NIC it renames to `eth0` by MAC address, and only then fetches metadata and sets the hostname.
+- The one stalled boot whose log was read placed the stall at the network step.
+  The Exoscale datasource hands cloud-init no network configuration; cloud-init applies a fallback DHCP configuration on a NIC it renames to `eth0` by MAC address, and only then fetches metadata and sets the hostname.
 
-**The first stalled disk read**, 2026-11-06, an instance kept by the launch and exported as a snapshot, was not a stalled boot.
+**The first stalled disk read**, of an instance kept by the launch and exported as a snapshot, was not a stalled boot.
 The boot was clean: network, hostname and every cloud-init stage done 14.7 s after power-on, sshd listening.
 Three seconds into the boot, `apt-daily-upgrade.service` started, the persistent timer catching up the daily run the weeks-old image had missed, and unattended-upgrades held the dpkg lock for 55 s.
 The user-data's `apt-get` calls in that window failed at once, so neither Docker nor the user `runner` came to exist, and the runner unit failed with `217/USER`.
 Whether the catch-up lands inside the user-data's window is timing, which fits every point above: random per instance, only with real user-data (a bare probe installs nothing), and never in a bare probe.
-From the version after 0.110.0, the user-data masks the apt timers and services and kills whichever of them already holds the lock before its first `apt-get` (`plexus-ci-apt-free`); a wait on the lock would cost the minute.
-The late boots and the network-step reading above predate this and may have other causes, so the trap stays.
+The user-data therefore masks the apt timers and services and kills whichever of them already holds the lock before its first `apt-get` (`plexus-ci-apt-free`); a wait on the lock would cost the minute.
+The late boots and the network-step reading above may have other causes, so the trap stays.
 
 It is characterised, not pinpointed.
 The launch therefore treats a miss as expected ([§ 8 PLX-Delivery](delivery.md)): it waits a bounded time for the runner to register, keeps and stops the instance that missed, mails, and launches a replacement.
 
 **Reading a stalled disk.**
 The logs survive on the instance's disk, and a stopped instance costs only its disk.
-In the portal console, reboot the instance, edit the GRUB entry and append `systemd.debug-shell=1`, boot, switch to tty9 for a root shell without a password, and read `/var/log/cloud-init.log` and `/var/log/cloud-init-output.log`; the previous boot's lines are the ones before the reboot.
+In the portal console, reboot the instance, edit the GRUB entry and append `systemd.debug-shell=1`, and boot.
+Switch to tty9 for a root shell without a password, and read `/var/log/cloud-init.log` and `/var/log/cloud-init-output.log`; the previous boot's lines are the ones before the reboot.
 `journalctl --list-boots` and `journalctl -b -1` give the kernel's and systemd's view of the stalled boot.
-If the log is not conclusive, reproduce across a matrix with bare probes, five boots per cell over two templates and two instance types, and count the stalls per cell; a cell that never stalls is the pragmatic answer.
+If the log is not conclusive, reproduce across a matrix with bare probes, five boots per cell over two templates and two instance types, and count the stalls per cell.
+A cell that never stalls is the pragmatic answer.
 
 
 ## § 5 IAM
@@ -109,6 +117,6 @@ Whether IAM can restrict the self-delete role to instances carrying a label is u
 
 ## Maintaining
 
-Kept current by whoever runs the hybrid strategy; a number that is re-measured replaces the old one with its date.
+Kept current by whoever runs the hybrid strategy; a number that is re-measured replaces the old one, and git history keeps when.
 The page is linked from § 8.2 PLX, where rented machines are otherwise not covered, and from § 8 PLX-Delivery.
 It is promoted to nothing: if a second provider is ever run, its notes get a page of their own, and what both share moves into PLX-Delivery.

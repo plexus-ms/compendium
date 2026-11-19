@@ -23,15 +23,24 @@ A shared thing inside one repo is a workspace dependency, and within a tenant a 
 A repo has one access boundary and one release cycle, so nothing can be shared across repos by reference without dissolving one or the other; that single fact generates the rule.
 Within a repo: pnpm workspaces, instant edits, atomic cross-package commits, no publish overhead, safe because it is one access boundary.
 Across repos: published, versioned packages, the only mechanism that crosses a boundary, buying decoupled upgrade timing (a consumer pins `^2` and upgrades when *it* chooses) and update-bot propagation (the bot needs a version to detect).
-Two repos of one tenant are no exception: a private package in the tenant's own registry crosses their boundary the same way, and a shared thing that hurts to publish is a signal the repo split was wrong, never a reason to reach across.
+Two repos of one tenant are no exception: a private package in the tenant's own registry crosses their boundary the same way.
+A shared thing that hurts to publish is a signal the repo split was wrong, never a reason to reach across.
 Across tenants, only upstream methodology travels.
 
-Anything that can live behind a stable interface propagates as a versioned dependency: the `@plexus-ms/*` packages (extended in one line), the reusable workflows and the verbs they mount (the version tag of `tooling` and the `plx` published from it), the `plexus.platform` Ansible collection (installed from the version tag of `tooling`), the shared update-bot preset.
+Anything that can live behind a stable interface propagates as a versioned dependency:
+
+- the `@plexus-ms/*` packages, extended in one line;
+- the reusable workflows and the verbs they mount, by the version tag of `tooling` and the `plx` published from it;
+- the `plexus.*` Ansible collections, installed from the version tag of `tooling`;
+- the shared update-bot preset.
+
 Fix once → bump version → a PR in every consumer repo.
-Every pin has exactly one writer: the pins that name the Plexus version (the workflow refs, the collection pin, the `plx` pin) are written with each version, all in one pull request per consumer, and the update bot proposes every other pin and never those; a template states no other version at all, only the majors its own files rely on (§ 3).
+Every pin has exactly one writer.
+The pins that name the Plexus version (the workflow refs, the collection pin, the `plx` pin) are written with each version, all in one pull request per consumer.
+The update bot proposes every other pin and never those, and a template states no other version at all, only the majors its own files rely on (§ 3).
 A pin written with a version lives in a file the template owns.
 The initiative's libraries are not such pins: they carry versions of their own (§ 1.5 PLX), and the bot moves them like any dependency (§ 2).
-Two writers on one line is how the template birth values rotted and the three-way merges conflicted before.
+Two writers on one line make it rot: the one nobody updates falls behind, and the three-way merge conflicts.
 Consumers customize by overriding at the edges, inheritance with a local override slot: a consumer's `biome.json` extends the shared one and adds local rules, so base updates never clobber local changes, because they live in different files.
 Take the dependency, override at the edge, never fork the base.
 
@@ -45,36 +54,52 @@ The preset and the repo templates do the rest of this section, and a tenant read
 
 - An operations repo pins the `plexus.platform` collection by tag in its `requirements.yml`.
 - `@plexus-ms/*` packages on their own semver merge their patch and minor updates once CI is green.
-- The pins that name the Plexus version (the workflow refs, the collection pin, the `plx` pin) are never proposed by the update bot; they arrive in the pull request by which the repo takes a version (§ 3), which a human reads before anything new runs in CI or as root.
+- The pins that name the Plexus version are never proposed by the update bot.
+  They arrive in the pull request by which the repo takes a version (§ 3), which a human reads before anything new runs in CI or as root.
 - Third-party patch, minor and digest updates reach a repo together, in one pull request a week, which merges unattended once CI is green, except in an operations repo, where it waits for a human.
-- Third-party majors, minors below 1.0.0, and the updates of a dependency on a prerelease never merge unattended, and come in pull requests of their own.
+- Third-party majors, minors of a `0.x` dependency, and the updates of a dependency on a prerelease never merge unattended, and come in pull requests of their own.
 - Lock file maintenance runs weekly, in a pull request of its own, and merges unattended once CI is green.
 - A security fix is proposed at once, in a pull request of its own, and merges unattended once CI is green.
 - A repo that publishes packages keeps their ranges wide: a range in `dependencies` or `optionalDependencies` moves only when a release falls outside it, and a range in `peerDependencies` is widened, not moved.
-- A third-party npm release is neither installed nor proposed before it is three days old, a security fix included; the package manager enforces the age at install time and the bot before it opens a pull request; `@plexus-ms/*` packages are exempt, and so is the pnpm a repo is born with (§ 3).
+- A third-party npm release is neither installed nor proposed before it is three days old, a security fix included.
+  The package manager enforces the age at install time and the bot before it opens a pull request; `@plexus-ms/*` packages are exempt, and so is the pnpm a repo is born with (§ 3).
 
-The repo templates ship that line as `renovate.json`, so a generated repo runs the recommended stratification from its first bot run: `@plexus-ms/*` patch and minor updates merge on green CI, and so does the weekly pull request of everything else, while the pins that name the Plexus version move only in the pull request by which the repo takes a version (§ 3), never the bot's and never auto-merged.
-That is one pull request per version the repo takes, not one per version that is cut.
+The repo templates ship that line as `renovate.json`, so a generated repo runs this stratification from its first bot run.
+The pins that name the Plexus version move in one pull request per version the repo takes, not one per version that is cut.
 
 Third-party updates are batched because their stream is steady and each one's risk is small: one pull request per dependency and release became a daily queue of hand merges, and a queue like that teaches merging without reading.
 Once a week, on Monday morning, every third-party patch, minor and digest update from every manager moves in one pull request, and lock file maintenance moves in a second, because Renovate never groups it with other updates.
 Both merge themselves once CI is green, and a red one waits for a human, which is the fallback.
 The bot merges on its own next run, so the merge needs no native auto-merge on the forge and works in a private repo on any plan.
-What stays outside the group is what semver itself says may break: majors, minors below 1.0.0, and every update of a dependency that is on a prerelease; each comes alone and waits for a human, and a node or TypeScript major also waits for approval on the dependency dashboard.
-A security fix comes alone and at once, but still after the three-day release age: the bot's own default for alerts is no age at all, which the package manager would reject; in an emergency a human excludes the one version in `pnpm-workspace.yaml`.
+What stays outside the group is what semver itself says may break: majors, minors of a `0.x` dependency, and every update of a dependency that is on a prerelease.
+Each comes alone and waits for a human, and a node or TypeScript major also waits for approval on the dependency dashboard.
+A security fix comes alone and at once, but still after the three-day release age: the bot's own default for alerts is no age at all, which the package manager would reject.
+In an emergency a human excludes the one version in `pnpm-workspace.yaml`.
 
 Two sub-presets sharpen the shared one, and the repo templates extend them.
 An operations repo extends `operations`, under which the weekly group waits for a human: there a merge to `main` deploys a third-party image to production, and the only check before it is the playbooks' syntax.
-A package repo extends `library`, which keeps published ranges wide: an upstream release inside a range reaches only the lock file, which owes no changeset and forces no release, and a peer range is widened so that consumers on the older major keep working.
+A package repo extends `library`, which keeps published ranges wide.
+An upstream release inside a range reaches only the lock file, which owes no changeset and forces no release, and a peer range is widened so that consumers on the older major keep working.
 
-The three-day release age is one decision enforced on both sides of the install: the preset sets `minimumReleaseAge` for everything it watches, and the repo template's `pnpm-workspace.yaml` sets the same 4320 minutes with `@plexus-ms/*` excluded, so pnpm refuses a younger version whether it arrives through the bot, a hand edit, or a transitive resolution.
-A bot that proposed a release the package manager rejects would only open red PRs, which is what happened when pnpm 11 turned its own one-day default on; the two numbers are kept equal so that neither side ever hides the other's verdict, and the initiative's own packages skip the wait because they are published by the maintainers under § 1.6 PLX.
+The three-day release age is one decision enforced on both sides of the install.
+The preset sets `minimumReleaseAge` for everything it watches, and the repo template's `pnpm-workspace.yaml` sets the same 4320 minutes with `@plexus-ms/*` excluded.
+pnpm therefore refuses a younger version whether it arrives through the bot, a hand edit, or a transitive resolution.
+A bot that proposed a release the package manager rejects would only open red PRs; the two numbers are kept equal so that neither side ever hides the other's verdict.
+The initiative's own packages skip the wait because they are published by the maintainers under § 1.6 PLX.
 
-How unattended the merge is, is stratified by blast radius, because one policy does not fit four risk classes: the initiative's own packages run inside an app with immutable, provenance-attested versions; third-party dependencies run in CI, in the image build and inside the app, and are judged per update by what semver promises; the workflows and `plx` run in tenant CI next to its secrets; the Ansible collection runs with root on tenant hosts.
-The default posture is deliberately not trust-maximal: unattended propagation is granted per risk class, each tenant's bot config records the stratification it chose, and the risk appetite behind that choice is the tenant's own.
+How unattended the merge is, is stratified by blast radius, because one policy does not fit four risk classes:
+
+- the initiative's own packages run inside an app with immutable, provenance-attested versions;
+- third-party dependencies run in CI, in the image build and inside the app, and are judged per update by what semver promises;
+- the workflows and `plx` run in tenant CI next to its secrets;
+- the Ansible collections run with root on tenant hosts.
+
+The default posture is deliberately not trust-maximal: unattended propagation is granted per risk class.
+Each tenant's bot config records the stratification it chose, and the risk appetite behind that choice is the tenant's own.
 A tenant choosing differently overrides the shared rules in its own `renovate.json`, which is where the deviation is recorded.
 
-In a package repo the bot's bump is given the changeset it owes by `plx changeset` ([§ 5 PLX-Delivery](delivery.md)), committed to the bot's branch; the preset lists that commit's author in `gitIgnoredAuthors`, so a branch the verb committed to is still the bot's to rebase, and the verb adds the file back after every rebase.
+In a package repo the bot's bump is given the changeset it owes by `plx changeset` ([§ 5 PLX-Delivery](delivery.md)), committed to the bot's branch.
+The preset lists that commit's author in `gitIgnoredAuthors`, so a branch the verb committed to is still the bot's to rebase, and the verb adds the file back after every rebase.
 
 
 ## § 3 Templates
@@ -83,10 +108,12 @@ In a package repo the bot's bump is given the changeset it owes by `plx changese
 > - `PLX-Updates/Interval`: The interval a tenant sets SHOULD NOT exceed 30 days.
 
 Scaffolding is the last resort, chosen per artifact in three tiers, and a generated repo is where the tiers meet.
-Most of a repo's arrangement arrives as a dependency (tier one); what cannot arrives through the template and is re-synced by copier's three-way merge against local edits, surfacing conflicts explicitly, template as living dependency rather than `cp` (tier two); and the genuine remainder is kept visibly versioned by the repo's `plx` pin (tier three), never invisibly stale.
-`copier update` is the structural counterpart of a dependency bump: the hosted bot cannot run it, so a verb of the pinned tool does, `plx update`, and the result is a pull request on a `plexus/<version>` branch, conflicts committed with their markers so that they are resolved where they are reviewed; the tenant reviews and merges.
-Cutting a version and a repo taking it are separate events.
-The maintainers cut a version when the methodology has moved.
+Most of a repo's arrangement arrives as a dependency (tier one).
+What cannot arrives through the template and is re-synced by copier's three-way merge against local edits, surfacing conflicts explicitly: the template as a living dependency rather than `cp` (tier two).
+The genuine remainder is kept visibly versioned by the repo's `plx` pin (tier three), never invisibly stale.
+`copier update` is the structural counterpart of a dependency bump: the hosted bot cannot run it, so a verb of the pinned tool does, `plx update`.
+The result is a pull request on a `plexus/<version>` branch, conflicts committed with their markers so that they are resolved where they are reviewed; the tenant reviews and merges.
+Cutting a version (§ 1.5 PLX) and a repo taking it are separate events.
 Modules do not drive updates: what a version changed in a module's text is not what makes a repo take it.
 The step by which a version's number moves says how urgent it is (§ 1.5 PLX), and the rule is this:
 
@@ -100,29 +127,47 @@ Between the versions it takes, the repo rests on the version it has.
 That is safe because every pin it holds is immutable (§ 1.6 PLX): a repo on an old version keeps working.
 A repo that takes a version takes every version in between in one jump; copier merges it the same way, the merge is only larger, and the interval bounds how large.
 
-One mount opens the pull request: the repo's own `plx-update.yml`, generated by the repo templates, runs the verb once a day in the tenant's CI with an identity of the tenant's own (a GitHub App, Maintaining).
+One mount opens the pull request: the repo's own `plx-update.yml`, generated by the repo templates, runs the verb once a day in the tenant's CI.
 A run that takes nothing says in one line that the repo rests and why, and opens nothing, so the daily schedule costs nothing and a hotfix is met on the day it is cut.
-The maintainers open no pull request in anybody's repo: `plx-dev ship` cuts the version and ends there.
+The maintainers open no pull request in anybody's repo.
 A `plexus/<version>` branch already on origin is never moved, so a scheduled run cannot overwrite a conflict somebody is resolving; deleting the branch is how a pull is redone.
 The pull is made by the `plx` the repo pins, the one of the version it rests on, so a change to the pull itself reaches a repo one pull late.
+The verb decides before it touches anything, from the compendium's releases: their numbers give each version's step, and their dates are what the interval is measured against.
+It works in a worktree of the branch the version lands on (`develop` in an app repo, `main` in an operations or package repo), so a checkout run by hand stays as it was; its header in `tooling` states the steps.
+A run that takes a version names its reason in the pull request, so a reviewer knows why this one arrived.
+`plx propagate` runs the same verb, under the same rule, in every generated repo under a directory, for an operator with many repos checked out side by side.
+
+The verb needs an identity of the tenant's own, because a push with the workflow token starts no checks, and the pull request should be opened by something the tenant controls.
+That identity is the tenant's one GitHub App, the App its CI already uses ([§ 8 PLX-Delivery](delivery.md)), installed on its repos with contents, pull requests and workflows write, the last because every version moves the workflow refs.
+The mount takes the App's client ID and key from the variable `GH_CLIENT_ID` and the secret `GH_PRIVATE_KEY` where a repo or its organisation holds them, and from the item `github-app` of the CI vault otherwise.
+On GitHub Free, organisation secrets and variables reach public repositories only.
+A repo that has neither fails the run with one line naming both: a repo that takes no version is to be seen, not skipped.
+The key never leaves the tenant: an app token is scoped to its installation, but the key mints tokens for every installation of the app, which is why the app is the tenant's and not the upstream's.
 
 A template states a third-party dependency by the major its own files rely on (`"next": "^16"`), never by a version.
-The repo's first install resolves the newest release the three-day age allows, the repo's update bot is the only writer from then on, and the template line stays as it is until the template moves to a new major, which is a decision and the one occasion its three-way merge is meant to conflict.
+The repo's first install resolves the newest release the three-day age allows, and the repo's update bot is the only writer from then on.
+The template line stays as it is until the template moves to a new major, which is a decision and the one occasion its three-way merge is meant to conflict.
 An exact version in a template would have two writers, the template's author and the tenant's bot, and nobody updates the first: it falls behind until it conflicts.
 Two pins the toolchain needs exact are not in the template at all: pnpm's `packageManager`, because corepack accepts no range, and Biome ([§ 1 PLX-JS](js.md)).
 The repo template's copy-only tasks write both when the repo is generated, at the newest release, with two accepted limits.
 Corepack ignores the release age, so a repo can be born on a pnpm younger than three days.
 pnpm saves an exact version only when it is given no range, so Biome is born at its newest release whatever the major, and a Biome major the shared config does not support yet fails the new repo's first lint.
 
+A template line adjacent to a line the update bot moves conflicts on every version that changes it, whatever its own value, since git refuses touching hunks.
+A line rewritten with every version (the `plx` pin) is therefore kept between comment lines the bot never touches, and a manifest's dependency map is never such a place.
+
 
 ## Maintaining
 
-The templates, `plexus-ms/template-repo-turbo`, `template-app-nextjs`, and `template-repo-operations`, are arrangement authorities, not conveniences: the standard defers the concrete toolchain arrangement to them, so they need real versioning discipline and carry the Plexus version like the tooling.
+The templates, `plexus-ms/template-repo-turbo`, `template-app-nextjs`, and `template-repo-operations`, carry the Plexus version like the tooling: the standard defers the concrete toolchain arrangement to them, so they are arrangement authorities, not conveniences.
+They ship `plx-update.yml` and `renovate.json`; `plexus-ms/libraries` is generated from `template-repo-turbo` (answer `publishes_packages`) and takes its arrangement like a tenant's web repo.
+`tooling` ships `plx update`, `plx propagate` and `plx changeset`, the reusable `_plx-update.yml` and `_changeset.yml`, and the shared Renovate preset under `renovate/`.
+
 The three tiers decide where a new artifact goes:
 
 1. **Convert to a dependency if at all possible.**
    Most "boilerplate" is secretly extractable; a `mise.toml` can `include` a shared, version-pinned task file, keeping only project-specific tasks local.
-   This is the highest-value work; every bit extracted moves from the rotting pile to the auto-propagating pile, and the version pin lets the update bot carry the updates.
+   This is the highest-value work: every bit extracted moves from the rotting pile to the auto-propagating pile, and the version pin lets the update bot carry the updates.
 2. **Use a re-appliable scaffolder, not `cp`.**
    copier records the template version a project was generated from and merges updates like a rebase.
 3. **For the genuine remainder, make staleness visible:** the `plx` pin in a repo's `mise.toml` names the version the repo is on, mechanically readable, so a repo that has drifted behind the current version shows it.
@@ -130,48 +175,16 @@ The three tiers decide where a new artifact goes:
 
 One bootstrap shortcut is permitted and bounded: static config (tsconfig, biome) can be pulled by git-dep or `degit` into a template on day one, replaced by proper publishing once stable, but never for `@plexus-ms/std`.
 
-The shared Renovate preset lives in `tooling` under `renovate/` and is read from the default branch, as Renovate presets conventionally are, so a change to it reaches every tenant's next bot run without a version.
-That makes every edit a change to every tenant's merge policy at once, and it is reviewed as one: widening automerge there widens it everywhere.
-It is one preset for every Plexus repo, the upstream ones included: every pin that names the Plexus version is written with it in every repo that carries it, so there is no repo left in which the bot should bump them.
-An operations repo pins each collection as `https://github.com/plexus-ms/tooling.git#/ansible/<layer>/`; the galaxy manager drops the subdirectory, so the version-pin rule matches these pins by the bare URL and the bot never proposes them.
-The sub-presets `library` and `operations` are read from the default branch like the shared preset, but a repo extends them through its template, so a new sub-preset reaches a repo with the version that adds its line.
-`gitIgnoredAuthors` names the one author that commits to the bot's branches, `plx changeset`'s; a second such author is added here, never in a tenant's own config, because a branch the bot stops rebasing is stale in every repo at once.
+The shared preset is read from the default branch, as Renovate presets conventionally are, so a change to it reaches every tenant's next bot run without a version.
+Every edit is therefore a change to every tenant's merge policy at once, and it is reviewed as one: widening automerge there widens it everywhere.
+It is one preset for every Plexus repo, the upstream ones included, since every pin that names the Plexus version is written with the version wherever it is carried.
+An operations repo pins each collection as `https://github.com/plexus-ms/tooling.git#/ansible/<layer>/`; the galaxy manager drops the subdirectory, so the version-pin rule matches these pins by the bare URL.
+The sub-presets `library` and `operations` are read from the default branch too, but a repo extends them through its template, so a new sub-preset reaches a repo with the version that adds its line.
+`gitIgnoredAuthors` names the one author that commits to the bot's branches, `plx changeset`'s.
+A second such author is added in the preset, never in a tenant's own config, because a branch the bot stops rebasing is stale in every repo at once.
 
-Cutting and taking are separate tools as they are separate events (§ 3), and two tests keep them apart: the upstream tooling works with no knowledge of any consumer, and the tenant tooling works with published artifacts and the tenant's own repos alone.
-The upstream tooling is `plx-dev` in `tooling`, never published and run from the maintainers' checkout ([PLX-CLI](cli.md)); the tenant tooling is the published `plx`.
-From that checkout, `mise ship -- -y` writes the bookkeeping, tags and releases the version, and ends there: it looks for no consumer and opens no pull request.
-Every repo generated from the templates pulls the version itself, the maintainers' own like any tenant's: the templates' `plx-update.yml` mounts `plx update` on a daily schedule and on demand, through the reusable `_plx-update.yml` in `tooling`, and the verb works in a worktree of the branch the version lands on (`develop` in an app repo, `main` in an operations or package repo), so a developer running it by hand keeps their checkout as it was.
-The verb asks the forge for the compendium's releases: the newest is the newest version because every version tag has one (§ 1.6 PLX), their numbers give each version's step, and their dates are what the interval is measured against.
-The compendium is asked because it is released last, so a version shows to a repo only once it is cut everywhere.
-It decides before it makes a worktree: a resting run prints its one line and exits zero, and a run that takes the version names its reason in the pull request, so a reviewer knows why this one arrived.
-The schedule stays daily for that reason, and the interval is an answer of the repo template (`update_max_age`, in days), read by the verb from the repo's answers file, so that the schedule, a run by hand and `propagate` agree on it and a tenant's deviation from a week is one line in a file it owns; a repo whose answers do not say is held to seven days.
-`plx propagate` is the operator's convenience over the same verb: it runs `plx update` in every generated repo under a directory, from the published tags, under the same rule and with the same way to ask, and ends with one summary of what rests, what is clean, conflicted or failed, and the pull requests.
-It needs no `plexus-ms` checkout, and a tenant's operator runs it as the maintainers do.
-
-The step is the maintainers' to choose when they cut a version, and the rule of § 3 holds only if it is chosen honestly.
-A hotfix is cut as a patch version (`mise ship -- -y --to <version>`), a routine version as the next minor, which is what `ship` picks when it is given no version, and a changed contract as a major; `ship` takes the number it is given and checks nothing about its step.
-Releases stay in lockstep: a patch, like any version, is cut on every versioned repo.
-Each version's GitHub release lists the subjects of the commits since the previous version, written by `ship` in every repo, so a tenant reads there what a version concerns before the pull request arrives.
-
-One debt.
-`mise ship -- -n` in `tooling` still previews the unreleased templates against scratch clones of the workspace's consumers; that is a maintainer's test of a version before it is cut, not propagation, and it leaves `ship` for a canary of its own.
-
-The verb needs an identity of the tenant's own, because a push with the workflow token starts no checks and the pull request should be opened by something the tenant controls: the tenant's one GitHub App, the App its CI already uses ([§ 8 PLX-Delivery](delivery.md)), installed on its repos with contents, pull requests and workflows write, the last because every version moves the workflow refs; a package repo's changeset job pushes with the same App.
-There was a second App for this at first, with the variable `PLX_APP_ID` and the secret `PLX_APP_PRIVATE_KEY`; it was merged into the CI's, since the tenant is the trust boundary and two Apps inside it isolated nothing a tenant relied on.
-The mount takes the App's client ID and key from the variable `GH_CLIENT_ID` and the secret `GH_PRIVATE_KEY` where a repo or its organisation holds them (on GitHub Free, organisation secrets and variables reach public repositories only), and from the item `github-app` of the CI vault otherwise.
-A repo that has neither fails the run with one line naming both: a repo that takes no version is to be seen, not skipped.
-The key never leaves the tenant: an app token is scoped to its installation, but the key mints tokens for every installation of the app, which is why the app is the tenant's and not the upstream's.
-`libraries` is a consumer of `template-repo-turbo` like a tenant's web repo (answer `publishes_packages`), so the package-repo arrangement is propagated and no longer hand-maintained.
-The templates hold no version the update bot moves (§ 3), so propagation never meets a line with two writers, and no newest-wins rule is needed in the verb.
-What remains was learnt on the first versions of the consolidated layout: git refuses touching hunks, so any template line adjacent to a line the update bot moves conflicts on the version that changes it, whatever its own value.
-A line rewritten with every version (the `plx` pin) is therefore kept between comment lines the bot never touches, and a manifest's dependency map is never such a place.
+Cutting and taking are separate tools as they are separate events, and two tests keep them apart.
+The upstream tooling, `plx-dev` (§ 1.5 PLX), works with no knowledge of any consumer; the tenant tooling, the published `plx`, works with published artifacts and the tenant's own repos alone.
+The compendium's releases are what `plx update` reads because the compendium is released last, so a version shows to a repo only once it is cut everywhere.
 
 `plx doctor` (§ 13.4 PLX) is the repo's own verb, run in the repo against the `plx` it pins ([§ 6 PLX-CLI](cli.md)).
-
-Deferred: self-hosting the update bot.
-The hosted bot runs each repo every few hours, and it merges a green pull request only on its own run, unless the forge's native auto-merge takes over; that needs a required check on the default branch, which blocks the direct pushes `ship` makes, and on a free plan a private repo has no auto-merge at all.
-Requiring checks and listing bypasses is rejected as machinery out of proportion to the wait; the interim lever is the dashboard's "run again" checkbox, which starts a run within minutes.
-Self-hosting is the sketch on file: a reusable `_renovate.yml` in `ci-cd` running Renovate for the calling repo only, mounted by every repo on three occasions: `workflow_run` when `verify` finishes on a bot branch, so a green bump merges at once, `workflow_dispatch` for a run on demand, and a schedule as the fallback.
-Renovate's `postUpgradeTasks` would then write the changeset a bump owes inside the bot's own commit, retiring `_changeset.yml` and the ignored author.
-Its costs are named up front: one GitHub App per tenant, since a token that writes to every repo it serves cannot cross a trust boundary (taking a version already pays this one); no release-triggered runs in tenants, because the upstream never reaches into a tenant's repos; Actions minutes on private repos unless the tenant's own runner takes the job; the hosted app uninstalled wherever the workflow runs; and a bot that is the tenant's to operate.
-Reopened when waiting on the hosted bot still costs time after the checkbox has been tried, piloted first in `plexus-ms`, whose repos are public and run on the forge's runners.

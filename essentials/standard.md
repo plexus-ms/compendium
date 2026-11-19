@@ -62,11 +62,13 @@ Tenants usually build and ship software:
 
 IT operations is a layered concern. We are adopting the commonly used language of on-premises, IaaS, PaaS, and SaaS:
 
-- **App/Software layer** — on top of the platform layer, the software a tenant provides as a service and the data it holds: the apps the tenant builds in its app repos and the third-party apps it merely operates from its operations repo, each meeting the app contract ([PLX-App](../contracts/app.md)).
+- **App/Software layer** — on top of the platform layer, the software a tenant provides as a service and the data it holds.
+  These are the apps the tenant builds in its app repos and the third-party apps it merely operates from its operations repo, each meeting the app contract ([PLX-App](../contracts/app.md)).
   It is the equivalent of a tenant being its own SaaS provider, and it is the dev side: everything from the domain core up to the seam where the platform provides the surroundings.
 - **Platform layer** — what makes any existing production host run a tenant's app and provide it as a service: the host baseline, the container engine and proxy, ingress, environment and secrets delivery, applied by the operations repo's playbooks ([PLX-Platform](../approaches/platform.md)).
   It is the equivalent of a tenant being its own PaaS provider, running the layer between the infrastructure below and the apps above.
-- **Infrastructure layer** — underneath the platform layer, this is what makes a tenant's hosts exist, reachable, and restorable: bought from a provider as IaaS (virtualized cloud instances etc.), or built by the tenant on bare metal of its own (on-premises or bare metal rented from a provider, [PLX-Infrastructure](../approaches/infrastructure.md)).
+- **Infrastructure layer** — underneath the platform layer, this is what makes a tenant's hosts exist, reachable, and restorable.
+  The hosts are bought from a provider as IaaS (virtualized cloud instances etc.), or built by the tenant on bare metal of its own (on-premises or bare metal rented from a provider, [PLX-Infrastructure](../approaches/infrastructure.md)).
 
 
 ### § 1.3 Modules and maturity
@@ -122,16 +124,18 @@ Notes have titles and no code.
 #### Granularity
 Modules are cut for understanding: one module per concern a reader can hold in their head, so that someone who needs to know how delivery works reads one page and not four.
 A module says at each section which kind of consumer it binds, and a unit that does not meet one of its requirements owns that in its marker (§ 1.4).
-Ingress, secrets delivery, and backups are separate modules because they are separate concerns to the reader, although one playbook mounts them; the delivery verbs, the branch model and the deploy semantics are one module because a reader of any of them needs the others.
+Ingress, secrets delivery, and backups are separate modules because they are separate concerns to the reader, although one playbook mounts them.
+The delivery verbs, the branch model and the deploy semantics are one module because a reader of any of them needs the others.
 Granularity is revisited while pages are written and when a reader has to hold two pages open.
 
 #### Frontmatter
-Every module page carries `code` (except for notes), `maturity`, `binds` (what the module binds: `repo`, `app`, `host`, or `organisation`), `depends` (the modules on the same side of every seam that this one is composed with) and, on approaches, `consumes` (the contracts on the other side of a seam this module relies on).
+Every module page carries `code` (except for notes), `maturity` and `binds` (what the module binds: `repo`, `app`, `host`, or `organisation`).
+It also carries `depends`, the modules on the same side of every seam that this one is composed with, and, on approaches, `consumes`, the contracts on the other side of a seam this module relies on.
 `depends` and `consumes` are informative: they show the reader how the modules fit together, and no tool reads them.
 
 #### Page shape
 Numbered sections (`§ 1`, `§ 1.1`, …) hold requirements as named `> - ` bullets followed by prose; numbers are append-only within a major version, as in the map.
-One trailing section headed *Maintaining*, unnumbered and never cited, holds the maintainer side: which primitives ship the module, what changes with it, what debts it carries, when it is promoted.
+One trailing section headed *Maintaining*, unnumbered and never cited, holds the maintainer side: which template and tooling implement the module, and what promotes it to the next maturity.
 The extractor treats that section as prose.
 
 ### § 1.4 The marker
@@ -177,30 +181,32 @@ Every primitive (§ 1.2) reaches a tenant in one of two ways, and the way decide
 
 The line follows from what a version number costs on each side.
 Tooling has no versioning of its own beyond a git tag, and only the combination is ever tested, so one number for all of it is the honest one.
-A library sits in an app's dependency closure, where its version is an input of the app's build: a number that moved while its files stood still would rebuild every image for nothing, so a library's version moves only when the library does.
+A library sits in an app's dependency closure, where its version is an input of the app's build.
+A number that moved while its files stood still would rebuild every image for nothing, so a library's version moves only when the library does.
 Two rules keep the line where it is.
 Tooling and libraries meet only through contracts (§ 1.3), never through a shared version number: nothing that carries the Plexus version is a dependency of an app.
 And a repo of its own is warranted only by releases of its own or by a technical necessity, as a copier template has to be a repository; everything else joins `tooling` or `libraries`.
 
-`tooling` carries everything of the first kind that is not a template: the four `plexus.*` Ansible collections and the Terraform modules (each collection's `galaxy.yml` version mirrors the tag exactly), the reusable workflows, the shared update-bot preset, and the packages `@plexus-ms/cli`, `@plexus-ms/cli-ci` and `@plexus-ms/lib`, published to npm at the Plexus version, so that the tools a repo runs and the version it is on are one number.
+`tooling` carries everything of the first kind that is not a template: the four `plexus.*` Ansible collections and the Terraform modules, the reusable workflows, the shared update-bot preset, and the packages `@plexus-ms/cli`, `@plexus-ms/cli-ci` and `@plexus-ms/lib`.
+Each collection's `galaxy.yml` version mirrors the tag exactly, and the packages are published to npm at the Plexus version, so that the tools a repo runs and the version it is on are one number.
 The tool that cuts a version, `plx-dev`, lives there too and is never published: the maintainers run it from their `tooling` checkout, so it is always the code at `main` and never a release behind the one it cuts.
-A version is cut in two phases: `tooling` first, whose release publishes those packages, then the templates and the compendium once the registry has them, because they pin them.
-
-Versions 0.77.0 to 0.99.0 do not exist; 0.100.0 is the first version of the consolidated layout, and the repos it consolidated (`platform`, `ci-cd`, `renovate-config`, and the cli's part of `packages`, since renamed `libraries`) are archived with their tags in place for anything still pinned there.
-With 0.120.0 `primitives` became `tooling` and the `preset-*` repos became `template-*`: `primitives` is archived with its tags in place like the others, and `@plexus-ms/config` left it for `libraries` and a version line of its own.
-The per-repo `vN` lines from before the single version and the itops-era tags live on frozen in history, kept for existing pins and never retargeted.
 
 **Semver attaches to maturity.**
-A breaking change to a standard module's requirements forces a major version, with migration steps noted in the module; candidate and note modules change in any minor version.
+A breaking change to a standard module's requirements forces a major version, with its migration steps in that version's release notes; candidate and note modules change in any minor version.
 A minor bump is the routine, a patch is reserved for a hotfix.
 Section numbers in the map and in every module are append-only within a major version, so a citation written against one version stays right until the next major.
-The Plexus version reaches 1.0.0 once the modular standard with its first standard modules has shipped and settled; until then `0.x` promises nothing, and any version can change anything.
+While the Plexus version is `0.x` it promises nothing, and any version can change anything; it leaves `0.x` once the modular standard with its first standard modules has shipped and settled.
 
-**What `ship` writes.**
-`plx-dev ship`, run from the maintainers' `tooling` checkout over their workspace (`mise ship` there), writes the bookkeeping, tags every repo that carries the version, creates each tag's GitHub release and pushes, in one pass.
-It opens no pull request in any consumer: cutting a version and a repo taking it are separate events, and the taking is the repo's own (§ 13.3).
-Besides the compendium's stamps, the bookkeeping is every pin that names the Plexus version ([§ 1 PLX-Updates](../approaches/updates.md)): the collections' and the packages' versions in `tooling`, and in the templates and the compendium the workflow refs, the collection pin and the `plx` pin.
-For the compendium it writes the version and timestamp in this document's frontmatter (a draft carries `v0` until its first version).
+**Cutting a version.**
+The maintainers cut a version when the methodology has moved, with `plx-dev ship` run from their `tooling` checkout over their workspace (`mise ship` there).
+It writes the bookkeeping: every pin that names the Plexus version ([§ 1 PLX-Updates](../approaches/updates.md)), and the version and timestamp in this document's frontmatter (a draft carries `v0` until its first version).
+Then it tags and releases every versioned repo: `tooling` first, whose release publishes its packages, then the templates and the compendium once the registry has those packages, since they pin them, and the compendium last.
+Every release lists the subjects of the commits since the previous version, so a tenant reads there what a version concerns.
+The step of the number is the maintainers' to choose, and it says how urgently a repo takes the version (§ 13.3).
+A hotfix is cut as a patch, routine work as the next minor, which `ship` picks when it is given no version, and a changed contract as a major; `ship` checks nothing about the step.
+A patch, like any version, is cut on every versioned repo.
+`ship` ends there and opens no pull request in any consumer: cutting a version and a repo taking it are separate events, and the taking is the repo's own (§ 13.3).
+Its preflight, its two phases and its recovery from a half-tagged version are stated in the header of its source.
 
 ### § 1.6 Upstream guarantees
 
@@ -210,7 +216,8 @@ The mitigations are structural, and the tenant can rely on them:
 
 - The `plexus-ms` repos are public and GPLv3-licensed; every change is reviewable, and nothing breaks on the day the upstream goes unmaintained: published versions keep resolving, tags keep resolving, and the repos remain forkable.
 - `@plexus-ms/*` packages are published to the public npm registry through OIDC trusted publishing; published versions are immutable and carry provenance attestations linking each version to its source commit and build.
-- A breaking change to a package on its own semver line is released as a semver major, with a migration note in the changelog; the packages that carry the Plexus version (`@plexus-ms/cli`, `@plexus-ms/cli-ci`, `@plexus-ms/lib`) follow its semver, so a breaking change to them, like one to a standard module, is a major version (§ 1.5).
+- A breaking change to a package on its own semver line is released as a semver major, with a migration note in the changelog.
+  The packages that carry the Plexus version (`@plexus-ms/cli`, `@plexus-ms/cli-ci`, `@plexus-ms/lib`) follow its semver, so a breaking change to them, like one to a standard module, is a major version (§ 1.5).
 - Tenant substance, business logic, secrets, anything tenant-specific, never appears in a public package or a public repo.
 
 These are obligations of the maintainers, not of consumers, which is why they are prose here rather than requirements in a module.
@@ -219,7 +226,7 @@ The tenant's decision on how unattended to let updates flow ([§ 2 PLX-Updates](
 
 Some pins reference git tags, which git itself lets move; a retargeted tag would silently change what a tenant executes, with no attestation.
 Every version tag is therefore locked by an immutable GitHub release, created by `ship` and verified by it: once published, the tag can neither be moved nor deleted, and `tooling` publishes its packages only from such a release.
-The tags of the archived repos predate this and stay as they were; referencing by commit SHA remains the alternative should attestation of tag-referenced artifacts ever be wanted.
+Referencing by commit SHA remains the alternative should attestation of tag-referenced artifacts ever be wanted.
 
 The repos that ship the methodology:
 
@@ -232,7 +239,8 @@ The repos that ship the methodology:
 | `template-repo-operations` | The copier template for a tenant's operations repo: one thin playbook per layer mounting the collection's, on request the infrastructure layer's and the CI layer's, the inventory with the standard groups, the `op://`-pointer env files, the collection pins, the `apps/` directory and workflow for third-party apps. |
 | `compendium` | This map, the modules, the manifesto, and the supporting reference docs. |
 
-The dogfood tenant `plexus` lives in its own organisation, `plexus-ms-tenant`, laid out like any tenant and bound by the contracts and the approaches it takes, not by anything in this section: the maintainers' organisation ships methodology, the tenant's holds substance, and the two never share an access boundary.
+The dogfood tenant `plexus` lives in its own organisation, `plexus-ms-tenant`, laid out like any tenant and bound by the contracts and the approaches it takes, not by anything in this section.
+The maintainers' organisation ships methodology, the tenant's holds substance, and the two never share an access boundary.
 
 ```mermaid
 flowchart TB
@@ -252,12 +260,19 @@ flowchart TB
 
 ### § 1.7 Governance
 
-Deferred decisions are written into the module or map stub that owns its concern, with the trigger that reopens it, so that the stubs of this map are the overview of what Plexus does not cover yet, and a deferral is a decision rather than drift.
+Deferred decisions are written into the module or map stub that owns its concern, with the trigger that reopens it.
+The stubs of this map are therefore the overview of what Plexus does not cover yet, and a deferral is a decision rather than drift.
 
 ### § 1.8 Compendium conventions
 
 All documentation of the initiative lives in the `compendium` repo.
 No other `plexus-ms` repo carries a README beyond a pointer or a one-liner; a role's variables are documented in its defaults, a verb in its header.
+
+The compendium states the present only, and each fact has one home.
+What a consumer must do, and why, is the module's.
+How a tool works step by step is the header of that tool's source file, and a module names the tool and says in a sentence or two what it achieves.
+What changed and when is git history: no page carries a date, a "since version N", a migration note or a list of what was done.
+What a generated file is for is one or two lines in the file itself.
 
 Two registers.
 The [Manifesto](manifesto.md) says why, and evocative language is allowed there and nowhere else.
@@ -268,7 +283,8 @@ The structural conventions are self-policing, and the machinery is small:
 - The map carries no requirement and no normative keyword.
 - A standard module carries its requirements as named `> - ` lines under numbered headings (§ 1.3); blockquotes are reserved for them.
 - A module below standard maturity carries neither keyword nor blockquote.
-- `plx requirements` checks all of that over the map and every module, validates module frontmatter, checks that every section and requirement name a page cites exists, and prints a module's requirement lines on demand; `mise check` runs it, and the pre-commit and pre-push hooks run `mise check`.
+- `plx requirements` checks all of that over the map and every module, validates module frontmatter, checks that every section and requirement name a page cites exists, and prints a module's requirement lines on demand.
+  `mise check` runs it, and the pre-commit and pre-push hooks run `mise check`.
   It writes no file: there is no generated requirements list to keep current.
 - Section numbers are append-only within a major version; insertions wait for a major.
 - Module pages live at `contracts/<slug>.md` or `approaches/<slug>.md`, the folder being the kind (§ 1.3), and a new module is added to the map section that owns its concern in the same commit.
@@ -304,7 +320,8 @@ The common form is one tenant obtaining its infrastructure from another ([PLX-In
 
 ### § 2.5 Documentation and knowledge
 
-Plexus's own stance is that artifacts are the documentation (the [Manifesto](manifesto.md)) and that a tenant repo's marker body is where its non-derivable knowledge lives; how an organisation keeps the knowledge that is not next to a system (runbooks, decisions, onboarding, user manuals) is not in our scope for now.
+Plexus's own stance is that artifacts are the documentation (the [Manifesto](manifesto.md)) and that a tenant repo's marker body is where its non-derivable knowledge lives.
+How an organisation keeps the knowledge that is not next to a system (runbooks, decisions, onboarding, user manuals) is not in our scope for now.
 
 ### § 2.6 Legal and data protection
 
@@ -388,7 +405,8 @@ In a JS monorepo, code that does not need to cross repo boundaries can just be a
 ### § 4.4 Testing
 
 Not covered beyond the verb.
-`verify` runs whatever gates a release and provides its own environment ([§ 3 PLX-Repo](../contracts/repo.md)); what a good test suite for a Plexus app looks like, and how the domain core is engineered test-first while the edges are shared, is still to be written.
+`verify` runs whatever gates a release and provides its own environment ([§ 3 PLX-Repo](../contracts/repo.md)).
+What a good test suite for a Plexus app looks like, and how the domain core is engineered test-first while the edges are shared, is still to be written.
 
 More approaches to testing will follow in the future.
 
@@ -422,7 +440,8 @@ The seam between dev and ops, made explicit as a contract every app satisfies in
 
 ### § 5.1 App contract
 
-Run shape in a compose file, environment through two files, one HTTP port on loopback, a healthcheck in the compose file, logs on stdout, a Dockerfile for an app the tenant builds, and a pipeline through the verbs: what the platform relies on for every app.
+What the platform relies on for every app: run shape in a compose file, environment through two files, one HTTP port on loopback, a healthcheck in the compose file, logs on stdout.
+An app the tenant builds adds a Dockerfile and a pipeline through the verbs.
 [§§ 1 to 7 PLX-App](../contracts/app.md).
 
 ### § 5.2 Profiles
@@ -455,14 +474,17 @@ The app is the unit of deployment, the repo the unit of promotion: a merge deplo
 
 ### § 6.3 Verbs, workflows and the pipeline
 
-Two phases, `verify` (`check`, `build`, `test`) and `release` (`publish`, `deploy`), each verb a job, `build` and `test` together as one; a workflow is the occasion that mounts them, `on_commit`, `on_pr` and `on_push`: a check on every commit, the whole verify on every pull request, the release on the environment branches, an app's image built once per content and deployed from the registry on promotion; no tenant operates a CI control plane.
+Two phases, `verify` (`check`, `build`, `test`) and `release` (`publish`, `deploy`), each verb a job, `build` and `test` together as one.
+A workflow is the occasion that mounts them, `on_commit`, `on_pr` and `on_push`: a check on every commit, the whole verify on every pull request, the release on the environment branches.
+An app's image is built once per content and deployed from the registry on promotion.
+The forge holds the runs and schedules the jobs, so no tenant operates a CI control plane; a tenant may operate the machines the jobs run on.
 [§§ 1 and 2 PLX-Delivery](../approaches/delivery.md).
 Where the jobs run, the forge's runners, a runner host of the tenant's own, or slots on that host with a throwaway cloud instance per app to build and test, is [§ 8 PLX-Delivery](../approaches/delivery.md).
 
 ### § 6.4 Deploy semantics
 
 Render the compose file with the image pinned, pull, migrate, swap, up, wait for the healthcheck, roll back on failure, store nothing.
-[§ 6 PLX-Delivery](../approaches/delivery.md), prose, since the tooling does it, with the fence around the verb in the module's Maintaining section.
+[§ 6 PLX-Delivery](../approaches/delivery.md), prose, since the tooling does it, with the fence around the verb.
 
 ### § 6.5 Failed deploys and recovery
 
@@ -476,23 +498,23 @@ Trunk-based, versioned by changesets, published token-less through OIDC trusted 
 
 ### § 6.7 Image registry
 
-Not covered beyond the default behavior of GHCR currently.
-
-Will be revisited and expanded when the need arises.
+Published images live in the tenant's forge registry under their commit; the candidates of a run and their layer cache live there too or in a registry of the tenant's own on object storage, which a repo answers per template.
+[§§ 4 and 8 PLX-Delivery](../approaches/delivery.md).
 
 ### § 6.8 Preview environments
 
 Not covered yet.
 
-A single staging per app covers most of the value; per-PR environments might follow in the future.
+A single staging per app covers most of the value.
+Deferred: environments per pull request, revisited when a product has real customers.
 
 ### § 6.9 Zero-downtime deploys
 
 Not covered yet.
 
-The deploy verb re-creates containers in place and accepts seconds of downtime per deploy.
+The deploy verb re-creates containers in place and accepts seconds of downtime per deploy ([§ 6 PLX-Delivery](../approaches/delivery.md)).
 
-Blue-green or rolling deploys might follow in the future.
+Deferred: blue-green or rolling deploys, revisited when an app has traffic for which a blink is a real cost; whatever the answer, it stays a verb, not a reconciler.
 
 
 ## § 7 Platform
@@ -501,7 +523,8 @@ A tenant's hosts as code: the Ansible collection mounted as playbooks, and the c
 
 ### § 7.1 Playbooks
 
-One playbook per layer, shipped in its collection and mounted by one line in the tenant's operations repo; plays carry their layer as a tag and roles their name, so a run is narrowed with `--tags` and `--limit` and the whole is always re-runnable.
+One playbook per layer, shipped in its collection and mounted by one line in the tenant's operations repo.
+Plays carry their layer as a tag and roles their name, so a run is narrowed with `--tags` and `--limit` and the whole is always re-runnable.
 [§ 1 PLX-Platform](../approaches/platform.md).
 
 ### § 7.2 Host baseline
@@ -531,7 +554,8 @@ A [note](../approaches/host-lifecycle.md) until a policy exists that a role enfo
 
 ### § 7.7 App record and lifecycle
 
-One inventory record per app and environment binds name, source repo, host, loopback port, and values; the platform playbook lays out the deployment's directory under the deploy root, writes `.env` from the record, and pulls and starts what the deploy verb has placed.
+One inventory record per app and environment binds name, source repo, host, loopback port, and values.
+The platform playbook lays out the deployment's directory under the deploy root, writes `.env` from the record, and pulls and starts what the deploy verb has placed.
 [§ 3 PLX-Platform](../approaches/platform.md).
 The record is also what a deploy reads to find its target, which makes it a contract between the deployer and the platform: [PLX-Environment](../contracts/environment.md), at candidate maturity.
 
@@ -674,12 +698,14 @@ Today a failed deploy alerts as the failing CI job, hosts mail failed units to a
 ### § 12.5 Uptime
 
 Not covered yet.
-An app's healthcheck is declared in its compose file and run by the container engine on the host ([`PLX-App/Healthcheck`](../contracts/app.md)), and the proxy refuses `/healthz` from outside ([PLX-Ingress](../approaches/ingress.md)); what an external monitor watches, and how it learns that an app is down, is still to be written.
+An app's healthcheck is declared in its compose file and run by the container engine on the host ([`PLX-App/Healthcheck`](../contracts/app.md)), and the proxy refuses `/healthz` from outside ([PLX-Ingress](../approaches/ingress.md)).
+What an external monitor watches, and how it learns that an app is down, is still to be written.
 
 ### § 12.6 Capacity
 
 Not covered yet.
-Kubernetes is revisited only on genuine multi-node scheduling, contractual HA-SLA, or team-coordination needs, none anticipated for years: single hosts with Compose scale far past small-tenant needs, the bottleneck will be the database and operator time long before Compose, and self-hosted Kubernetes would worsen the bus factor.
+Deferred: Kubernetes, revisited only on genuine multi-node scheduling, contractual HA-SLA, or team-coordination needs.
+Single hosts with Compose scale far past small-tenant needs, the bottleneck will be the database and operator time long before Compose, and self-hosted Kubernetes would worsen the bus factor.
 
 
 ## § 13 Upkeep
@@ -696,13 +722,17 @@ A shared thing crosses a repo boundary only as a published, versioned artifact: 
 Every tenant repo runs a bot that watches its pins; how unattended a merge is follows the blast radius, from packages merging on green CI to the collection always waiting for a human.
 [§ 2 PLX-Updates](../approaches/updates.md).
 
+Deferred: self-hosting the update bot, revisited when waiting on the hosted bot still costs time after its dashboard's "run again" checkbox has been tried.
+The hosted bot merges a green pull request only on its own run, every few hours; native auto-merge would need a required check on the default branch, which blocks the direct pushes `ship` makes.
+The sketch on file is a reusable workflow running Renovate for the calling repo alone, on a finished verify of a bot branch, on demand and on a schedule.
+Renovate's `postUpgradeTasks` would then write the changeset a bump owes inside the bot's own commit.
+Its costs: Actions minutes on private repos unless the tenant's own runner takes the job, the hosted app uninstalled wherever the workflow runs, and a bot that is the tenant's to operate.
+It would be piloted first in `plexus-ms`, whose repos are public and run on the forge's runners.
+
 ### § 13.3 Templates and re-sync
 
 What cannot be a dependency arrives through a copier template and is re-synced by `copier update`, as a pull request the repo opens for itself from its own CI (`plx update`); the three scaffolding tiers decide where a new artifact goes.
-A repo takes a version by the step of its number: a patch, a hotfix, at once, the newest within the repo's major with every version before it; a minor, routine, once the oldest version the repo has not taken is as old as its interval; a major, a changed contract, only when asked, with its migration note; and asking takes the newest version whatever its step.
-Modules do not drive updates, and a change to a module's text does not by itself bring a version to any repo.
-Between the versions it takes, a repo rests on the one it has, which its immutable pins make safe (§ 1.6).
-[§ 3 PLX-Updates](../approaches/updates.md).
+A repo takes a version by the step of its number and its own schedule, and rests on the one it has in between ([§ 3 PLX-Updates](../approaches/updates.md)).
 
 ### § 13.4 The repo's checks
 
@@ -712,6 +742,9 @@ Which version that is, is the repo's `plx` pin (§ 1.5), and whether to take a n
 
 ### § 13.5 Tooling
 
-The verbs of a tenant repo and of an operator of many repos are commands of `plx`, the published `@plexus-ms/cli`: the workspace map, the repo's checks (§ 13.4), a repo's pull of a version and the loop of it over many repos (§ 13.3), the requirements check (§ 1.8), the changeset a bump owes and the delivery verbs, `deploy-targets` and `deploy`, with the CI verbs of § 6.3 in `plx-ci` beside it; a tenant repo pins the tools in its `mise.toml` at the Plexus version, written by the version, and its CI runs those pins.
-Cutting a version (§ 1.5) is the upstream's alone and is not in any published tool: `plx-dev`, run from the maintainers' `tooling` checkout.
+The verbs of a tenant repo and of an operator of many repos are commands of `plx`, the published `@plexus-ms/cli`.
+They are the workspace map, the repo's checks (§ 13.4), a repo's pull of a version and its loop over many repos (§ 13.3), the requirements check (§ 1.8), the changeset a bump owes, and `deploy-targets` and `deploy`.
+The CI verbs of § 6.3 are in `plx-ci` beside it.
+A tenant repo pins the tools in its `mise.toml` at the Plexus version, written by the version, and its CI runs those pins.
+Cutting a version (§ 1.5) is the upstream's alone and is not in any published tool.
 [PLX-CLI](../approaches/cli.md) is the module: why the tool replaced the scripts, what it must not become, and the verbs still to be written.

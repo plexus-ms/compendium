@@ -13,12 +13,20 @@ postinstall = "hk install --mise"
 # is check, and the verbs it has no use for exist and pass.
 
 [tasks.verify]
-description = "Perform all steps that verify the standard: the check, nothing to test"
-run = ["mise run check"]
+description = "Perform all steps that verify the standard: the check, then the test (a no-op)"
+run = ["mise run check", "mise run test"]
 
-[tasks.check]
+[tasks.lint]
 description = "Lint the standard: no keyword outside a requirement, no requirement in the map or below standard maturity, module frontmatter well-formed; runs `plx requirements`"
 run = "plx requirements ."
+
+[tasks.check]
+description = "Static checks: the lint, then `plx doctor`, which holds this repo to the repo contract it documents"
+run = ["mise run lint", "plx doctor"]
+
+[tasks.test]
+description = "No-op: the compendium is prose; there is nothing to test"
+run = 'echo "test: nothing to test in the compendium"'
 
 [tasks.dev]
 description = "No-op: the compendium is prose; edit the files"

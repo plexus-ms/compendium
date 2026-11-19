@@ -135,7 +135,9 @@ It also carries `depends`, the modules on the same side of every seam that this 
 
 #### Page shape
 Numbered sections (`§ 1`, `§ 1.1`, …) hold requirements as named `> - ` bullets followed by prose; numbers are append-only within a major version, as in the map.
-One trailing section headed *Maintaining*, unnumbered and never cited, holds the maintainer side: which template and tooling implement the module, and what promotes it to the next maturity.
+One trailing section headed *Maintaining*, unnumbered and never cited, holds the maintainer side in plain rules.
+They say which template and tooling implement the module, what the maintainers keep to when they change it, on a contract the approaches on each side, and what promotes it to the next maturity.
+It holds no debts and no history (§ 1.8).
 The extractor treats that section as prose.
 
 ### § 1.4 The marker
@@ -224,7 +226,8 @@ They are the upstream's side of the tenant-to-federation seam (§ 1.3), whose te
 The tenant's decision on how unattended to let updates flow ([§ 2 PLX-Updates](../approaches/updates.md)) rests on them.
 
 Some pins reference git tags, which git itself lets move; a retargeted tag would silently change what a tenant executes, with no attestation.
-Every version tag is therefore locked by an immutable GitHub release, created by `ship` and verified by it: once published, the tag can neither be moved nor deleted, and `tooling` publishes its packages only from such a release.
+Every version tag of the repos that carry the Plexus version, `tooling`, the templates and the compendium, is therefore locked by an immutable GitHub release, created by `ship` and verified by it.
+Once published, the tag can neither be moved nor deleted, and the packages of `tooling` are published from such a release (§ 1.5).
 Referencing by commit SHA remains the alternative should attestation of tag-referenced artifacts ever be wanted.
 
 The repos that ship the methodology:
@@ -440,7 +443,7 @@ The seam between dev and ops, made explicit as a contract every app satisfies in
 ### § 5.1 App contract
 
 What the platform relies on for every app: run shape in a compose file, environment through two files, one HTTP port on loopback, a healthcheck in the compose file, logs on stdout.
-An app the tenant builds adds a Dockerfile and a pipeline through the verbs.
+An app the tenant builds adds a Dockerfile; every app reaches the platform through a pipeline of the verbs.
 [§§ 1 to 7 PLX-App](../contracts/app.md).
 
 ### § 5.2 Profiles
@@ -469,6 +472,10 @@ One module covers the span, [PLX-Delivery](../approaches/delivery.md); the subse
 
 `main`→prod, `develop`→staging, a release is an image keyed by SHA, hotfixes back-merge immediately, no changesets in app repos.
 [§ 3 PLX-Delivery](../approaches/delivery.md).
+
+Deferred: whether an app repo's branch names must match the environment names of its records ([PLX-Environment](../contracts/environment.md)), so that a branch and its environment have one name.
+Until then `plx-ci plan` maps `main` to `production` and `develop` to `staging`, in one place.
+Revisited when a second tenant runs the environment record, which is also when PLX-Environment is promoted.
 
 ### § 6.2 Deployment and promotion
 
@@ -733,7 +740,9 @@ Deferred: self-hosting the update bot, revisited when waiting on the hosted bot 
 The hosted bot merges a green pull request only on its own run, every few hours; native auto-merge would need a required check on the default branch, which blocks the direct pushes `ship` makes.
 The sketch on file is a reusable workflow running Renovate for the calling repo alone, on a finished verify of a bot branch, on demand and on a schedule.
 Renovate's `postUpgradeTasks` would then write the changeset a bump owes inside the bot's own commit.
-Its costs: Actions minutes on private repos unless the tenant's own runner takes the job, the hosted app uninstalled wherever the workflow runs, and a bot that is the tenant's to operate.
+It runs inside each tenant, since the upstream never reaches into a tenant's repos: no run in a tenant is triggered by an upstream release.
+It needs one GitHub App per tenant, since a token that writes to every repo it serves cannot cross a trust boundary.
+Its other costs: Actions minutes on private repos unless the tenant's own runner takes the job; the hosted app uninstalled wherever the workflow runs; and a bot that is the tenant's to operate.
 It would be piloted first in `plexus-ms`, whose repos are public and run on the forge's runners.
 
 ### § 13.3 Templates and re-sync

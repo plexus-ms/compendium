@@ -54,4 +54,4 @@ The deployer never writes to the record, never holds a copy of it, and never car
 `plexus.platform.apps`, `plexus.platform.secrets` and `plexus.platform.ingress` provide the platform's side and `plx deploy-targets` and `plx deploy --environment` the deployer's; all ship from `plexus-ms/tooling` at the Plexus version.
 The record's shape is the one § 3 PLX-Platform requires; this page owns the seam and names the sides, and a guarantee one side relies on from the other moves here when it is argued.
 A vault's own environment store is no home for the record: it would be a second database of intent beside the inventory and fail the degradation test.
-Promotion to standard, with the requirements of §§ 1 and 2 as blockquotes, waits for the second tenant, and decides with it whether an app repo's branch names must match the environment names.
+Promotion to standard, with the requirements of §§ 1 and 2 as blockquotes, waits for the second tenant, which is also the trigger of the deferral on branch and environment names in § 6.1 PLX.

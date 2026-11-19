@@ -31,11 +31,12 @@ The playbook is re-runnable in whole at any time against any host of the group, 
 
 One playbook per layer: `plexus.platform.playbook` for the app hosts, and beside it `plexus.infrastructure.playbook` ([PLX-Infrastructure](infrastructure.md)) and `plexus.ci.playbook` ([§ 8 PLX-Delivery](delivery.md)) for a tenant that has those layers.
 Each targets fixed inventory groups, so that the playbook can be shipped rather than templated.
-The platform playbook has three plays on the group `platform`:
+The platform playbook has four plays on the group `platform`:
 
 - the host baseline (§ 2, tagged `host`);
 - the platform roles (tagged `platform`: `deploy_user`, `caddy`, `ingress`, `secrets`, `apps`);
-- the lock-down roles that have to run after everything that opens a port (`firewall`, `sshd`, tagged `host`).
+- the lock-down roles that have to run after everything that opens a port (`firewall`, `sshd`, tagged `host`);
+- a report that fails the host for every app that did not start (tagged `platform` and `apps`), after the lock-down, so that a failed start never leaves a host without its firewall and sshd settings.
 
 `--tags apps,secrets` is the everyday pass, `--tags platform` the layer without the baseline, `--limit <host>` one host; `--list-tags` prints the rest.
 The tags give the selectivity of separate playbooks with one order of roles, and the order lives upstream.
@@ -89,7 +90,7 @@ It logs the deploy user in to the registry, and pulls and starts the app once th
 `.env` is written in three sections, compose's own setting, the reserved `PLEXUS_` bindings, then the values from `apps[].env`.
 Each is under a header line naming its origin, so the first file an operator opens explains itself.
 The compose setting pins the project name to the slug: container, network and volume names derive from the project name, and pinning it keeps them the same wherever compose is invoked from.
-Neither carries the tenant slug, since two tenants never share a VM ([§ 4 PLX-Tenancy](../contracts/tenancy.md)).
+Neither the directory nor the project name carries the tenant slug, since two tenants never share a VM ([§ 4 PLX-Tenancy](../contracts/tenancy.md)).
 The `PLEXUS_` bindings carry the loopback port the inventory assigned, interpolated by compose ([§ 4 PLX-App](../contracts/app.md)), so the deploy verb stays port-unaware.
 Because the app's compose file lists `.env` under `env_file`, the setting and the bindings also appear inside the container, harmless by construction since the prefix is reserved.
 Three files sit in the app directory, and each has exactly one writer: this playbook owns `.env`, the secrets role owns `.env.secret` ([PLX-Secrets](secrets.md)), and the deploy verb owns `compose.yaml`, rendered from the source repo.
@@ -108,7 +109,7 @@ A role that needs something from another role's territory asks that role: a role
 A role belongs to the layer whose playbook needs it, and a role two layers need is `plexus.host`'s.
 
 `plexus-ms/tooling` carries the four collections under `ansible/<collection>/`, each with its `galaxy.yml` whose version mirrors the version tag exactly.
-SCM installs record that version, and a re-pointed tag alone would not reinstall; the collections are installed from the one repo at one tag, so there are no dependencies between them for galaxy to resolve.
+It has to, because SCM installs record that version, and a re-pointed tag alone would not reinstall; the collections are installed from the one repo at one tag, so there are no dependencies between them for galaxy to resolve.
 Tenants pin all four by tag in `requirements.yml`, and the pull request that takes a version moves the pins, a PR a human reads before anything new runs as root ([PLX-Updates](updates.md)).
 The `check-ops` task of `tooling` lints the roles, syntax-checks the three shipped playbooks against a fixture inventory of the standard groups, and syntax-checks a playbook that lists every role.
 It runs under a project-local collections path, so that a tenant's installed pin never shadows the checkout.

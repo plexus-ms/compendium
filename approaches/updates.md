@@ -52,7 +52,7 @@ Take the dependency, override at the edge, never fork the base.
 A pin no machinery watches is invisible staleness, hence the bot itself is required; the template makes it Renovate, which extends the shared preset `github>plexus-ms/tooling//renovate/default` in one line, and this section is written against it.
 The preset and the repo templates do the rest of this section, and a tenant reads it as what it gets:
 
-- An operations repo pins the `plexus.platform` collection by tag in its `requirements.yml`.
+- An operations repo pins the four `plexus.*` collections by tag in its `requirements.yml`.
 - `@plexus-ms/*` packages on their own semver merge their patch and minor updates once CI is green.
 - The pins that name the Plexus version are never proposed by the update bot.
   They arrive in the pull request by which the repo takes a version (§ 3), which a human reads before anything new runs in CI or as root.
@@ -120,8 +120,10 @@ The step by which a version's number moves says how urgent it is (§ 1.5 PLX), a
 - A repo takes a version by the step of its number.
 - A patch is a hotfix: the newest one within the repo's major is taken at once, and with it every version before it.
 - A minor is routine: the newest version of the major is taken once the oldest version the repo has not taken is as old as its interval (`update_max_age`, seven days unless set; zero takes every version).
-- A major changes a contract: it is named, and taken only when asked, with its migration note.
+- A major changes a contract: it is named, and taken only when asked, with the migration steps in its release notes.
 - Asking (`plx update --now`, a manual run of the workflow) takes the newest version whatever its step.
+
+The interval is the repo's copier answer `update_max_age`, in days, recorded in its answers file; a tenant sets it there, and `PLX-Updates/Interval` bounds it.
 
 Between the versions it takes, the repo rests on the version it has.
 That is safe because every pin it holds is immutable (§ 1.6 PLX): a repo on an old version keeps working.

@@ -65,13 +65,15 @@ Hand-run, `publish` publishes what it is pointed at.
 The templates generate the workflows, and the reusable workflows they call live in `plexus-ms/tooling`, named with a leading underscore and referenced by the version tag.
 With them every repo runs `check` on every pull request, tested as the merge result, in a workflow `on_pr`, and a change to nothing but Markdown starts no run.
 
-| Repo | Workflows |
-|---|---|
-| App repo | `on_commit` (`check` on a push to any branch but its environment branches), `on_pr` (`check`, then `verify`), `on_push` (`check`, `verify`, `release` on a push to an environment branch) |
-| Package repo | `on_pr` (`check`), `on_push` (`check`, `publish` on its trunk) |
-| Operations repo | `on_commit` and `on_pr` (`check`), `deploy` |
+| Repo, template | Workflows | Under which answers |
+|---|---|---|
+| App repo, `template-repo-turbo` | `on_commit` (`check` on a push to any branch but its environment branches), `on_pr` (`check`, then `verify`), `on_push` (`check`, `verify`, `release` on a push to an environment branch), `plx-update` | always |
+| | `housekeeping` (the candidates in the forge's registry) | `ci_registry` is `ghcr` |
+| Package repo, `template-repo-turbo` with `publishes_packages` | `on_pr` (`check`, the changeset guard, the `changeset` mount), `on_push` (`check`, `publish` on its trunk), `plx-update` | always |
+| Operations repo, `template-repo-operations` | `on_commit` and `on_pr` (`check`), `deploy`, `plx-update` | always |
+| | `housekeeping` (the instances and the registry buckets) | `ci_strategy` is `hybrid` or `ci_registry` is `own` |
 
-A repo whose CI holds instances or a registry of the tenant's own also carries `housekeeping`, the daily retention of what its runs leave behind.
+`housekeeping` is the daily retention of what the runs leave behind, and `plx-update` the mount by which the repo takes a version ([§ 3 PLX-Updates](updates.md)).
 
 A job is a verb, or two that want the same machine one after the other, and is named after the verb or verbs it mounts.
 A workflow is a mount, named after the occasion that runs the verbs.
@@ -388,7 +390,8 @@ The deploy verb being hand-runnable and the fallback being one variable away is 
 **The instances** of `hybrid` are the one place a job's machine exists for the job alone.
 `plan` creates one per leg, from a stock Debian image with user-data that installs Docker and the runner, and waits for every runner to register.
 Each carries the run, the attempt and two deadlines as labels, and a leg's job asks for the instance's unique label.
-The instances tear themselves down in layers, so that no layer has to be the last: the instance deletes itself after its job, or when no job started by one deadline, and powers off after the other.
+The instances tear themselves down in layers, so that no layer has to be the last: the instance deletes itself after its job, or when no job has started by its no-job deadline.
+At its death deadline it mails and deletes itself, and a power-off after that is the last resort.
 `cleanup` deletes what the run launched, and the daily `housekeeping` whatever is stopped or past its deadline.
 A launched instance sometimes misses its boot: `plan` keeps it stopped for diagnosis, mails the tenant's alerts address, and launches one replacement, and `housekeeping` deletes a kept instance after fourteen days.
 The layers and the trap are stated step by step in the headers of `plx-ci`'s instance verbs and the instance's user-data.
@@ -412,6 +415,7 @@ The GitHub App is the tenant's one App and the tenant's own, installed on every 
 It holds `Contents: write`, `Pull requests: write` and `Workflows: write`, for the pull request by which a repo takes a version and for the changeset a bump owes, which covers the read of the operations repo's inventory.
 For the runners it holds `Administration: write` on the app repo where they register at the repository, or `Self-hosted runners: write` on the organisation where they register there.
 Each job mints a token for the one repo and the permissions it needs, so the App's breadth is never a job's.
+The App's permissions apply to every repo it is installed on, though, so it holds `Administration: write` beyond the app repo, and whoever holds its key can use it there; narrowing that takes a second App.
 The two mounts that only push, `_plx-update.yml` and `_changeset.yml`, take the App's client ID and key from the forge where a repo holds them there (`PLX-Delivery/CIVault`), and from the vault otherwise.
 They fail with one line naming both when a repo has neither, so that a tenant whose repos read nothing else from a vault needs none.
 A tenant under `github` with `ghcr` and no overlay holds the first three items and nothing else.

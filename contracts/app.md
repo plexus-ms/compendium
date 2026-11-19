@@ -194,6 +194,8 @@ The first start of a bind mount has Docker create the directory as root, and an 
 Every first start on a host would need a `chown` by hand that the platform playbook would otherwise have to know per image.
 A named volume is created with the ownership of the image's mount point, and needs no directory and no chown.
 Backups do not care: whole-machine backups take the volumes with the guest ([§ 3 PLX-Infrastructure](../approaches/infrastructure.md)), and the per-service backup dumps through the container, never from the directory.
+An app that keeps a data service in a bind directory moves it to a named volume once per host, with the stack stopped.
+The move is: create the volume, copy the directory into it with ownership preserved, and bring the stack up on the new file.
 
 ### § 9.2 Migration
 

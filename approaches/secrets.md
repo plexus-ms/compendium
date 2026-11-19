@@ -71,6 +71,6 @@ This section is prose; it becomes requirements when a second tenant holds the tw
 
 `plexus.platform.secrets` writes `.env.secret` and owns its rotation handler; `plexus.platform.apps` does the same for `.env` ([§ 3 PLX-Platform](platform.md)).
 The secrets role runs before the apps role in the platform playbook, so the first `up` already sees the secrets; `mise platform -- --tags secrets,apps` is the rotation run.
-1Password is a suggested default behind a thin adapter: `op.env` is plain dotenv of pointers any vault CLI could resolve.
+1Password is a suggested default behind a thin adapter: `secrets.env` is plain dotenv of pointers any vault CLI could resolve.
 Leaving it means replacing `op run` in the wrapper, not rewriting logic, and listing `PLX-Secrets/OnePassword` under `deviations` in the operations repo's marker.
 A 1Password authorization timeout in automation most likely means an unlock prompt went unanswered; retry.

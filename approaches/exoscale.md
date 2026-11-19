@@ -77,7 +77,7 @@ Three seconds into the boot, `apt-daily-upgrade.service` started, the persistent
 The user-data's `apt-get` calls in that window failed at once, so neither Docker nor the user `runner` came to exist, and the runner unit failed with `217/USER`.
 Whether the catch-up lands inside the user-data's window is timing, which fits every point above: random per instance, only with real user-data (a bare probe installs nothing), and never in a bare probe.
 The user-data therefore masks the apt timers and services and kills whichever of them already holds the lock before its first `apt-get` (`plexus-ci-apt-free`); a wait on the lock would cost the minute.
-The late boots and the network-step reading above may have other causes, so the trap stays.
+The observations above were made before the user-data freed the apt lock; the late boots and the network-step reading may have other causes, so the trap stays.
 
 It is characterised, not pinpointed.
 The launch therefore treats a miss as expected ([§ 8 PLX-Delivery](delivery.md)): it waits a bounded time for the runner to register, keeps and stops the instance that missed, mails, and launches a replacement.

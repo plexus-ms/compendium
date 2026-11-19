@@ -22,24 +22,30 @@ The maturity rule (§ 1.3 PLX) promotes it when a second tenant uses it.
 ## § 1 The record
 
 A record describes one deployment: one app in one environment.
-It names the app, the app's source repo, the environment (`production` when absent), the public host the deployment answers on, the loopback port it publishes, the non-secret values it is given, and the secrets it is given as `op://` pointers into the tenant's vault, never as values ([PLX-Secrets](../approaches/secrets.md)).
+It names the app, the app's source repo, the environment (`production` when absent), the public host the deployment answers on, and the loopback port it publishes.
+It carries the non-secret values the deployment is given, and the secrets as `op://` pointers into the tenant's vault, never as values ([PLX-Secrets](../approaches/secrets.md)).
 It lives in the inventory file of the VM that runs the deployment, and that file names where a deploy reaches the VM, `plexus_deploy_target`, as `ssh://<deploy user>@<address>[:<port>]`.
-The reader binds a record to the target of its own file and resolves no inheritance of Ansible's: a record in a group's file whose target is in the host's file is a record without a target, and the deployer treats it as no deployment (seen 2026-11-09, the dogfood tenant's first production release deploying nothing).
+The reader binds a record to the target of its own file and resolves no inheritance of Ansible's.
+A record in a group's file whose target is in the host's file is a record without a target, and the deployer treats it as no deployment.
 
 One app has at most one record per environment, and as many records as it has environments.
 The environment names are those the pipeline asks for, `production` and `staging` today; a further name, such as a preview, is a further record.
 The deployment's slug on the host is the app name in `production` and `<app>-<environment>` otherwise, so that a tenant with production alone never meets the rule.
 
 The principle behind the record is one index in git, each value where it can live.
-Sensitivity is the one property that forces a value out of git; every other fact of an environment, host, port, domain, values, is better held in the record, diffed, greppable, propagated with a version, and readable when the vault is not.
+Sensitivity is the one property that forces a value out of git.
+Every other fact of an environment, host, port, domain, values, is better held in the record, diffed, greppable, propagated with a version, and readable when the vault is not.
 The vault holds only what git cannot, and the record points at it.
 
 
 ## § 2 What each side owes
 
-The platform's operator owes a record for every deployment the tenant runs, kept current, and a `plexus_deploy_target` on every file that holds records; the platform playbook renders exactly what the record says, nothing more, and re-creates the containers whose environment changed.
+The platform's operator owes a record for every deployment the tenant runs, kept current, and a `plexus_deploy_target` on every file that holds records.
+The platform playbook renders exactly what the record says, nothing more, and re-creates the containers whose environment changed.
 
-The deployer owes to read the record and nothing else for its target: `plx deploy-targets --environment <name>` on a checkout of the tenant's operations repo, which [PLX-Tenancy](tenancy.md) fixes as the one operations repo of the organisation, prints each app's target in that environment; an app without a record there has no deployment there, and the deployer deploys nothing for it rather than inventing a target.
+The deployer owes to read the record and nothing else for its target.
+`plx deploy-targets --environment <name>`, on a checkout of the tenant's operations repo, prints each app's target in that environment; [PLX-Tenancy](tenancy.md) fixes that repo as the one operations repo of the organisation.
+An app without a record there has no deployment there, and the deployer deploys nothing for it rather than inventing a target.
 The deployer never writes to the record, never holds a copy of it, and never carries a target of its own once it reads the record.
 
 
@@ -47,5 +53,5 @@ The deployer never writes to the record, never holds a copy of it, and never car
 
 `plexus.platform.apps`, `plexus.platform.secrets` and `plexus.platform.ingress` provide the platform's side and `plx deploy-targets` and `plx deploy --environment` the deployer's; all ship from `plexus-ms/tooling` at the Plexus version.
 The record's shape is the one § 3 PLX-Platform requires; this page owns the seam and names the sides, and a guarantee one side relies on from the other moves here when it is argued.
-Decided 2026-11-04 in the CI trial of the first tenant (`damage`), where one deploy host per app repo and non-secret facts in the vault were the two things that did not scale to a second environment; 1Password Environments was considered as a store for the record and rejected, since it would be a second database of intent beside the inventory and fail the degradation test.
-Promotion to standard, with the requirements of §§ 1 and 2 as blockquotes, waits for the second tenant; the branch names of an app repo matching the environment names is a deferral of PLX-Delivery decided together with it.
+A vault's own environment store is no home for the record: it would be a second database of intent beside the inventory and fail the degradation test.
+Promotion to standard, with the requirements of §§ 1 and 2 as blockquotes, waits for the second tenant, and decides with it whether an app repo's branch names must match the environment names.

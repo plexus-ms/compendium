@@ -23,10 +23,13 @@ It is reachable over SSH on an address the operator's machine can connect to: a 
 It is reached once as root with the operator's key, after which the platform playbook creates personal admin accounts and closes root logins; nothing on the host is set up by hand before that first run.
 It has a stable hostname that the platform treats as the host's name in the inventory.
 It has outbound internet access for packages, container images, and the overlay or vault endpoints the roles talk to.
-Inbound, ports 80 and 443 reach it from the public internet, directly on a public address or through a layer-4 ingress that routes by SNI and Host header and announces the real peer with the PROXY protocol ([PLX-Ingress](../approaches/ingress.md) believes that announcement only from configured sources).
-Its disk holds the container images, the app directories, and whatever data the apps keep on the host; sizing is the tenant's call, and the standard says nothing about it.
+Inbound, ports 80 and 443 reach it from the public internet, directly on a public address or through a layer-4 ingress.
+Such an ingress routes by SNI and Host header and announces the real peer with the PROXY protocol, which [PLX-Ingress](../approaches/ingress.md) believes only from configured sources.
+Its disk holds the container images, the app directories, and whatever data the apps keep on the host.
+Sizing is the tenant's call, and the standard says nothing about it.
 
-Everything else is the platform's job and belongs to no contract: the roles install the container engine, the proxy, the firewall, the admins and the deploy user, and they are the single encoding of a host's setup.
+Everything else is the platform's job and belongs to no contract.
+The roles install the container engine, the proxy, the firewall, the admins and the deploy user, and they are the single encoding of a host's setup.
 A machine image carries only what has to exist before the first SSH login.
 
 
@@ -34,12 +37,13 @@ A machine image carries only what has to exist before the first SSH login.
 
 The platform asks nothing of how the host came to be, and the infrastructure layer asks only two things back: which guests to create and how to reach them.
 Both are inventory, in the tenant's operations repo.
-A host that stops meeting § 1, a release upgrade or a changed address, is a infrastructure-layer change first and a platform re-run second, in that order.
+A host that stops meeting § 1, a release upgrade or a changed address, is an infrastructure-layer change first and a platform re-run second, in that order.
 
 
 ## Maintaining
 
-Keep this page a list of assumptions the platform roles actually make, verified against them when a role changes what it needs; an assumption no role relies on is deleted, not kept for completeness.
+This page is a list of assumptions the platform roles actually make, verified against them when a role changes what it needs.
+An assumption no role relies on is deleted, not kept for completeness.
 A requirement arrives here when two implementations of the lower side disagree about something the roles depend on, and the page is promoted to standard maturity in that version.
 
 Below the seam: [PLX-Infrastructure](../approaches/infrastructure.md), or a provider with nothing to declare.

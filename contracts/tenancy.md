@@ -37,8 +37,9 @@ Substance stays partitioned because the tenant is the trust boundary.
 One greppable name threads through every layer.
 Every deployed service carries it as the label `plexus.tenant=<slug>`, which the app contract requires (`PLX-App/TenantLabel`).
 The label makes the boundary visible exactly where it otherwise blurs: staring at a host wondering whose service this is.
-The inventory groups are not on the list: the shipped playbooks target fixed group names (`platform`, `ci`, `proxmox`, `pbs`, `haproxy`, `guests`; [§ 1 PLX-Platform](../approaches/platform.md)), and a host runs one tenant's services, so the slug on a group would repeat what the repo already says.
-Until Plexus 0.114.0 the repo was named `platform`; the name moved when `platform` came to mean the layer alone, with the infrastructure layer and the tenant's CI beside it in the same repo.
+The inventory groups are not on the list.
+The shipped playbooks target fixed group names (`platform`, `ci`, `proxmox`, `pbs`, `haproxy`, `guests`; [§ 1 PLX-Platform](../approaches/platform.md)), and a host runs one tenant's services, so the slug on a group would repeat what the repo already says.
+The repo is not named `platform`, since `platform` names the layer alone, and the infrastructure layer and the tenant's CI sit beside it in the same repo.
 
 
 ## § 3 Forge layout
@@ -53,7 +54,13 @@ The operations repo holds the third-party apps the tenant merely operates, each 
 Org membership governs code access; a person in tenant A's org is simply not in tenant B's.
 Inside the org, the layout follows three cardinalities: one trust domain, N release cycles, one operations repo.
 A **repo** is one release cycle and one toolchain contract ([PLX-Repo](../contracts/repo.md)) inside a tenant.
-The ops side gets a repo of its own because everything about it is repo-level and unlike an app's: it has no release cycle ([§ 3 PLX-Delivery](../approaches/delivery.md)), it is applied by playbook runs on its own occasions ([PLX-Platform](../approaches/platform.md)), its dependency bumps are human-reviewed because they run as root ([PLX-Updates](../approaches/updates.md)), and it holds the root playbooks and the vault pointers, so its access list is naturally the shortest in the org.
+The ops side gets a repo of its own because everything about it is repo-level and unlike an app's:
+
+- it has no release cycle ([§ 3 PLX-Delivery](../approaches/delivery.md));
+- it is applied by playbook runs on its own occasions ([PLX-Platform](../approaches/platform.md));
+- its dependency bumps are human-reviewed because they run as root ([PLX-Updates](../approaches/updates.md));
+- it holds the root playbooks and the vault pointers, so its access list is naturally the shortest in the org.
+
 Co-locating it in one arbitrary app repo would be an asymmetry every second reader has to be told about.
 
 Within an app repo, the monorepo's benefits remain direct: apps and the packages they share version together, cross-cutting changes land as one atomic commit, and it is safe because a repo is one access boundary.
@@ -73,15 +80,16 @@ At small scale, pooling workloads on one physical host is the correct economics,
 The common form is one tenant obtaining its infrastructure from another: the second tenant runs the hypervisor ([PLX-Infrastructure](../approaches/infrastructure.md)), and the first tenant's VM is one of its guests.
 Be clear about what that buys and what it does not: virtualization solves performance and fault isolation, but it *centralizes* access rather than partitioning it.
 The hypervisor side sees everything, a hypervisor has unrestricted control over every VM, so the host is a critical attack vector, and it does nothing for legal controllership; hence the written arrangement.
-Where the guest's backups ride along on the hypervisor's backup path, or its local mail goes through the relay of the tenant that runs the hypervisor, the guest tenant's operations repo lists `PLX-Tenancy/PerTenantPlatform` under `deviations` in its marker and gives the reason in the marker's body.
-Sharing ingress, networking, or secrets across tenants beyond that is a red flag: if the economics seem to force it, file an issue against the standard rather than normalizing the exception.
+The guest's backups may ride along on the hypervisor's backup path, or its local mail go through the relay of the tenant that runs the hypervisor.
+Then the guest tenant's operations repo lists `PLX-Tenancy/PerTenantPlatform` under `deviations` in its marker and gives the reason in the marker's body.
+Sharing ingress, networking, or secrets across tenants beyond that is a red flag: if the economics seem to force it, that is raised against the standard rather than normalized as an exception.
 
 
 ## Maintaining
 
 The module introduces no role for the providing side of an arrangement; "the tenant that runs the hypervisor" is said in those words.
 A term like "operator" would name a relationship the standard has exactly one instance of, and the instance is covered by § 4 as written.
-The ambition of customer-1001 economics is measured here: whenever onboarding a tenant seems to force two tenants to share substance, that is a bug to file against this module, not an exception to normalize.
+The ambition of customer-1001 economics is measured here: whenever onboarding a tenant seems to force two tenants to share substance, that is a defect of this module, not an exception to normalize.
 
 Approaches on the tenant's side: [PLX-Platform](../approaches/platform.md), [PLX-Infrastructure](../approaches/infrastructure.md).
 On the upstream's side: the templates, `ship`, and the guarantees of § 1.6 PLX.

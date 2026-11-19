@@ -36,12 +36,15 @@ A repo is bound by this contract by being a repo; the marker does not list what 
 > - `PLX-Repo/NoTaskGraph`: mise tasks MUST NOT encode cross-project ordering.
 
 Plexus mandates the language-neutral [mise-en-place](https://mise.jdx.dev/) for toolchain management and [hk](https://hk.jdx.dev/) for git-hook wiring, and these are the two tools this contract names.
-Both are required rather than suggested defaults because the contract's whole point is one executable answer to "how do I run you": the pipeline calls `mise :verify` and nothing else, a second reader at any Plexus repo types the same three verbs, and a hook that bypasses mise would be a second encoding of the same check.
+Both are required rather than suggested defaults because the contract's whole point is one executable answer to "how do I run you".
+The pipeline calls `mise :verify` and nothing else, a second reader at any Plexus repo types the same three verbs, and a hook that bypasses mise would be a second encoding of the same check.
 
-mise is the front door, not the landlord: it bootstraps the stack's entry point onto the PATH, exports env, wires hooks, and names the verbs, then hands off to the stack's own machinery, and every fact past the bootstrap lives where its ecosystem natively binds it; mise pins only the facts that have no such home.
+mise is the front door, not the landlord: it bootstraps the stack's entry point onto the PATH, exports env, wires hooks, and names the verbs, then hands off to the stack's own machinery.
+Every fact past the bootstrap lives where its ecosystem natively binds it; mise pins only the facts that have no such home.
 The canonical home matters twice over: it is where a developer of that stack already looks, and it is the API the machine ecosystem reads.
 Update bots, IDEs, and the stack's own tools all consume the canonical files and are blind to a custom scheme.
-The shell is accordingly graph-blind: the task graph belongs to the stack's graph-aware tool, to which the verbs delegate, since mise knows nothing of a workspace's dependency edges and every ecosystem already has a tool that does (cargo, go, gradle natively; JS/TS via the one [PLX-JS](../approaches/js.md) designates).
+The shell is accordingly graph-blind: the task graph belongs to the stack's graph-aware tool, to which the verbs delegate.
+mise knows nothing of a workspace's dependency edges and every ecosystem already has a tool that does (cargo, go, gradle natively; JS/TS via the one [PLX-JS](../approaches/js.md) designates).
 That delegation is one line in one task, which makes it the deliberate swap point: a repo that outgrows its orchestrator changes the line behind the verbs, and nothing above them.
 hk configuration (`hk.pkl`) is likewise a plumbing layer over mise tasks, which is why hooks delegate.
 Behind the two hook names each stack runs its own checks; whether `test` runs on pre-push as well is the repo's choice.
@@ -65,8 +68,10 @@ The verbs are the stack-neutral layer every repo answers, and a stack that has n
 `PLX-Repo/OperatorBoundary` binds the operating side, not the repo.
 A toolchain module such as [PLX-JS](../approaches/js.md) specifies the incantations behind them for one stack.
 The pipeline ([§ 1 PLX-Delivery](../approaches/delivery.md)) invokes a repo only through these names, so the names are load-bearing and the incantations are not.
-They are deliberately stack-neutral: `verify` subsumes what a JS/TS repo answers with biome, tsc and vitest and a Go repo answers with vet and `go test`; *typecheck* was an incantation posing as contract.
-The sub-verbs nest by cost, which is what places them on the hooks: `lint` takes seconds and is cheap enough to run on every commit, `check` on every push, and `test` wherever the repo can afford the environment it needs, the pipeline at the latest.
+They are deliberately stack-neutral: `verify` subsumes what a JS/TS repo answers with biome, tsc and vitest and a Go repo answers with vet and `go test`.
+*Typecheck* was an incantation posing as contract.
+The sub-verbs nest by cost, which is what places them on the hooks.
+`lint` takes seconds and is cheap enough to run on every commit, `check` on every push, and `test` wherever the repo can afford the environment it needs, the pipeline at the latest.
 `verify` is the one name the pipeline knows; it answers repo-wide, or scoped to one app and its dependencies when the pipeline gates that app alone.
 Migration is deliberately not a verb: at deploy time the repo is absent and the artifact is what is present, so migrating is a capability of the image, declared in the app's compose file (`PLX-App/Stateful/MigrateService`) and invoked by the deploy verb through docker.
 Toolchain pinning follows § 2, so setup is `git clone && mise :dev` everywhere.

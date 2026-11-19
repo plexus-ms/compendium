@@ -1,6 +1,5 @@
 # Known violations of `plx requirements`: burn them down, never add to them.
 # One per line, as often as each occurs; `plx requirements --write-baseline` rewrites the file.
-date-or-version contracts/tenancy.md: 0.114.0
 date-or-version miscellaneous/proxmox-on-debian.md: September 2026
 date-or-version nextjs/auth-guidelines.mdx: March 2025
 date-or-version nextjs/favicon-guidelines.mdx: in 2026

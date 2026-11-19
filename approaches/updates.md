@@ -158,12 +158,24 @@ pnpm saves an exact version only when it is given no range, so Biome is born at 
 A template line adjacent to a line the update bot moves conflicts on every version that changes it, whatever its own value, since git refuses touching hunks.
 A line rewritten with every version (the `plx` pin) is therefore kept between comment lines the bot never touches, and a manifest's dependency map is never such a place.
 
+A few files are rendered at birth only: an update leaves them out entirely, and a recopy keeps those that exist.
+Every template's marker is one of them.
+Its body is the repo's or the app's own prose (§ 1.4 PLX), so an update that rendered it again would conflict with what was written there.
+A change to a marker's frontmatter is therefore made by hand, with the version that brings it.
+The app template's source, the root layout, the page and the `/healthz` route, is the other.
+The author rewrites it at once, and an update that rendered it again would fight the author's app, or add a root layout or page to an app whose route groups hold their own.
+
 
 ## Maintaining
 
 The templates, `plexus-ms/template-repo-turbo`, `template-app-nextjs`, and `template-repo-operations`, carry the Plexus version like the tooling: the standard defers the concrete toolchain arrangement to them, so they are arrangement authorities, not conveniences.
 They ship `plx-update.yml` and `renovate.json`; `plexus-ms/libraries` is generated from `template-repo-turbo` (answer `publishes_packages`) and takes its arrangement like a tenant's web repo.
 `tooling` ships `plx update`, `plx propagate` and `plx changeset`, the reusable `_plx-update.yml` and `_changeset.yml`, and the shared Renovate preset under `renovate/`.
+
+Each template's `verify` renders it as copier would for a new repo, birth tasks included, and runs the newborn's own lint (`template-repo-turbo`) or check (the other two).
+The app template is rendered as an app inside a repo of the Turborepo template that ships with it at the same Plexus version.
+Every versioned repo is tagged at once when a version is cut, so while a version is in development that is the forge's `main`, and its newest tag is a version behind.
+Each template's `tests/newborn.sh` states the steps.
 
 The three tiers decide where a new artifact goes:
 

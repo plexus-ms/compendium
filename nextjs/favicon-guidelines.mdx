@@ -12,12 +12,12 @@ Check three files into `app/`: `favicon.ico` (32×32), `icon.svg`, and `apple-ic
 
 ## Why three files, not one
 
-SVG favicon support is finally universal in 2026 — Chrome 80+, Firefox 41+, Edge 80+, and Safari 26.1+ (incl. iOS). In theory, a single `icon.svg` is enough for modern browsers.
+SVG favicon support is universal in current browsers: Chrome 80+, Firefox 41+, Edge 80+, and Safari 26.1+ (incl. iOS). In theory, a single `icon.svg` is enough for modern browsers.
 
 In practice, three gaps remain:
 
 - **`/favicon.ico` requests bypass your HTML.** RSS readers, link-preview crawlers, monitoring tools, and old corporate proxies request `/favicon.ico` from the site root directly. No `<link>` tag, no fallback negotiation. A missing file = 404s in your logs and missing icons in those clients.
-- **Safari < 26.1 still in the field.** Safari 26.1 shipped late 2025. The long tail of macOS users without the update sees nothing if SVG is your only option.
+- **Safari < 26.1 still in the field.** The long tail of macOS users without the update sees nothing if SVG is your only option.
 - **iOS home screen wants PNG.** The Web App Manifest spec doesn't accept SVG for installable icons. `apple-touch-icon` must be PNG.
 
 The `.ico` file is ~1–2 KB and downloaded in the background. Removing it saves nothing meaningful and breaks edge cases.

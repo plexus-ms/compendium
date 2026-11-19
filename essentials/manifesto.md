@@ -53,7 +53,8 @@ As we go along, these principles will evolve and change over time.
 - **Have state in Git, runnable, greppable.**
   Git owns *intent and definition*; the runtime owns *current state*. 
   What is live right now is read from the host itself, never from a bookkeeping database.
-  *Why:* control planes and other heavyweight ITOps applications routinely create opaque, stateful abstraction layers that are hard to see through and debug — developer-experience gains bought with "magic" — and they typically keep that state in a database of their own, displacing the Git repository as the source of truth.
+  *Why:* control planes and other heavyweight ITOps applications routinely create opaque, stateful abstraction layers that are hard to see through and debug — developer-experience gains bought with "magic".
+  They typically keep that state in a database of their own, displacing the Git repository as the source of truth.
   That is why such tools and managed services (e.g. Coolify, Dokploy, Vercel) are deliberately not part of Plexus.
 - **Primitives should rarely remember anything.**
   Primitives are best reused when authored as stateless procedures ("verbs": deploy, backup, CI steps) and conventions (labels, file structures, endpoints), and then mounted on event and state sources that already exist.
@@ -80,7 +81,8 @@ Nothing federates at runtime; what travels is versioned methodology from one ups
 
 This ambition has a measurable form: **customer-1001 economics**.
 The goal state in which the *marginal* tenant, project, or app costs near-zero to onboard and operate — everything it needs has already been decided once, encoded in a primitive, and propagated, so the 1001st lands as cheaply as the 11th.
-Every mechanism in the standard exists to move the marginal cost toward zero; whenever the economics seem to force tenants to share substance instead, that is a bug to file against the standard, not an exception to normalize.
+Every mechanism in the standard exists to move the marginal cost toward zero.
+Whenever the economics seem to force tenants to share substance instead, that is a defect of the standard, not an exception to normalize.
 
 ## Edges of this initiative
 

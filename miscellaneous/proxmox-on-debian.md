@@ -8,7 +8,7 @@ Some hosters offer no Proxmox VE image, only stock Debian.
 The way through is "Debian first, Proxmox on top": let the hoster install Debian 13 (Trixie), then convert it following the upstream guide [Install Proxmox VE on Debian 13 Trixie](https://pve.proxmox.com/wiki/Install_Proxmox_VE_on_Debian_13_Trixie).
 
 These notes record what the upstream guide does not say.
-They come from automating the conversion with Ansible on a Scaleway Elastic Metal server in September 2026, which took six attempts to get right.
+They come from automating the conversion with Ansible on a Scaleway Elastic Metal server, which took six attempts to get right.
 Where a hoster ships a Proxmox image of its own, use that instead and skip all of this.
 
 ## The sequence that works

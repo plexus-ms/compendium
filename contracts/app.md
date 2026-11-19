@@ -130,6 +130,7 @@ It names no path the platform has to know, and a third-party image is checked th
 The deploy's wait is bounded, so the healthcheck's timing matters as much as its command.
 Docker probes every five seconds inside the start period unless told otherwise, and every `interval` after it, so an app ready a moment after a fresh start can be seen healthy only many seconds later, or not before the wait runs out.
 A `start_period` at least as long as the deploy's wait, with a short `start_interval` such as `1s`, brings the first probes within a second of a fresh start, and `interval` stays as long as the steady state wants.
+`start_interval` needs Docker Engine `25.0` and Docker Compose `2.20.2` or later on the host.
 
 What a healthcheck should cover follows from its meaning.
 It includes the hard dependencies the app cannot serve without, such as its own database with a short bounded timeout, and leaves out soft or third-party dependencies the app survives degraded.

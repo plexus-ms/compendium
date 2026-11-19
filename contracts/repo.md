@@ -49,6 +49,8 @@ That delegation is one line in one task, which makes it the deliberate swap poin
 hk configuration (`hk.pkl`) is likewise a plumbing layer over mise tasks, which is why hooks delegate.
 Behind the two hook names each stack runs its own checks; whether `test` runs on pre-push as well is the repo's choice.
 Hooks self-install via the `mise.toml` `[hooks] postinstall` on the first `mise install`, with no per-repo or per-machine step; `HK=0 git …` bypasses a hook when needed.
+The templates' `postinstall` installs the hooks only where hk is on the PATH.
+A CI job whose mise installs only the tools the job names has no hk and needs no hooks, so the step stays silent there instead of failing.
 
 The answer to *"how do I run you?"* is always a mise verb, asked at the repo root: `mise :verb` answers repo-wide, `mise :verb <app>` scopes the answer to one app.
 The verbs live only at the root; a per-app `mise.toml` would be a second encoding of the same delegation.

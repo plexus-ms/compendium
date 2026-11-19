@@ -10,13 +10,16 @@ order: 2
 ---
 
 The app contract is the seam between dev and ops made explicit: the set of questions the platform asks of an app.
-It is small, verb-shaped, and identical for every stack; a PayloadCMS + MongoDB app, a Prisma + Postgres app, and a non-JS Django + Postgres app all satisfy it identically.
+It is small, verb-shaped, and identical for every stack.
+A PayloadCMS + MongoDB app, a Prisma + Postgres app, and a non-JS Django + Postgres app all satisfy it identically.
 §§ 1 to 7 bind every app, and are what CI and the deploy verb rely on for *every* app.
 §§ 8 and 9 are the two profiles, each a named variant of the contract for one recognizable shape of app; every app takes exactly one.
-Each requirement says which side it binds: most bind the app, the dev side; where the platform or the deployer owes the app something in return, the line names them.
+Each requirement says which side it binds: most bind the app, the dev side.
+Where the platform or the deployer owes the app something in return, the line names them.
 
 What the contract deliberately does **not** mention: databases, ORMs, frameworks, or anything interior.
-The deploy verb only needs *"is there a migration step and how do I invoke it"*, answered by the compose file: a stateful app declares a one-shot `migrate` service and the verb runs it through docker alone, so the deploy host never needs the app's toolchain.
+The deploy verb only needs *"is there a migration step and how do I invoke it"*, answered by the compose file.
+A stateful app declares a one-shot `migrate` service and the verb runs it through docker alone, so the deploy host never needs the app's toolchain.
 The backup job only needs *"which services hold state and of what type"*, answered by labels.
 
 An **app** is one deployable unit satisfying this contract.
@@ -24,7 +27,8 @@ Its **source repo**, the repo holding its compose file and marker, is an app rep
 Whether an app is built or third-party follows from where it lives: an app under the operations repo's `apps/` is third-party, every other app is built.
 The operations repo is the repo generated from the operations template, `plexus-ms/template-repo-operations` (§ 1.6 PLX).
 That is how the tools know it, by the template its answers file names, and so how they know an app under its `apps/` as third-party.
-A tenant that replaces the template says in its operations repo's marker body that it is the operations repo, and the tools do not know it: they take the apps under its `apps/` for built apps, and `plx doctor` holds them to a built app's checks.
+A tenant that replaces the template says in its operations repo's marker body that it is the operations repo, and the tools do not know it.
+They take the apps under its `apps/` for built apps, and `plx doctor` holds them to a built app's checks.
 The repo answers [PLX-Repo](repo.md); the verbs the pipeline calls on an app are that contract's.
 
 
@@ -58,7 +62,8 @@ A tenant's platform is its own sovereign Vercel or Railway, and the ownership sp
 Such a platform owns env values, domains, routing, and secrets; it does not own the app's run shape, which stays in the app's repo as a Dockerfile or a `railway.toml`.
 The compose file is the run shape: the migrate command, a worker service added in the same commit as the job queue, a new data service, the container port, the backup labels.
 Every one of those facts changes with the code, so the file versions with the code, and dev runs the identical file locally.
-Because the deploy verb runs from a checkout of the source repo, an app repo's CI or the operations repo for a third-party app, it has the file, and rendering it onto the host before `pull` means the compose file on the host always names the image being deployed.
+The deploy verb runs from a checkout of the source repo, an app repo's CI or the operations repo for a third-party app, so it has the file.
+Rendering it onto the host before `pull` means the compose file on the host always names the image being deployed.
 
 Third-party software fits without a second mechanism: a third-party app is an app whose source repo is the operations repo.
 Its compose file and marker live at `apps/<app-name>/` there, its image is someone else's and pinned in the file, and the same deploy verb is mounted on the operations repo instead of an app repo's CI.
@@ -78,7 +83,8 @@ Same verb, two mounts.
 With `.env.secret` optional, the same compose file runs in development with a local `.env` alone.
 The seam is "the platform hands the app an environment", and nothing more is said about it.
 What the app reads is recorded in its code; what the platform provides is recorded on the platform side, one record per app ([§ 3 PLX-Platform](../approaches/platform.md), [PLX-Secrets](../approaches/secrets.md)).
-No file in between declares or validates the variables: whether an app checks its environment at startup is its interior, and a process that cannot start never turns healthy and is rolled back like any other bad release ([§ 6 PLX-Delivery](../approaches/delivery.md)).
+No file in between declares or validates the variables: whether an app checks its environment at startup is its interior.
+A process that cannot start never turns healthy and is rolled back like any other bad release ([§ 6 PLX-Delivery](../approaches/delivery.md)).
 
 The reserved vocabulary is small, and each name has one provider:
 
@@ -89,7 +95,8 @@ The reserved vocabulary is small, and each name has one provider:
 | `PLEXUS_DEPLOYMENT_IMAGE` | deploy verb, from CI | deploy | pinned into the compose file |
 
 The one asymmetry is ownership: the port has a file with an owner on the host, the image ref does not; it is the release itself, known only at deploy time.
-The deploy verb pins the concrete ref in place of `${PLEXUS_DEPLOYMENT_IMAGE}` when it renders the file onto the host, the way a third-party app's image is pinned in git, which makes the on-host file the complete run shape: a human, the rotation handler, and the verb all run a bare `docker compose up -d`, and compose finds everything it needs in the directory.
+The deploy verb pins the concrete ref in place of `${PLEXUS_DEPLOYMENT_IMAGE}` when it renders the file onto the host, the way a third-party app's image is pinned in git.
+That makes the on-host file the complete run shape: a human, the rotation handler, and the verb all run a bare `docker compose up -d`, and compose finds everything it needs in the directory.
 `${PLEXUS_DEPLOYMENT_IMAGE:?rendered by the deploy verb}` is the recommended spelling: standard compose interpolation, and anyone running the unrendered file gets that message instead of a silent empty image.
 
 
@@ -102,9 +109,11 @@ The deploy verb pins the concrete ref in place of `${PLEXUS_DEPLOYMENT_IMAGE}` w
 `plx doctor` checks of `PLX-App/SinglePort` that the app service publishes exactly one port, not that it speaks plain HTTP, and checks `PLX-App/LoopbackPort`.
 
 The host side of the binding is not the app's to choose: the loopback port is assigned by the platform and written to the app directory by the platform playbook ([§ 3 PLX-Platform](../approaches/platform.md)).
-TLS, hostnames, and the host→port binding are likewise the platform's job; public host and loopback port alike are deployment substance, so the app stays deployable under any hostname and next to any neighbour.
+TLS, hostnames, and the host→port binding are likewise the platform's job.
+Public host and loopback port alike are deployment substance, so the app stays deployable under any hostname and next to any neighbour.
 The binding reaches compose through the platform's `.env` in the app directory, which compose reads implicitly; the app never reads it.
-A path prefix is the platform's promise in the other direction: an app stays as deployable under any prefix as under any hostname because it never sees the prefix, and takes the public URL it needs for links from its environment; where the prefix is bound (`apps[].path`) and how the proxy strips it are the platform's business ([§ 1 PLX-Ingress](../approaches/ingress.md)).
+A path prefix is the platform's promise in the other direction: an app stays as deployable under any prefix as under any hostname because it never sees the prefix.
+It takes the public URL it needs for links from its environment; where the prefix is bound (`apps[].path`) and how the proxy strips it are the platform's business ([§ 1 PLX-Ingress](../approaches/ingress.md)).
 
 
 ## § 5 Healthcheck
@@ -115,15 +124,18 @@ A path prefix is the platform's promise in the other direction: an app stays as 
 The deploy verb applies the same test and refuses a compose file that fails it, before it reaches the host.
 
 The deploy verb's rollback decision rides on the healthcheck: after `up` it waits for the app service's container to report `healthy`, and rolls back when it does not ([§ 6 PLX-Delivery](../approaches/delivery.md)).
-Declared in the compose file, the healthcheck is part of the run shape and versions with the code; it names no path the platform has to know, and a third-party image is checked the same way, with whatever command its image allows.
+Declared in the compose file, the healthcheck is part of the run shape and versions with the code.
+It names no path the platform has to know, and a third-party image is checked the same way, with whatever command its image allows.
 
 The deploy's wait is bounded, so the healthcheck's timing matters as much as its command.
 Docker probes every five seconds inside the start period unless told otherwise, and every `interval` after it, so an app ready a moment after a fresh start can be seen healthy only many seconds later, or not before the wait runs out.
 A `start_period` at least as long as the deploy's wait, with a short `start_interval` such as `1s`, brings the first probes within a second of a fresh start, and `interval` stays as long as the steady state wants.
 
 What a healthcheck should cover follows from its meaning.
-It includes the hard dependencies the app cannot serve without, such as its own database with a short bounded timeout, and leaves out soft or third-party dependencies the app survives degraded: a down database fails the deploy, correctly, since the new code cannot serve, while a slow mail provider does not.
-Plexus deliberately does not split liveness from readiness: that distinction pays for itself only where a reconciler restarts processes on liveness, and the standard has no reconciler; one healthcheck, one meaning.
+It includes the hard dependencies the app cannot serve without, such as its own database with a short bounded timeout, and leaves out soft or third-party dependencies the app survives degraded.
+A down database fails the deploy, correctly, since the new code cannot serve, while a slow mail provider does not.
+Plexus deliberately does not split liveness from readiness: that distinction pays for itself only where a reconciler restarts processes on liveness.
+The standard has no reconciler; one healthcheck, one meaning.
 Transient dependency blips are the waiting verb's problem, and handled there.
 
 
@@ -141,11 +153,13 @@ Shipping and retention are the platform's job.
 
 `plx doctor` checks of `PLX-App/Dockerfile` that a built app has the file.
 
-In practice the pipeline is the generated `on_push.yml` referencing the shared pipeline ([§ 2 PLX-Delivery](../approaches/delivery.md)); in a multi-app monorepo the pipeline decides per app by content hash ([§ 3 PLX-Delivery](../approaches/delivery.md)).
+In practice the pipeline is the generated `on_push.yml` referencing the shared pipeline ([§ 2 PLX-Delivery](../approaches/delivery.md)).
+In a multi-app monorepo the pipeline decides per app by content hash ([§ 3 PLX-Delivery](../approaches/delivery.md)).
 A third-party app has no Dockerfile: its image is someone else's, pinned in its compose file.
 The image build is hermetic: it runs inside the Dockerfile, so the artifact is correct from any host, macOS included, and a local `docker build --platform` can produce an image for any target.
-Hermeticity does not duplicate the build: what *build* means is encoded once, in the task graph, and the Dockerfile's build stage invokes the same entry as the `build` verb, a second invocation context, the same relationship CI has to the verbs.
-The release publishes for the deploy hosts' platform (amd64 today); multi-arch publishing is a deferred decision with a trigger, an ARM deploy host or the routine need to run production images on ARM laptops, and when triggered it is a workflow change (a per-platform matrix on native runners plus a manifest merge), not an architecture change.
+Hermeticity does not duplicate the build: what *build* means is encoded once, in the task graph.
+The Dockerfile's build stage invokes the same entry as the `build` verb, a second invocation context, the same relationship CI has to the verbs.
+The release publishes for the deploy hosts' platform (amd64); multi-arch publishing is a deferred decision (§ 6.7 PLX).
 
 
 ## § 8 The stateless profile
@@ -176,9 +190,10 @@ Extending the backup vocabulary means adding one handler upstream, after which e
 A database container of the app's own gives full isolation and dies with the app.
 
 A data service keeps its data in a named Docker volume, not in a bind-mounted directory under the app directory.
-The first start of a bind mount has Docker create the directory as root, and an image whose process runs unprivileged (Postgres as its own user, an object store as uid 10001) cannot write it, so every first start on a host needs a `chown` by hand that the platform playbook would otherwise have to know per image; a named volume is created with the ownership of the image's mount point, needs no directory and no chown.
+The first start of a bind mount has Docker create the directory as root, and an image whose process runs unprivileged (Postgres as its own user, an object store as uid 10001) cannot write it.
+Every first start on a host would need a `chown` by hand that the platform playbook would otherwise have to know per image.
+A named volume is created with the ownership of the image's mount point, and needs no directory and no chown.
 Backups do not care: whole-machine backups take the volumes with the guest ([§ 3 PLX-Infrastructure](../approaches/infrastructure.md)), and the per-service backup dumps through the container, never from the directory.
-An app moving from bind directories to volumes migrates each host once, with the stack stopped: create the volume, copy the directory into it with ownership preserved, bring the stack up on the new file.
 
 ### § 9.2 Migration
 
@@ -192,14 +207,18 @@ An app moving from bind directories to volumes migrates each host once, with the
 `plx doctor` checks of `PLX-App/Stateful/MigrateService` that a `migrate` service under `profiles: ["migrate"]` runs on the app service's image.
 
 `migrate` is the one contract step the deploy pipeline invokes against production data, hence the precision.
-It runs as a container from the very image being deployed (`docker compose run --rm migrate`, [§ 6 PLX-Delivery](../approaches/delivery.md)): the image carries its own migration tooling, dev runs the identical step with the identical command, and the deploy host needs docker and nothing else.
-Idempotence means already-applied steps are skipped; resumability is easiest where each step is applied atomically, as far as the database supports it; and concurrency is usually handled by a lock, which mainstream migration tools take out of the box, so that requirement is usually just *don't disable it*.
+It runs as a container from the very image being deployed (`docker compose run --rm migrate`, [§ 6 PLX-Delivery](../approaches/delivery.md)).
+The image carries its own migration tooling, dev runs the identical step with the identical command, and the deploy host needs docker and nothing else.
+Idempotence means already-applied steps are skipped, and resumability is easiest where each step is applied atomically, as far as the database supports it.
+Concurrency is usually handled by a lock, which mainstream migration tools take out of the box, so that requirement is usually just *don't disable it*.
 
 The deploy flow has no down-migration step, and its rollback path re-launches the *previous* image against the *already-migrated* schema.
-That is sound only if additive changes (new tables, nullable columns, backfills) ship first and destructive ones (drops, renames, constraint tightening) ship only in a later release, once no deployed code depends on the old shape: expand/contract, roll-forward only.
+That is sound only if additive changes (new tables, nullable columns, backfills) ship first, and destructive ones (drops, renames, constraint tightening) only in a later release, once no deployed code depends on the old shape.
+That is expand/contract, roll-forward only.
 A migration that cannot honour that discipline is the exception `PLX-App/Stateful/BreakingMigration` names, and whoever deploys it knows that reverting means restoring, not re-upping the previous tag.
 
-A third-party image that migrates its own schema on startup and offers no separate migrate step does not fit § 9.2 as written; the gap is known, and an app in that position lists `PLX-App/Stateful/MigrateService` under `deviations` in its marker until the profile settles how such an image fits.
+A third-party image that migrates its own schema on startup and offers no separate migrate step does not fit § 9.2 as written.
+An app in that position lists `PLX-App/Stateful/MigrateService` under `deviations` in its marker until the profile settles how such an image fits.
 
 ### § 9.3 Seed
 
@@ -218,7 +237,8 @@ The contract stays interior-blind; a requirement that names a database, a framew
 A profile holds what distinguishes its shape; anything true of every app belongs in §§ 1 to 7.
 The template `plexus-ms/template-app-nextjs` ships the arrangement that satisfies this page for a Next.js app: the Dockerfile, the compose file with the `web` service, the contract labels and its healthcheck.
 When this page changes, the template changes in the same version.
-The stateful profile is written against the one migration path the deploy verb has; a change to how the verb runs `migrate` ([§ 6 PLX-Delivery](../approaches/delivery.md)) is a change to § 9.2 here, in the same version.
+The stateful profile is written against the one migration path the deploy verb has.
+A change to how the verb runs `migrate` ([§ 6 PLX-Delivery](../approaches/delivery.md)) is a change to § 9.2 here, in the same version.
 
 Approaches on the platform side: [PLX-Platform](../approaches/platform.md), [PLX-Ingress](../approaches/ingress.md), [PLX-Secrets](../approaches/secrets.md), [§ 6 PLX-Delivery](../approaches/delivery.md), [backups per service](../approaches/backup.md).
 On the app side: [PLX-Delivery](../approaches/delivery.md) and the template.

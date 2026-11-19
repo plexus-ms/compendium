@@ -19,8 +19,7 @@ The jobs one would do are already covered: deploys by the forge's CI ([§ 2 PLX-
 App-internal pipelines run in a job queue *inside* the app (BullMQ, pg-boss), deployed as a worker container in the same compose file, so product logic stays out of platform-level infrastructure.
 A tenant that finds itself with an orchestrator that barely runs anything migrates its jobs onto those mechanisms or retires it.
 
-Deferred: an orchestrator, revisited only when workflows span multiple hosts with inter-step dependencies, human-in-the-loop approvals appear, scheduled-job interrelations become hard to track, or backfill or replay matters.
-If reached, prefer a single vanilla shared instance over a fork.
+Whether that changes is a deferred decision with its trigger, in § 5.3 PLX.
 
 
 ## § 2 The dead-man's-switch

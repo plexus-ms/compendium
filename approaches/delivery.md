@@ -190,7 +190,7 @@ It is reproducible as far as the stack allows.
 The context is `turbo prune --docker`, so an app's image is independent of the other apps' dependencies, and the base image is pinned by digest.
 The build ID and the app's server-actions key are fixed from outside, the key read from the vault item `app_<name>`, and timestamps are zeroed.
 What still drifts (Next's preview-mode keys, a package installed at build time) is measured and listed, never gated.
-Publishing for one platform (amd64) is the default; multi-arch is a deferred decision with a trigger, stated in the app contract.
+Publishing for one platform (amd64) is the default; multi-arch is a deferred decision with a trigger (§ 6.7 PLX).
 
 The layer cache lives in the registry beside the candidates (`<app>:cache`).
 A build on a fresh machine, the forge's runner or an instance launched for it, starts from the last build's layers and never round-trips a cache through the forge.

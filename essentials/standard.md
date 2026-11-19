@@ -452,7 +452,11 @@ Further profiles append here as they are needed.
 
 ### § 5.3 Background jobs
 
-The stance for now is: app-internal pipelines run in a job queue inside the app, deployed as a worker container in the same compose file (the [scheduling note](../approaches/scheduling.md)); a profile or note on the worker's shape is still to be written.
+The stance for now is: app-internal pipelines run in a job queue inside the app, deployed as a worker container in the same compose file (the [scheduling note](../approaches/scheduling.md)).
+A profile or note on the worker's shape is still to be written.
+
+Deferred: a workflow orchestrator, revisited only when workflows span multiple hosts with inter-step dependencies, human-in-the-loop approvals appear, scheduled-job interrelations become hard to track, or backfill or replay matters.
+If reached, a single vanilla shared instance is preferred over a fork.
 
 More approaches to background jobs and centralized orchestration may follow in the future.
 
@@ -500,6 +504,10 @@ Trunk-based, versioned by changesets, published token-less through OIDC trusted 
 
 Published images live in the tenant's forge registry under their commit; the candidates of a run and their layer cache live there too or in a registry of the tenant's own on object storage, which a repo answers per template.
 [§§ 4 and 8 PLX-Delivery](../approaches/delivery.md).
+
+Images are published for one platform, amd64.
+Deferred: multi-arch publishing, revisited when a deploy host runs on ARM or production images routinely need to run on ARM laptops.
+It would be a workflow change, a per-platform matrix on native runners plus a manifest merge, not an architecture change.
 
 ### § 6.8 Preview environments
 

@@ -85,7 +85,7 @@ Nothing federates at runtime; what travels is versioned methodology from one ups
 This ambition has a measurable form: **customer-1001 economics**.
 The goal state in which the *marginal* tenant, project, or app costs near-zero to onboard and operate — everything it needs has already been decided once, encoded in a primitive, and propagated, so the 1001st lands as cheaply as the 11th.
 Every mechanism in the standard exists to move the marginal cost toward zero.
-Whenever the economics seem to force tenants to share substance instead, that is a defect of the standard, not an exception to normalize.
+Whenever the economics seem to force tenants to share substance instead, that is a bug to file against the standard, not an exception to normalize.
 
 ## Edges of this initiative
 

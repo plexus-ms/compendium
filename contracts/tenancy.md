@@ -82,14 +82,14 @@ Be clear about what that buys and what it does not: virtualization solves perfor
 The hypervisor side sees everything, a hypervisor has unrestricted control over every VM, so the host is a critical attack vector, and it does nothing for legal controllership; hence the written arrangement.
 The guest's backups may ride along on the hypervisor's backup path, or its local mail go through the relay of the tenant that runs the hypervisor.
 Then the guest tenant's operations repo lists `PLX-Tenancy/PerTenantPlatform` under `deviations` in its marker and gives the reason in the marker's body.
-Sharing ingress, networking, or secrets across tenants beyond that is a red flag: if the economics seem to force it, that is raised against the standard rather than normalized as an exception.
+Sharing ingress, networking, or secrets across tenants beyond that is a red flag: if the economics seem to force it, file an issue against the standard rather than normalizing the exception.
 
 
 ## Maintaining
 
 The module introduces no role for the providing side of an arrangement; "the tenant that runs the hypervisor" is said in those words.
 A term like "operator" would name a relationship the standard has exactly one instance of, and the instance is covered by § 4 as written.
-The ambition of customer-1001 economics is measured here: whenever onboarding a tenant seems to force two tenants to share substance, that is a defect of this module, not an exception to normalize.
+The ambition of customer-1001 economics is measured here: whenever onboarding a tenant seems to force two tenants to share substance, that is a bug to file against this module, not an exception to normalize.
 
 Approaches on the tenant's side: [PLX-Platform](../approaches/platform.md), [PLX-Infrastructure](../approaches/infrastructure.md).
 On the upstream's side: the templates, `ship`, and the guarantees of § 1.6 PLX.

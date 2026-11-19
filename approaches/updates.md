@@ -83,6 +83,7 @@ An upstream release inside a range reaches only the lock file, which owes no cha
 
 The three-day release age is one decision enforced on both sides of the install.
 The preset sets `minimumReleaseAge` for everything it watches, and the repo template's `pnpm-workspace.yaml` sets the same 4320 minutes with `@plexus-ms/*` excluded.
+A repo that installs the tenant's own private packages ([§ 5 PLX-Delivery](delivery.md)) excludes their scope on both sides as well, from its template answer: they are the tenant's own releases, and their updates wait for a human rather than for an age.
 pnpm therefore refuses a younger version whether it arrives through the bot, a hand edit, or a transitive resolution.
 A bot that proposed a release the package manager rejects would only open red PRs; the two numbers are kept equal so that neither side ever hides the other's verdict.
 The initiative's own packages skip the wait because they are published by the maintainers under § 1.6 PLX.

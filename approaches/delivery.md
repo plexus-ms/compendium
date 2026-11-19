@@ -239,7 +239,20 @@ How a release runs:
   The release branch (`main`) is protected by a ruleset requiring the verify check; keep it that way, since this is what stands behind the upstream guarantees (§ 1.6 PLX).
 
 A `@plexus-ms/*` package is tenant-neutral methodology, never substance; this is the standard's guardrail and it binds every publish.
-A tenant publishing packages of its own to a private registry ([§ 1 PLX-Updates](updates.md)) takes the same shape.
+A tenant publishing packages of its own ([§ 1 PLX-Updates](updates.md)) takes the same shape, into the forge's package registry instead of npm: the template's answer `package_registry` is `github`.
+The packages are private to the tenant, carry the tenant's forge organisation as their scope, which that registry requires, and name the registry in their `publishConfig`.
+`publish` authenticates with the workflow's own token (`packages: write`), so there is no stored token here either, no trusted publisher to register and no manual first publish.
+A repo that installs such packages says so with the answer `private_packages_scope`.
+The template then maps the scope to the registry in `pnpm-workspace.yaml`, exempts it from the release age there and in the update bot's rules ([§ 2 PLX-Updates](updates.md)), and grants the repo's workflows `packages: read`.
+No repo holds a token for reading.
+A CI job writes its own token into a user-level npmrc of its own, which the image build receives as a BuildKit secret for its installs, and a developer keeps one in `~/.npmrc`.
+The forge grants a workflow of another repo read access per package, by hand in the package's settings, so a new package is granted to each repo that installs it; a missing grant fails the install with a 403.
+A package is built before it is published: its `exports` name compiled files, with a `default` condition so that `require` resolves them as well, and the relative imports in the output carry `.js`.
+The consumer of a published package compiles nothing of it.
+
+A change to a package is released before its consumer takes it, since a consumer's CI installs only what the registry has.
+Where the consumer has to prove the change first, `on_push` is started by hand on the package repo's branch with a dist-tag.
+It then publishes that branch's pending changesets as snapshot versions under the tag and leaves the trunk, the versions and the tags alone.
 Code utilities start in `@plexus-ms/std`, the standard *library* ("the standard" alone always names PLX itself, never this package), the default home for any small shared concern.
 A concern graduates to its own package once it has its own audience or its own release cadence: a consumer should not take updates because an unrelated helper changed.
 Tool configs are the one deliberate exception to per-concern packages: they bundle into `@plexus-ms/config` as subpath exports (`@plexus-ms/config/biome`, `/tsconfig`, …), each still a one-line `extends` target.

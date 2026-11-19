@@ -23,7 +23,9 @@ A Python or Go repo takes the same repo contract with a toolchain module of its 
 
 A JS/TS repo takes this approach by being generated from `plexus-ms/template-repo-turbo`, and the template does the arrangement.
 An app repo is a pnpm workspace plus Turborepo, and `turbo.json` states the task rules (`build`, `typecheck`, and `test` depend on `^build`); the root verbs delegate to turbo.
-An app's Dockerfile restates no build incantation of its own: its build stage invokes the task graph's `build` entry, the one the verb runs (`PLX-App/Dockerfile`).
+An app's Dockerfile restates no build incantation of its own: its build stage runs the same `build` scripts in the same order as the verb, through pnpm rather than Turbo ([§ 4 PLX-Delivery](delivery.md), `PLX-App/Dockerfile`).
+The image runs Next's standalone output, which leaves out the static files and `public/` for a CDN to serve.
+Without a CDN of its own, the Dockerfile copies both in beside the standalone server, which then serves them.
 mise installs only node for the JS/TS toolchain, and the package manager arrives through node itself.
 A `postinstall` hook enables corepack, which installs the pnpm version pinned in the root `package.json` `packageManager` field, the single pnpm pin (Turborepo requires the field anyway).
 Node has two homes, one per place it runs.
@@ -31,6 +33,9 @@ The toolchain's node is a major in the `[tools]` of the root `mise.toml`, which 
 The update bot proposes only a new major.
 The image's node is the base image of the app's Dockerfile, a tag of the same major pinned by digest, so that the same inputs give the same image; the update bot moves tag and digest together.
 A node major waits for approval on the update bot's dependency dashboard, and moves both homes in one pull request ([§ 2 PLX-Updates](updates.md)).
+The root `mise.toml` also lets mise read node's idiomatic version files, though not as a version source, since the pin in `[tools]` decides.
+That makes every `package.json` a file mise recognises, which is what lets `[monorepo].config_roots` match a directory under `packages/` or `apps/` that has no mise config of its own (`PLX-JS/NoLeafMise`).
+Without it, `mise install --monorepo` fails in a repo whose roots are only packages.
 The dev tools are on the PATH through mise's `_.path`.
 The four requirements bind the people who add to that arrangement: a new package, a new tool, a new task.
 

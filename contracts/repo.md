@@ -73,7 +73,8 @@ They are deliberately stack-neutral: `verify` subsumes what a JS/TS repo answers
 The sub-verbs nest by cost, which is what places them on the hooks.
 `lint` takes seconds and is cheap enough to run on every commit, `check` on every push, and `test` wherever the repo can afford the environment it needs, the pipeline at the latest.
 `verify` is the one name the pipeline knows; it answers repo-wide, or scoped to one app and its dependencies when the pipeline gates that app alone.
-Migration is deliberately not a verb: at deploy time the repo is absent and the artifact is what is present, so migrating is a capability of the image, declared in the app's compose file (`PLX-App/Stateful/MigrateService`) and invoked by the deploy verb through docker.
+Migration is deliberately not a verb: at deploy time the repo is absent and the artifact is what is present.
+Migrating is a capability of the image, declared in the app's compose file (`PLX-App/Stateful/MigrateService`) and invoked by the deploy verb through docker.
 Toolchain pinning follows § 2, so setup is `git clone && mise :dev` everywhere.
 
 

@@ -193,7 +193,6 @@ The tool that cuts a version, `plx-dev`, lives there too and is never published:
 
 **Semver attaches to maturity.**
 A breaking change to a standard module's requirements forces a major version, with its migration steps in that version's release notes; candidate and note modules change in any minor version.
-A minor bump is the routine, a patch is reserved for a hotfix.
 Section numbers in the map and in every module are append-only within a major version, so a citation written against one version stays right until the next major.
 While the Plexus version is `0.x` it promises nothing, and any version can change anything; it leaves `0.x` once the modular standard with its first standard modules has shipped and settled.
 

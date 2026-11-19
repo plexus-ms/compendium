@@ -33,7 +33,8 @@ The proxy config rendered from the record is where the promise is kept, and the 
 The reverse proxy is Caddy, and the platform playbook writes the host's routes into one file imported by the proxy's root config, rendered from every app record of the host.
 A host runs one tenant's apps and nothing else ([§ 4 PLX-Tenancy](../contracts/tenancy.md)), so there is no second writer to keep apart.
 What sits in front of the VM is a host-level fact, set once in the root config.
-A layer-4 ingress that routes by SNI may announce the real peer with the PROXY protocol, and a CDN's forwarded client address is believed only from that CDN's published ranges, so the app sees the actual client, and nothing bypassing the proxy can forge it.
+A layer-4 ingress that routes by SNI may announce the real peer with the PROXY protocol, and a CDN's forwarded client address is believed only from that CDN's published ranges.
+The app thus sees the actual client, and nothing bypassing the proxy can forge it.
 
 The proxy also refuses `/healthz` from outside, for every app, and the fence is the same everywhere: the inventory has no record field for it and no per-app exception.
 It is defence in depth: many apps answer their healthcheck on that conventional path, and such a route often probes a database, which is nothing to expose.

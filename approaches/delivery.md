@@ -456,7 +456,8 @@ The ops verbs are commands of `plx` and `plx-ci` ([PLX-CLI](cli.md)), and the re
 Both ship from `plexus-ms/tooling` at the Plexus version, the tools on npm, the workflows by the version tag, so that a tenant's CI runs one number.
 A tenant repo pins both tools in its `mise.toml`, and the pins move together with the workflow refs when the repo takes a version ([§ 3 PLX-Updates](updates.md)).
 The verbs a workflow asks for are therefore the ones the pinned tools have.
-Each verb's source file and each reusable workflow states in its header what it does step by step; the verbs are tested in `tooling`, the deploy verb against a fake `ssh` and a fake `docker`, the instance verbs against a fake cloud.
+Each verb's source file and each reusable workflow states in its header what it does step by step.
+The verbs are tested in `tooling`, the deploy verb against a fake `ssh` and a fake `docker`, the instance verbs against a fake cloud.
 A workflow is forge-specific and disposable, while a verb is portable and permanent, which is why logic never lives in the YAML.
 
 The templates generate the tenant's workflows: `plexus-ms/template-repo-turbo` for an app repo and, with `publishes_packages`, a package repo; `plexus-ms/template-repo-operations` for the operations repo.

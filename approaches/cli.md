@@ -89,8 +89,7 @@ Integration tests in `tooling` fake copier, mise, docker, curl, `gh` and `npm`.
 Taking a version moves the workflow refs and the tool's pin alike, in one pull request per consumer, so the verbs a workflow asks for are the ones the pinned `plx` has.
 A workflow that asks for a verb the pinned `plx` lacks fails as a usage error, loudly.
 
-The tool that cuts the version takes neither a pin nor a release: `mise ship` in `tooling` builds `plx-dev` from that checkout and runs it over the workspace the checkout sits in.
-The release tool is therefore the code at `main` and cannot be older than what it releases.
+The tool that cuts the version takes neither a pin nor a release: it is built from the maintainers' checkout of `tooling` (§ 1.5 PLX), so it cannot be older than what it releases.
 The copier an update runs is pinned inside `plx` and run through mise, which the dry run prints like every other step: the copier a repo is updated with travels with the tool, and the operator's `PATH` has no say in it.
 
 

@@ -71,8 +71,11 @@ As we go along, these principles will evolve and change over time.
 
 ### Two litmus tests to stay honest over time
 
-- **The second-reader test:** can a competent second person read a Plexus primitive top to bottom in half an hour and understand every line? If not, it is most likely too opaque.
-- **The degradation test:** if a primitive vanished tonight, could the job still be done by hand from the same artifacts in git? If yes, it is automation of a procedure that remains manually executable, and it will be less likely to cause trouble. If no, it is a magic automation that strands the operator in its absence.
+- **The second-reader test:** can a competent second person read a Plexus primitive top to bottom in half an hour and understand every line?
+  If not, it is most likely too opaque.
+- **The degradation test:** if a primitive vanished tonight, could the job still be done by hand from the same artifacts in git?
+  If yes, it is automation of a procedure that remains manually executable, and it will be less likely to cause trouble.
+  If no, it is a magic automation that strands the operator in its absence.
 
 ## One cookbook, many kitchens
 

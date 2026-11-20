@@ -253,6 +253,13 @@ The consumer of a published package compiles nothing of it.
 A change to a package is released before its consumer takes it, since a consumer's CI installs only what the registry has.
 Where the consumer has to prove the change first, `on_push` is started by hand on the package repo's branch with a dist-tag.
 It then publishes that branch's pending changesets as snapshot versions under the tag and leaves the trunk, the versions and the tags alone.
+
+In development no release stands between a package and the app that uses it.
+`plx umbrella up`, run in the directory that holds the clones, makes that directory one pnpm workspace over them: it merges the repos' workspace settings into a generated `pnpm-workspace.yaml`, installs, and rebuilds the linked packages on every change through their `dev` scripts.
+A dependency is linked to the clone where its range admits the clone's version, and the verb reports each one that is not.
+Where two repos set the same key differently, a range that lies within the other wins, and anything else is an error that names both.
+A generated `mise.local.toml` sets `PLX_UMBRELLA_ROOT`, which the Next.js template's `next.config.ts` reads as the root its bundler resolves from.
+`plx umbrella down` deletes what was generated and installs each repo on its own again; the repos' lockfiles are untouched in between, and CI never sees the umbrella.
 Code utilities start in `@plexus-ms/std`, the standard *library* ("the standard" alone always names PLX itself, never this package), the default home for any small shared concern.
 A concern graduates to its own package once it has its own audience or its own release cadence: a consumer should not take updates because an unrelated helper changed.
 Tool configs are the one deliberate exception to per-concern packages: they bundle into `@plexus-ms/config` as subpath exports (`@plexus-ms/config/biome`, `/tsconfig`, …), each still a one-line `extends` target.

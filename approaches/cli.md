@@ -28,6 +28,7 @@ The page states the case for the tool and the rules that keep it a bag of verbs 
 - `update`, by which a repo takes a version, and `propagate`, which runs it over many repos ([§ 3 PLX-Updates](updates.md));
 - `requirements`, the standard's requirements check (§ 1.8 PLX);
 - `changeset`, the changeset a dependency bump owes ([§ 5 PLX-Delivery](delivery.md));
+- `umbrella up` and `umbrella down`, one pnpm workspace over several clones for developing a package in the app of another repo ([§ 5 PLX-Delivery](delivery.md));
 - `deploy-targets` and `deploy`, the ops verbs ([§ 6 PLX-Delivery](delivery.md)).
 
 The ops verbs are mounted on the forge by the thin reusable workflows next to the tool in `tooling`, which call the `plx` the tenant repo pins, and are run by hand from a checkout otherwise.
@@ -41,7 +42,7 @@ It is a package of its own so that the CI of one tenant can change without movin
 
 `plx-dev` cuts a version (`ship`, § 1.5 PLX); it is the unpublished package `@plexus-ms/dev` in `tooling`, run from the maintainers' checkout of it (§ 3).
 
-The verbs serve three roles: the upstream, which cuts a version (`plx-dev ship`); a tenant repo, which lives on one (`update`, `deploy`, `deploy-targets`, `changeset`); and an operator of many repos, the maintainers or a tenant's own (`overview`, `doctor`, `propagate`).
+The verbs serve three roles: the upstream, which cuts a version (`plx-dev ship`); a tenant repo, which lives on one (`update`, `deploy`, `deploy-targets`, `changeset`); and an operator of many repos, the maintainers or a tenant's own (`overview`, `doctor`, `propagate`, `umbrella`).
 Two tests draw the line between the first and the other two: the upstream's verbs work with no knowledge of any consumer, and the tenant's and the operator's work with published artifacts and the tenant's own repos alone.
 The upstream's verbs are therefore not in `plx`, and `@plexus-ms/lib` holds nothing that cuts a version, so that a tenant repo pins nothing it cannot run.
 The compendium's requirements check stays in `plx`: the compendium runs it from its pin in `mise check` like any repo's check, and it knows no consumer.

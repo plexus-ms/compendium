@@ -26,7 +26,8 @@ It names the app, the app's source repo, the environment (`production` when abse
 It carries the non-secret values the deployment is given, and the secrets as `op://` pointers into the tenant's vault, never as values ([PLX-Secrets](../approaches/secrets.md)).
 It lives in the inventory file of the VM that runs the deployment, and that file names where a deploy reaches the VM, `plexus_deploy_target`, as `ssh://<deploy user>@<address>[:<port>]`.
 The reader binds a record to the target of its own file and resolves no inheritance of Ansible's.
-A record in a group's file whose target is in the host's file is a record without a target, and the deployer treats it as no deployment.
+A record in a group's file whose target is in the host's file is a record without a target, and the deployer deploys nothing for it.
+The operations repo's own deploy refuses such a record of an app it holds itself, instead of leaving the app out ([§ 6 PLX-Delivery](../approaches/delivery.md)).
 
 One app has at most one record per environment, and as many records as it has environments.
 The environment names are those the pipeline asks for, `production` and `staging` today; a further name, such as a preview, is a further record.

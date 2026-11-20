@@ -332,7 +332,8 @@ Anything outside it is either an existing tool's job or an architecture change, 
 The verb has one name and three callers.
 An app repo's `release` runs it per app with a target in the environment, after `publish` (§ 4), from the target `plan` read in the inventory.
 The operations repo's `deploy` runs it for the third-party apps under its `apps/`, from `main`, with the image already pinned in the committed file, each app's target looked up in the inventory by the `deploy-targets` verb.
-An app without a `plexus_deploy_target` in the inventory file that declares it has no deployment, and the job's log names it.
+An app under `apps/` whose record sits in an inventory file without a `plexus_deploy_target` fails the job, which names the app and the file: the repo holds the app to deploy it, and a silent omission would report a deploy that never ran.
+An app under `apps/` with no record at all has no deployment, and the job's log names it.
 Hand-run, it is `plx deploy deploy@host app --image <ref>` from any checkout that has the compose file.
 `plx -n deploy …` prints every ssh line it would run, which is what makes a forge-less deploy possible, with or without the tool.
 The deploy host is substance: the inventory record's `plexus_deploy_target` ([PLX-Environment](../contracts/environment.md)).

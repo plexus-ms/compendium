@@ -84,6 +84,7 @@ It is released with the Plexus version (§ 1.5 PLX).
 The runtime is no objection.
 mise installs npm tools directly, and every repo and every CI runner already goes through mise ([§ 2 PLX-Repo](../contracts/repo.md)).
 An operations repo has no Node toolchain, only the runtime the two tools run on, which it pins in its tools table like any tool; the bot keeps both lines current.
+A tool mise builds through uv, copier and Ansible among them, needs `python` pinned beside `uv`: mise's Python keeps the uv tools' environments inside its cached data directory, so it satisfies every such tool's requirement, and a change to it is followed by reinstalling them (`mise install -f <tool>`).
 A few hundred lines of TypeScript with a YAML dependency read at least as well as awk, and they take unit tests in the ordinary way.
 Integration tests in `tooling` fake copier, mise, docker, curl, `gh` and `npm`.
 

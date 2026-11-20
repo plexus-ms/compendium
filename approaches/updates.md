@@ -171,7 +171,9 @@ pnpm saves an exact version only when it is given no range, so Biome is born at 
 
 A template line adjacent to a line the update bot moves conflicts on every version that changes it, whatever its own value, since git refuses touching hunks.
 A line rewritten with every version (the `plx` pin) is therefore kept between comment lines the bot never touches, and a manifest's dependency map is never such a place.
-A line a consumer edits is the same as one the bot moves, and the answer is hygiene: a template carries no prose without semantic consequence, no comment, rationale or blank line kept for looks, beside the lines a consumer or its update bot changes, its versions, digests, catalog ranges and lists such as the admins and the hosts.
+A line a consumer edits is the same as one the bot moves, and the answer is hygiene in the files consumers edit: `mise.toml`, `pnpm-workspace.yaml`, the manifests, the Dockerfile and the operations repo's inventory.
+There the templates keep comments and rationale, prose without semantic consequence, away from the lines a consumer or its update bot changes: the versions, digests, catalog ranges, app records, and lists such as the admins and the hosts.
+A version moves no blank line beside those lines either.
 Such prose changes with no change in behaviour, yet every consumer that edited next to it meets the change as a conflict.
 The reason for a line lives in the module that asks for it, where rewording it costs no consumer anything.
 A generated file keeps its one or two header lines, and the comment lines that fence the `plx` pin stay, since keeping the bot's lines apart is their purpose.

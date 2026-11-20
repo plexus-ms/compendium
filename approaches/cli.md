@@ -84,7 +84,6 @@ It is released with the Plexus version (§ 1.5 PLX).
 The runtime is no objection.
 mise installs npm tools directly, and every repo and every CI runner already goes through mise ([§ 2 PLX-Repo](../contracts/repo.md)).
 An operations repo has no Node toolchain, only the runtime the two tools run on, which it pins in its tools table like any tool; the bot keeps both lines current.
-A tool mise builds through uv, copier and Ansible among them, needs `python` pinned beside `uv`: mise's Python keeps the uv tools' environments inside its cached data directory, so it satisfies every such tool's requirement, and a change to it is followed by reinstalling them (`mise install -f <tool>`).
 A few hundred lines of TypeScript with a YAML dependency read at least as well as awk, and they take unit tests in the ordinary way.
 Integration tests in `tooling` fake copier, mise, docker, curl, `gh` and `npm`.
 
@@ -93,6 +92,9 @@ A workflow that asks for a verb the pinned `plx` lacks fails as a usage error, l
 
 The tool that cuts the version is neither pinned nor published (§ 1.5 PLX).
 The copier an update runs is pinned inside `plx` and run through mise, which the dry run prints like every other step: the copier a repo is updated with travels with the tool, and the operator's `PATH` has no say in it.
+
+A tool mise builds through uv, copier and Ansible among them, needs `python` pinned beside `uv`, since mise's Python keeps the uv tools' environments inside its cached data directory.
+Whoever picks that pin owes that the pinned Python satisfies every uv tool's Python requirement, and follows a change to it by reinstalling them (`mise install -f <tool>`).
 
 
 ## § 4 What it must not become

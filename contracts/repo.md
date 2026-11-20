@@ -52,7 +52,7 @@ Hooks self-install via the `mise.toml` `[hooks] postinstall` on the first `mise 
 The templates' `postinstall` installs the hooks only where hk is on the PATH.
 A CI job whose mise installs only the tools the job names has no hk and needs no hooks, so the step stays silent there instead of failing.
 
-The answer to *"how do I run you?"* is always a mise verb, asked at the repo root: `mise :verb` answers repo-wide, `mise :verb <app>` scopes the answer to one app.
+The answer to *"how do I run you?"* is always a mise verb, asked at the repo root: `mise :verb` answers repo-wide, `mise :verb <name>` scopes the answer to the one app or package of that name.
 The verbs live only at the root; a per-app `mise.toml` would be a second encoding of the same delegation.
 
 

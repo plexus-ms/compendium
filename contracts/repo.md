@@ -58,7 +58,7 @@ The verbs live only at the root; a per-app `mise.toml` would be a second encodin
 
 ## § 3 The standard verbs
 
-> - `PLX-Repo/Verbs`: Every repo MUST answer `dev`, `build` and `verify` as root mise tasks, each taking an optional app argument, a verb the repo has no use for existing all the same as a no-op that passes.
+> - `PLX-Repo/Verbs`: Every repo MUST answer `dev`, `build` and `verify` as root mise tasks, each taking an optional app or package name, a verb the repo has no use for existing all the same as a no-op that passes.
 > - `PLX-Repo/SubVerbs`: `verify` MUST be `check` followed by `test`, each a root mise task, and `check` MUST include `lint`, a root mise task as well.
 > - `PLX-Repo/VerbSemantics`: The verbs MUST achieve what their names promise: `dev` takes a fresh checkout to a running development environment; `build` produces the production artifact; `verify` performs every automated step that ascertains code quality, providing whatever environment those steps need; `lint` checks style and formatting, fixable in place; `check` runs every static check and nothing that executes the code under test; `test` runs everything that executes code, pure unit tests included.
 > - `PLX-Repo/FreshCheckout`: Every verb MUST succeed from a fresh checkout; installing dependencies and building internal workspace packages first is the repo's own business, never the caller's.
@@ -75,6 +75,7 @@ They are deliberately stack-neutral: `verify` subsumes what a JS/TS repo answers
 The sub-verbs nest by cost, which is what places them on the hooks.
 `lint` takes seconds and is cheap enough to run on every commit, `check` on every push, and `test` wherever the repo can afford the environment it needs, the pipeline at the latest.
 `verify` is the one name the pipeline knows; it answers repo-wide, or scoped to one app and its dependencies when the pipeline gates that app alone.
+The sub-verbs `check` and `test` take the same optional name; `lint` takes files and directories instead, since the pre-commit hook hands it files.
 Migration is deliberately not a verb: at deploy time the repo is absent and the artifact is what is present.
 Migrating is a capability of the image, declared in the app's compose file (`PLX-App/Stateful/MigrateService`) and invoked by the deploy verb through docker.
 Toolchain pinning follows § 2, so setup is `git clone && mise :dev` everywhere.

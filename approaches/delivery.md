@@ -395,10 +395,11 @@ On a web repo of three apps, a pull request that owes every build takes about ei
 **The registry** holds the candidates and the layer cache (§ 4).
 Under `ghcr` they live beside the published images, in the forge's registry, under the tenant's organisation; the only credential is the job's own token.
 Under `own` they live in a registry pair on the tenant's object storage, which every job that needs it finds answering on loopback.
-The read-write registry of the current month answers on `:5000` and the read-only one of the previous month on `:5001`, each a container against a bucket `<owner>-ci-registry-<YYYY-MM>`.
+The read-write registry of the current week answers on `:5000` and the read-only one of the previous week on `:5001`, each a container against a bucket `<owner>-ci-registry-<YYYY-wWW>`, named by the ISO week in UTC.
 On the forge's runners and on an instance the job starts the pair itself for its own length (`plx-ci registry`); on a runner host the host runs it, on the same ports and buckets.
-Retention is rotation, never garbage collection: writes go to the current month, reads consult both months, and the daily `housekeeping` creates the next month's bucket and deletes the one from two months ago whole.
-That costs one cold build per app a month.
+Retention is rotation, never garbage collection: writes go to the current week, reads consult both weeks, and the daily `housekeeping` creates the next week's bucket and deletes the one from two weeks ago whole.
+A registry never frees a layer on its own, and a build pushes every layer that changed, to the candidate and to the layer cache, so the buckets grow with every build until they go.
+The week bounds that: an app whose candidate went with its bucket is built once more, cold, on the next run of its repo, which costs one cold build a week for an app nobody touched, and none for an app built in the week before.
 Under `ghcr` the `housekeeping` of the app repo deletes the package versions whose only tags are candidates older than thirty days; a version carrying a commit is never deleted.
 It is mounted in the app repo because only that repo's own workflow token may delete versions of the packages it published.
 `own` also carries Turbo's remote cache for `check`, in a bucket `<owner>-ci-turbo` with a lifecycle rule, served to the job by a cache server on loopback with a token minted for the job.
@@ -472,7 +473,7 @@ The address the strategy mails to is a fact, the template answer `alerts_email`,
 - Every strategy: the vault `<owner>-ci`, whose service account token is the one CI secret of every repo, with the items `app_<name>` per app, `deploy-ssh` and `github-app`.
   The App itself, with the permissions above, is installed on every repo, and each host's record in the inventory carries `plexus_deploy_target`.
   A tenant with no app to deploy and no vault sets `GH_CLIENT_ID` and `GH_PRIVATE_KEY` at its organisation instead.
-- `own`: a storage key with read and write on the buckets plus their creation and deletion, the bucket `<owner>-ci-turbo` with a lifecycle rule expiring objects after thirty days, and the first `<owner>-ci-registry-<YYYY-MM>`.
+- `own`: a storage key with read and write on the buckets plus their creation and deletion, the bucket `<owner>-ci-turbo` with a lifecycle rule expiring objects after thirty days, and the first `<owner>-ci-registry-<YYYY-wWW>`.
 - `on-prem` and `hybrid`: a runner host in the inventory group `ci`, applied by the operations repo's `ci.yml` (`plexus.ci.playbook`), on the overlay with a policy that lets it reach the app hosts' SSH.
   Its playbook environment holds the App's credentials and, under `own`, the storage key; its slots are set by size (`actions_runners_slots`).
   Both reach the playbook as `op://` pointers the tenant adds to the operations repo's `secrets.env`, which the wrapper resolves from the vault ([PLX-Secrets](secrets.md)); the generated file holds neither.
@@ -487,7 +488,7 @@ The address the strategy mails to is a fact, the template answer `alerts_email`,
 Three trade-offs are named rather than implied.
 The runner host persists between jobs, against "primitives should rarely remember anything".
 The slots are the speed gain for the small jobs, and what they keep is one cache and the registry pair.
-An hourly housekeeping timer on the host moves the pair to the new month's buckets and removes what the jobs leave behind.
+An hourly housekeeping timer on the host moves the pair to the new week's buckets and removes what the jobs leave behind.
 The runner image updates with the version, since the forge stops scheduling onto a runner that falls far behind, and monthly is the floor.
 And the write credentials in an instance's user-data are readable by the job that runs there, which is the same exposure as the secrets that job can read anyway, accepted for a tenant's private repos.
 

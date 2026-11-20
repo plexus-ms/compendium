@@ -99,7 +99,7 @@ A role per credential, each able to do nothing else, and the daily set separated
 |---|---|---|
 | launch (`plan`, `cleanup`, `housekeeping`) | `create-instance`, `list-instances`, `get-instance`, `delete-instance`, `stop-instance` (keeping a stalled instance), `list-templates`, `get-template`, `list-instance-types`, `get-instance-type`, `list-security-groups`, `get-security-group`, `get-operation` | `create-security-group` once; `register-ssh-key` and `delete-ssh-key` only while the CLI's single-use key is in use (§ 3) |
 | self-delete, from user-data | `list-instances` (the CLI resolves an instance by listing, even by id), `get-instance`, `delete-instance`, `get-operation` | none |
-| storage | object reads and writes on the Turbo bucket and the two current registry buckets, `create-bucket` and `delete-bucket` for the monthly rotation | the Turbo bucket and its lifecycle rule, the first registry bucket |
+| storage | object reads and writes on the Turbo bucket and the two current registry buckets, `create-bucket` and `delete-bucket` for the weekly rotation | the Turbo bucket and its lifecycle rule, the first registry bucket |
 
 Whether IAM can restrict the self-delete role to instances carrying a label is unverified; today it can delete any instance of the organisation.
 

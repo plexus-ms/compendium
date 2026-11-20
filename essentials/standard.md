@@ -753,6 +753,7 @@ A repo takes a version by the step of its number and its own schedule, and rests
 ### § 13.4 The repo's checks
 
 `plx doctor` is a hand-runnable verb run in a repo: it runs the checks of the requirements that bind the repo and its apps (§ 1.3) and prints each that fails; it fixes nothing.
+Beside the checks it reports every tracked file that holds a conflict marker as a failure; that belongs to no requirement, and no deviation silences it ([§ 3 PLX-Updates](../approaches/updates.md)).
 It needs no compendium checkout: the checks travel with the `plx` the repo pins, so a repo is checked against the version it is on.
 Which version that is, is the repo's `plx` pin (§ 1.5), and whether to take a newer one is § 13.3's question, not a finding of the checks.
 

@@ -93,11 +93,17 @@ The reserved vocabulary is small, and each name has one provider:
 | `COMPOSE_PROJECT_NAME` | platform playbook, the deployment's slug (§ 3 PLX-Platform) | playbook run | `.env`, read implicitly |
 | `PLEXUS_LOOPBACK_PORT` | platform playbook, from the app's inventory record | playbook run | `.env`, read implicitly |
 | `PLEXUS_DEPLOYMENT_IMAGE` | deploy verb, from CI | deploy | pinned into the compose file |
+| `PLEXUS_DISPLAY_VERSION` | deploy verb, from CI, in a repo with display versions | deploy | pinned into the compose file, where it uses the placeholder |
+| `PLEXUS_COMMIT_SHA` | deploy verb, from CI, for a built app | deploy | pinned into the compose file, where it uses the placeholder |
 
 The one asymmetry is ownership: the port has a file with an owner on the host, the image ref does not; it is the release itself, known only at deploy time.
 The deploy verb pins the concrete ref in place of `${PLEXUS_DEPLOYMENT_IMAGE}` when it renders the file onto the host, the way a third-party app's image is pinned in git.
 That makes the on-host file the complete run shape: a human, the rotation handler, and the verb all run a bare `docker compose up -d`, and compose finds everything it needs in the directory.
 `${PLEXUS_DEPLOYMENT_IMAGE:?rendered by the deploy verb}` is the recommended spelling: standard compose interpolation, and anyone running the unrendered file gets that message instead of a silent empty image.
+
+The last two are optional on both sides: they say what a deployment is, its display version and the commit it was started from ([PLX-Releases](../approaches/releases.md)).
+An app that wants one passes it on in its compose file, `PLEXUS_COMMIT_SHA: ${PLEXUS_COMMIT_SHA:-}`, and finds it empty where nothing hands it over, as in development.
+A compose file without the placeholder is deployed as it is.
 
 
 ## § 4 One HTTP port

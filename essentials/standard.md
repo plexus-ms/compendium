@@ -157,6 +157,7 @@ deviations: [PLX-App/Stateful/MigrateService]
 The frontmatter holds two fields.
 `profile` is an app's profile, `stateless` or `stateful`, and only an app's marker carries it.
 `deviations` lists by name the requirements the unit does not meet, and the body gives the reason for each, one bullet per deviation; otherwise the body is free-form prose for humans.
+The marker of an app repo with display versions holds a third, `major`, the major of the next version it cuts ([§ 5 PLX-Releases](../approaches/releases.md)).
 Machine checks read only the frontmatter.
 
 What a unit follows is not listed: a repo is bound by the repo contract and an app by the app contract by being one (§ 1.3), and a unit takes an approach by its answers file for the approach's template.
@@ -529,6 +530,12 @@ Not covered yet.
 The deploy verb re-creates containers in place and accepts seconds of downtime per deploy ([§ 6 PLX-Delivery](../approaches/delivery.md)).
 
 Deferred: blue-green or rolling deploys, revisited when an app has traffic for which a blink is a real cost; whatever the answer, it stays a verb, not a reconciler.
+
+### § 6.10 Display versions
+
+An app repo that asks for them gets a version people can read: a production release that changes an app cuts `MAJOR.MINOR` as a git tag with a GitHub Release.
+Every deployed app is handed its display version and, in every app repo, the commit it was started from; neither is built into the image, and neither alone restarts an app.
+[PLX-Releases](../approaches/releases.md), at candidate maturity.
 
 
 ## § 7 Platform

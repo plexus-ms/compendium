@@ -65,6 +65,9 @@ The opt-in roles add a hostname (`hostname`), an overlay network (`netbird`), lo
 `hostname` names the host after `hostname_fqdn`, the FQDN the host reports unless the inventory sets it; where the role is off, a provider-named host keeps the name its image gave it.
 `netbird` joins a host to the overlay with a setup key from the playbook's environment (`NETBIRD_SETUP_KEY`), needed only on the run that joins it.
 An app host adds the deploy user and the container engine (`plexus.platform.deploy_user`, `plexus.host.docker`); the proxy is [PLX-Ingress](ingress.md)'s.
+Every deploy pulls an image and none removes one, so `docker` removes them daily: an image goes once no container has used it at two consecutive daily runs.
+The image a deploy has just replaced therefore stays for a day at least, in the host's cache for the deploy's rollback ([§ 6 PLX-Delivery](delivery.md)) and for one by hand; volumes and the build cache are left alone.
+On a CI runner host the role's removal is off, since the runners' housekeeping owns the images there.
 A host that runs the tenant's own CI runners instead of apps takes the baseline, the container engine, and `plexus.ci.actions_runners`, through the CI playbook ([§ 8 PLX-Delivery](delivery.md)).
 `plexus.host` has no playbook of its own: it is the layer every other layer stands on, and each layer's playbook lists its roles in the order that layer needs.
 The roles are the one encoding of how a host is set up; nothing is done by hand before the first run, and a machine image carries only what has to exist before the first SSH login.

@@ -95,6 +95,7 @@ The two verbs are steps of one job because the forge's job graph is static and `
 As steps, an app's test starts when its own build ends and a failed build tests nothing.
 The legs stay independent: a broken app does not hold back a sound one, and an app whose hashes both hit has no leg.
 `release` takes the plan's output: `publish` per app, then `deploy` per app with a target in the environment, as `_deploy.yml` nested inside it.
+In a repo with display versions it has two more jobs, one before the deploys that reads what each app shows and one after them that tags the version a production release cuts ([PLX-Releases](releases.md)).
 A promotion never builds.
 A run by hand on an environment branch republishes and redeploys every app from the images it finds, and a run by hand on a branch that names no environment releases nothing.
 
@@ -141,6 +142,7 @@ This section binds app repos.
 `production` and `staging` are the environment names a deploy asks the platform inventory for ([PLX-Environment](../contracts/environment.md)).
 Staging and production may share a VM or take one each, since both sit inside one tenant's trust domain and [PLX-Tenancy](../contracts/tenancy.md) partitions tenants, not environments.
 An app release has no version number to reconcile: a release is an image keyed by git SHA, and the deploy that follows is keyed by the same SHA.
+A version people can read is a tag made after the fact, which decides nothing and which no file holds ([PLX-Releases](releases.md)).
 Branches map to deploy targets.
 "Promote staging to prod" is fast-forwarding `main` to `develop` (`git push origin origin/develop:main`, the `promote` task the template ships), never a merge commit.
 A merge commit on `main` is a commit `develop` does not know, so the next promotion has to merge again, and `main` becomes a chain of promotion merges that says nothing.
@@ -296,10 +298,13 @@ deploy(host, tenant, app, image_ref):
 ```
 
 The verb renders the app's `compose.yaml` from the invoking checkout onto the host, pinning the image ref in place of `${PLEXUS_DEPLOYMENT_IMAGE}`.
+Where it is given them and the file uses their placeholders, it pins the display version and the commit the same way ([§ 1 PLX-Releases](releases.md)).
 Before staging, it refuses a rendered file whose app service declares no `healthcheck` (`PLX-App/Healthcheck`), which it could never see turn healthy, and never reaches the host.
 A failure anywhere before the swap, a pull or a migrate, leaves the host exactly as it was, so the previous release keeps serving from its own compose file; the failing job is the alert.
 The verb ends without pulling or restarting when the host already serves the app from the same rendered file, healthy.
-A promotion therefore restarts only the apps whose image changed, and the operations repo's deploy of every app on every push restarts only the one that changed.
+A ref that names the image already live is the same deployment: a release tags every app's image with its commit, an unchanged app's among them, so the verb compares the images and not their refs.
+The display version and the commit an app is handed are left out of the comparison too, and the host keeps the ones it shows ([§ 4 PLX-Releases](releases.md)).
+A promotion therefore restarts only the apps whose image or compose file changed, and the operations repo's deploy of every app on every push restarts only the one that changed.
 
 The verb reads everything from git (the compose file) and from the host (`docker ps` is runtime truth) and stores nothing.
 "Which version is live" is the running container's image, queryable from reality, and equally the image pinned in the compose file the host serves from.

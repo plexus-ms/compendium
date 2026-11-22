@@ -13,6 +13,7 @@ The columns *Depends on* and *Consumes* repeat each page's frontmatter for the r
 |---|---|---|---|---|---|
 | PLX-JS | [the JS/TS toolchain](js.md) | standard | repo | PLX-Repo | – |
 | PLX-Delivery | [from a verified commit to a running or published artifact](delivery.md) | standard | repo | PLX-Repo | PLX-App, PLX-Host |
+| PLX-Releases | [display versions and the commit an app runs](releases.md) | candidate | repo | PLX-Delivery | PLX-App |
 | PLX-Platform | [the operations platform](platform.md) | standard | host | PLX-Tenancy | PLX-Host, PLX-App |
 | PLX-Ingress | [ingress](ingress.md) | standard | host | PLX-Platform | PLX-App |
 | PLX-Secrets | [secrets delivery](secrets.md) | standard | host | PLX-Platform | PLX-App |

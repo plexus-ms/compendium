@@ -109,7 +109,7 @@ A compose file without the placeholder is deployed as it is.
 ## § 4 One HTTP port
 
 > - `PLX-App/SinglePort`: The app MUST serve plain HTTP on exactly one container port.
-> - `PLX-App/LoopbackPort`: The app's compose file MUST publish that port as `127.0.0.1:${PLEXUS_LOOPBACK_PORT:?<message>}:<container-port>` and MUST NOT fix a host port of its own.
+> - `PLX-App/LoopbackPort`: The app's compose file MUST publish that port as `127.0.0.1:${PLEXUS_LOOPBACK_PORT:?<message>}:<container-port>`, MUST publish any port of another service on `127.0.0.1` only, and MUST NOT fix a host port of its own.
 > - `PLX-App/PathPrefix`: Where an app is served under a path prefix of a host it shares with other apps of the same tenant, the platform MUST strip the prefix before a request reaches the app, and the app MUST serve from its own root.
 
 `plx doctor` checks of `PLX-App/SinglePort` that the app service publishes exactly one port, not that it speaks plain HTTP, and checks `PLX-App/LoopbackPort`.
@@ -120,6 +120,7 @@ Public host and loopback port alike are deployment substance, so the app stays d
 The binding reaches compose through the platform's `.env` in the app directory, which compose reads implicitly; the app never reads it.
 The `:?` makes compose refuse the file when the variable is unset or empty: without it compose only warns and publishes on a random loopback port, where the app turns healthy and the proxy finds nothing.
 `${PLEXUS_LOOPBACK_PORT:?set by the platform playbook}` is the spelling the app template renders.
+A data service may publish a port for a tool on the host, on loopback and on a port compose picks, so that the proxy stays the only way in from outside.
 A path prefix is the platform's promise in the other direction: an app stays as deployable under any prefix as under any hostname because it never sees the prefix.
 It takes the public URL it needs for links from its environment; where the prefix is bound (`apps[].path`) and how the proxy strips it are the platform's business ([§ 1 PLX-Ingress](../approaches/ingress.md)).
 

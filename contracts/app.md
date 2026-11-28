@@ -25,8 +25,8 @@ The backup job only needs *"which services hold state and of what type"*, answer
 An **app** is one deployable unit satisfying this contract.
 Its **source repo**, the repo holding its compose file and marker, is an app repo for software the tenant builds, or the tenant's operations repo for third-party software the tenant merely operates (§ 2).
 Whether an app is built or third-party follows from where it lives: an app under the operations repo's `apps/` is third-party, every other app is built.
-The operations repo is the repo generated from the operations template, `plexus-ms/template-repo-operations` (§ 1.6 PLX).
-That is how the tools know it, by the template its answers file names, and so how they know an app under its `apps/` as third-party.
+The operations repo is the repo generated from the operations template, `repo-operations` (§ 1.6 PLX).
+That is how the tools know it, by the template its root marker lists, and so how they know an app under its `apps/` as third-party.
 A tenant that replaces the template says in its operations repo's marker body that it is the operations repo, and the tools do not know it.
 They take the apps under its `apps/` for built apps, and `plx doctor` holds them to a built app's checks.
 The repo answers [PLX-Repo](repo.md); the verbs the pipeline calls on an app are that contract's.
@@ -38,7 +38,7 @@ The repo answers [PLX-Repo](repo.md); the verbs the pipeline calls on an app are
 
 `plx doctor` checks `PLX-App/Marker`.
 
-The marker's format is the one every marker has (§ 1.4 PLX); an app's alone carries `profile`.
+The marker's format is the one every marker has (§ 1.4 PLX); an app's alone carries `profile`, an answer to a question of the app template that a third-party app, which lists no template, states all the same.
 The profile is the app's own fact and no other file states it: the platform treats every app identically through the same verbs and labels, and never needs to know it.
 An app that does not meet a requirement of this page lists the requirement's name under `deviations` in its marker and gives the reason in the marker's body.
 
@@ -248,7 +248,7 @@ Production data arrives by restore or by real use, never by seed.
 
 The contract stays interior-blind; a requirement that names a database, a framework, or an ORM has wandered in from an approach and goes back there.
 A profile holds what distinguishes its shape; anything true of every app belongs in §§ 1 to 7.
-The template `plexus-ms/template-app-nextjs` ships the arrangement that satisfies this page for a Next.js app: the Dockerfile, the compose file with the `web` service, the contract labels and its healthcheck.
+The template `app-nextjs` ships the arrangement that satisfies this page for a Next.js app: the Dockerfile, the compose file with the `web` service, the contract labels and its healthcheck.
 When this page changes, the template changes in the same version.
 The stateful profile is written against the one migration path the deploy verb has.
 A change to how the verb runs `migrate` ([§ 6 PLX-Delivery](../approaches/delivery.md)) is a change to § 9.2 here, in the same version.

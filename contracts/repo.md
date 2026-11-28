@@ -24,7 +24,7 @@ Every other module that binds a repo or an app depends on this one: [PLX-App](ap
 `plx doctor` checks `PLX-Repo/Marker`.
 
 The marker's format is that of § 1.4 PLX; a repo's marker carries no `profile`, which is an app's.
-A repo is bound by this contract by being a repo; the marker does not list what the repo follows, and the Plexus version it is on is its `plx` pin (§ 1.5 PLX).
+A repo is bound by this contract by being a repo; the marker does not list the contracts, only the templates the repo is generated from, and the root marker names the Plexus version the repo is on (§ 1.5 PLX).
 
 
 ## § 2 mise and hk
@@ -87,7 +87,9 @@ The contract names no stack, and the pressure to let one in is constant: every n
 The test is whether a repo in a different stack could answer the line unchanged.
 If not, it belongs in a toolchain module.
 
-The marker's frontmatter is read by `plx doctor` (§ 13.4 PLX); its format changes only with a major version.
+The marker's frontmatter is read by `plx` (§ 1.4 PLX).
+A change to its format that breaks an existing marker is made only in a major version (§ 1.5 PLX).
+A change that breaks no existing marker is made in a minor or a patch: a key added whose default keeps the previous behaviour, or a key removed while the behaviour stays the same.
 
 Approaches on the authors' side: [PLX-JS](../approaches/js.md), [§ 5 PLX-Delivery](../approaches/delivery.md), [PLX-Updates](../approaches/updates.md).
 On the operating side: [PLX-Delivery](../approaches/delivery.md), the hooks, `plx doctor` (§ 13.4 PLX).

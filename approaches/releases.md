@@ -122,8 +122,8 @@ A repo that turns display versions on without a usable `major` fails at its firs
 
 Display versions are the answer `display_versions` of the app repo's template, and the default is no.
 With it, the release job asks the release workflow for display versions, runs one at a time, and holds the permission to write the tag and the Release.
-A repo born with the answer has `major: 1` in its marker.
-A repo that turns the answer on later adds the line by hand, since the template writes a marker once, at the repo's birth.
+`major` is a question of the same template, asked when display versions are on: a number, 1 or higher, and 1 unless answered.
+A repo born with the answer has `major: 1` in its marker, and a repo that turns the answer on later gets the same line from `plx apply` ([§ 3 PLX-Updates](updates.md)).
 
 An app shows a value where its compose file uses the placeholder, and the app template's compose file names both.
 A compose file without a placeholder ignores the value, so an app that shows nothing is deployed as before.
@@ -138,7 +138,7 @@ Nothing computes a version from git on a developer's machine: a checkout seldom 
 `plx-ci display-versions` computes the display versions and the version a production release cuts, and `plx-ci tag-display-version` makes the tag and the Release; the header of their source in `tooling` states how both are read from the tags and the registry.
 `plx deploy` pins the two values and leaves them out of its comparison ([PLX-CLI](cli.md)).
 The reusable workflow `_release.yml` mounts them behind its input `display-versions` and hands the commit to every deploy.
-`plexus-ms/template-repo-turbo` asks the question and writes the release job and the marker; `plexus-ms/template-app-nextjs` ships the two lines of the compose file.
+The template `repo-turbo` asks the two questions and writes the release job; `app-nextjs` ships the two lines of the compose file.
 
 The module shows what a release is and never decides one: what is built, published and deployed stays keyed by content and by commit ([§ 3 PLX-Delivery](delivery.md)).
 A change that makes a deploy depend on a display version has left this module's fence.

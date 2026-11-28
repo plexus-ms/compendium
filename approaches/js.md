@@ -21,7 +21,7 @@ A Python or Go repo takes the same repo contract with a toolchain module of its 
 > - `PLX-JS/DevTools`: JS-ecosystem dev tools (turbo, biome, …) MUST be devDependencies, never mise `[tools]` entries.
 > - `PLX-JS/NoEngines`: A `package.json` MUST NOT carry `engines`.
 
-A JS/TS repo takes this approach by being generated from `plexus-ms/template-repo-turbo`, and the template does the arrangement.
+A JS/TS repo takes this approach by being generated from the template `repo-turbo`, and the template does the arrangement.
 An app repo is a pnpm workspace plus Turborepo, and `turbo.json` states the task rules (`build`, `typecheck`, and `test` depend on `^build`); the root verbs delegate to turbo.
 An app's Dockerfile restates no build incantation of its own: its build stage runs the same `build` scripts in the same order as the verb, through pnpm rather than Turbo ([§ 4 PLX-Delivery](delivery.md), `PLX-App/Dockerfile`).
 The image runs Next's standalone output, which leaves out the static files and `public/` for a CDN to serve.
@@ -64,7 +64,7 @@ The template ships it ([PLX-Updates](updates.md)), and staying current with the 
 
 ## Maintaining
 
-`plexus-ms/template-repo-turbo` is the arrangement authority for this module: the template's `mise.toml`, `turbo.json`, `biome.json`, root `package.json`, and `hk.pkl` are the one encoding of § 1.
+The template `repo-turbo` in `tooling` is the arrangement authority for this module: the template's `mise.toml`, `turbo.json`, `biome.json`, root `package.json`, and `hk.pkl` are the one encoding of § 1.
 A change to § 1 here is a change to the template in the same version.
 The shared configs a generated repo extends (`@plexus-ms/config/biome`, `/tsconfig`) are a library, published from `plexus-ms/libraries` on a version line of its own (§ 1.5 PLX); the template carries only the one-line `extends`.
 Its range lives in one place, the `plexus` catalog of `pnpm-workspace.yaml`, and every manifest says `catalog:plexus`.

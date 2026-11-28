@@ -9,12 +9,15 @@ depends: [PLX-Repo]
 order: 29
 ---
 
-This module is the `plx` family of command-line tools, all on `@plexus-ms/lib` but the template engine, which `@plexus-ms/lib` is on:
+This module is the `plx` family of command-line tools:
 
 - `plx`, published as `@plexus-ms/cli`, the base in every tenant repo, with the ops verbs a tenant's CI runs and the helpers an operator of many repos runs;
 - `plx-ci`, published as `@plexus-ms/cli-ci`, the CI verbs on top of it;
 - `plx-template`, published as `@plexus-ms/cli-template`, the template engine `plx` renders and merges with, a tool of its own that knows nothing of Plexus;
 - `plx-dev`, which cuts the version and is never published.
+
+`plx`, `plx-ci` and `plx-dev` are built on `@plexus-ms/lib`.
+`@plexus-ms/lib` renders and merges templates through `plx-template`, which depends on no Plexus package.
 
 A repo takes `plx` and `plx-ci` as one line each in its `mise.toml` tools table, written by the repo templates and moved with each version the repo takes, and its workflows call the pins; `plx-template` arrives as a dependency of `plx`, at the same version.
 The page states the case for the tool and the rules that keep it a bag of verbs rather than a system; it is a candidate, so it states no requirements yet.
@@ -39,10 +42,8 @@ It renders, writes the files and the marker's frontmatter (§ 1.4 PLX), and runs
 `apply` renders each unit whose marker changed since `HEAD` twice, as `HEAD` has the marker and as the working tree has it, merges the difference into the working tree, and commits nothing.
 Where a marker lists templates, `new` of an app and `apply` run only when the root marker names the running `plx`'s version: the templates it bundles are its own version's.
 
-Beside the checks of the requirements, `doctor` checks the markers as configuration, as findings of no requirement that no deviation silences.
-The root marker's `version` equals the `plx` pin, and is set where any marker lists templates; no nested marker carries `version`; no key is answered in two markers; every marker can be read as configuration.
-Where the running `plx` is the version the root marker names, it also checks that every template a marker lists is one it bundles, that every key is reserved or a question or read of a template in scope, and that every answer is valid for its question; with any other `plx` it skips the three and says so.
-A nested marker's scope is the templates it lists; the root marker's is the templates of every marker of the repo, since its answers are every unit's; a marker that lists none is not checked, except the root where another marker lists some.
+Beside the checks of the requirements, `doctor` checks the markers as configuration (§ 13.4 PLX), as findings of no requirement that no deviation silences.
+The checks against the templates run only where the running `plx` is the version the root marker names, and are skipped with a line saying so otherwise; the headers of its source state each check and its scope.
 
 The ops verbs are mounted on the forge by the thin reusable workflows next to the tool in `tooling`, which call the `plx` the tenant repo pins, and are run by hand from a checkout otherwise.
 The workflows carry no logic, only the mounts.
@@ -54,7 +55,10 @@ Each is one line of a reusable workflow and runnable by hand with the same keys 
 It is a package of its own so that the CI of one tenant can change without moving every tenant's `plx`, and so that an operations repo, which builds nothing, carries only the base.
 
 `plx-template` is the template engine, at the Plexus version from the same repo, and `plx` depends on it as a library.
-It knows templates, answers, rendering and three-way merging, and nothing of Plexus: not the marker, not a Plexus version, not git history, a forge or a pull request; it imports no Plexus package, keeps no state, asks no question, and runs no command but git's merge of a file, returning the birth commands a template declares to its caller.
+It knows templates, answers, rendering and three-way merging.
+It knows nothing of Plexus: not the marker, not a Plexus version, not git history, a forge or a pull request.
+It keeps no state and asks no question.
+The one command it runs is git's merge of a file; the birth commands a template declares it returns to its caller.
 It has two verbs: `render` writes templates rendered with a set of answers into a directory, and `merge` three-way merges what changed between two renders into a directory that has local edits, leaving each conflict in its file between markers.
 An update is two renders and a merge, which a human can run by hand ([§ 3 PLX-Updates](updates.md)); the headers of its source state the manifest a template carries and the rules of the merge.
 
@@ -95,7 +99,6 @@ A toolbox script cannot travel to a tenant's repo; a subcommand of a pinned tool
 ## § 3 Where it lives and what runs it
 
 TypeScript in `tooling`, as `@plexus-ms/cli` with `@plexus-ms/lib` and `@plexus-ms/cli-template`, published through trusted publishing at the Plexus version (§ 1.5 PLX).
-The templates are in `tooling` too, under `templates/`, and are bundled into `@plexus-ms/cli`.
 The tool is arrangement, like the workflows and the collections it sits beside, and one number names the version and the tools a repo runs.
 It is released with the Plexus version (§ 1.5 PLX).
 `plx-dev` and the requirements check are the maintainers' and are public all the same: they are methodology, and they carry no tenant's substance.
@@ -110,7 +113,7 @@ Taking a version moves the workflow refs and the tool's pin alike, in one pull r
 A workflow that asks for a verb the pinned `plx` lacks fails as a usage error, loudly.
 
 The tool that cuts the version is neither pinned nor published (§ 1.5 PLX).
-The engine a repo is rendered with travels with the version: `plx` depends on `@plexus-ms/cli-template` at its own version and bundles that version's templates.
+The engine a repo is rendered with travels with the version: `plx` depends on `@plexus-ms/cli-template` at its own version, and the templates it carries are that version's (§ 1.5 PLX).
 An update renders the side of the version it runs at with its own engine, and the side of any other version with that version's `plx-template` and templates, fetched from the npm registry into a scratch directory, so that a version's templates are only ever rendered by its own engine and the operator's `PATH` has no say in it.
 The engine runs on the Node that runs `plx`, with git for the merge of a file, so a repo's templates need no tool of another runtime in the repo.
 
@@ -144,10 +147,10 @@ Every script the tool was written to replace is gone; the verbs not written are 
 
 ## Maintaining
 
-`plexus-ms/tooling` ships the tools as `@plexus-ms/cli` and `@plexus-ms/cli-ci` with `@plexus-ms/lib` as their core, at the Plexus version, published with provenance from that version's release (§ 1.6 PLX).
+`plexus-ms/tooling` ships the tools as `@plexus-ms/cli`, `@plexus-ms/cli-ci` and `@plexus-ms/cli-template`, with `@plexus-ms/lib` as the core of the first two, at the Plexus version, published with provenance from that version's release (§ 1.6 PLX).
 The repo templates write the pins into every tenant repo, and taking a version moves them.
 `plx-dev` is the workspace package `packages/dev` beside them, private and never published: `mise ship` builds it and runs it, and nothing outside the maintainers' checkout depends on it.
-`@plexus-ms/cli-template` is published beside them at the Plexus version, before `@plexus-ms/cli`, which depends on it.
+`@plexus-ms/cli-template` is published first, since `@plexus-ms/lib` and `@plexus-ms/cli` depend on it.
 The template library behind the engine's adapter is pinned exact, and the update bot proposes its bump alone and never merges it unattended, because it decides the bytes every template renders to.
 The tool is a primitive of [PLX-Delivery](delivery.md), [PLX-Updates](updates.md) and § 13.4 PLX.
 

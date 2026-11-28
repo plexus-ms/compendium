@@ -46,7 +46,7 @@ Plexus revolves around tenants sharing methodology but never substance:
 - **Marker** — the `PLEXUS.md` at the root of every repo and every app: in its frontmatter the unit's configuration (the Plexus version the repo is on, the templates the unit is generated from, the answers to their questions) and the requirements the unit does not meet, in its body the reasons (§ 1.4).
 - **Plexus version** — the one number Plexus carries: a plain semver tag stamped identically on `tooling` and the compendium; a repo is on the version its root marker names (§ 1.5).
 - **Tooling** and **libraries** — the two ways a primitive reaches a tenant: tooling runs around an app and carries the Plexus version, a library is imported by an app and carries a version of its own (§ 1.5).
-- **Template** — a directory of files and a manifest of their questions, shipped in `tooling`, from which `plx` generates a repo or an app and re-syncs it through the template engine `plx-template`; the template is what does an approach (§ 1.3, § 13.3).
+- **Template** — a directory of files and a manifest of their questions, from which `plx` generates a repo or an app and re-syncs it; the template is what does an approach (§ 1.3, § 13.3).
   *Preset* is the update bot's word for a shared configuration and means nothing else in Plexus.
 
 Tenants usually build and ship software:
@@ -166,7 +166,9 @@ A nested marker's answers are the root marker's plus its own, and a key stands i
 Machine checks read only the frontmatter.
 
 `plx new` writes the frontmatter when it creates the unit, and `plx` never touches the body or reformats what a human wrote.
-The answers and `templates` are edited by hand and brought into the files with `plx apply`; `version` is written only by `plx update`; `deviations` and the body are the human's alone ([§ 3 PLX-Updates](../approaches/updates.md)).
+The answers and `templates` are edited by hand and brought into the files with `plx apply` ([§ 3 PLX-Updates](../approaches/updates.md)).
+`version` is written by `plx new` at birth and by `plx update` afterwards, never by hand.
+`deviations` and the body are the human's alone.
 
 What a unit follows is not listed: a repo is bound by the repo contract and an app by the app contract by being one (§ 1.3); what the marker lists is the templates, and so the approaches, it takes.
 An app is on its repo's Plexus version.
@@ -245,7 +247,7 @@ The repos that ship the methodology:
 
 | Repo | Offering |
 |---|---|
-| `tooling` | The primitives that run around an app, at the Plexus version, in one repo: the `plexus.*` Ansible collections, one per layer with its playbook (`plexus.host` for the baseline every host gets, `plexus.platform`, `plexus.infrastructure`, `plexus.ci`), and reusable Terraform modules; the thin reusable workflows that mount the ops verbs on the forge; the templates a repo or an app is generated from, under `templates/`; `plx` itself as `@plexus-ms/cli` with `@plexus-ms/lib`, the templates bundled inside it, the template engine as `@plexus-ms/cli-template` (`plx-template`), and the CI verbs as `@plexus-ms/cli-ci` (`plx-ci`); `plx-dev`, the unpublished tool that cuts a version; and the shared Renovate preset every Plexus repo extends in one line. |
+| `tooling` | The primitives that run around an app, at the Plexus version, in one repo: the `plexus.*` Ansible collections, one per layer with its playbook (`plexus.host` for the baseline every host gets, `plexus.platform`, `plexus.infrastructure`, `plexus.ci`), and reusable Terraform modules; the thin reusable workflows that mount the ops verbs on the forge; the templates a repo or an app is generated from, under `templates/`; `plx` itself as `@plexus-ms/cli` with `@plexus-ms/lib`, the template engine as `@plexus-ms/cli-template` (`plx-template`), and the CI verbs as `@plexus-ms/cli-ci` (`plx-ci`); `plx-dev`, the unpublished tool that cuts a version; and the shared Renovate preset every Plexus repo extends in one line. |
 | `libraries` | The primitives an app imports, the published `@plexus-ms/*` libraries for the web/Node/TypeScript world, each on its own semver: the `std` utilities, the shared tool configs `@plexus-ms/config`, and over time the reusable application plumbing that keeps each app's domain core small. |
 | `compendium` | This map, the modules, the manifesto, and the supporting reference docs. |
 
@@ -261,7 +263,7 @@ The maintainers' organisation ships methodology, the tenant's holds substance, a
 ```mermaid
 flowchart TB
   packages["LIBRARIES<br>std · config · plumbing;<br>npm semver + provenance"]
-  template["TEMPLATES<br>repo + app templates,<br>bundled in plx"]
+  template["TEMPLATES<br>repo + app templates"]
   ops["TOOLING<br>roles · workflows · plx"]
   boundary{{"SHARED METHODOLOGY<br><br>SEPARATE SUBSTANCE"}}
   packages -- "npm versions" --> boundary

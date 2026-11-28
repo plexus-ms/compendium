@@ -18,7 +18,7 @@ It is an approach at candidate maturity: one tenant runs it, which is one short 
 
 ## § 1 The playbook
 
-`plexus-ms/template-repo-operations` generates `infrastructure.yml` on request, off by default: one line importing `plexus.infrastructure.playbook`, the tenant's own plays below it, run as `mise infrastructure`.
+The template `repo-operations` generates `infrastructure.yml` on request, off by default: one line importing `plexus.infrastructure.playbook`, the tenant's own plays below it, run as `mise infrastructure`.
 The playbook runs before the platform layer's and targets different hosts, the inventory groups `proxmox`, `pbs`, `haproxy`, and `guests` for every VM on the hypervisor, the ingress VM and other tenants' guests included.
 Its plays are:
 

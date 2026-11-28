@@ -24,7 +24,7 @@ Every other module that binds a repo or an app depends on this one: [PLX-App](ap
 `plx doctor` checks `PLX-Repo/Marker`.
 
 The marker's format is that of § 1.4 PLX; a repo's marker carries no `profile`, which is an app's.
-A repo is bound by this contract by being a repo; the marker does not list what the repo follows, and the Plexus version it is on is its `plx` pin (§ 1.5 PLX).
+A repo is bound by this contract by being a repo; the marker does not list the contracts, only the templates the repo is generated from, and the root marker names the Plexus version the repo is on (§ 1.5 PLX).
 
 
 ## § 2 mise and hk

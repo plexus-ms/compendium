@@ -67,10 +67,10 @@ With them every repo runs `check` on every pull request, tested as the merge res
 
 | Repo, template | Workflows | Under which answers |
 |---|---|---|
-| App repo, `template-repo-turbo` | `on_commit` (`check` on a push to any branch but its environment branches), `on_pr` (`check`, then `verify`), `on_push` (`check`, `verify`, `release` on a push to an environment branch), `plx-update` | always |
+| App repo, `repo-turbo` | `on_commit` (`check` on a push to any branch but its environment branches), `on_pr` (`check`, then `verify`), `on_push` (`check`, `verify`, `release` on a push to an environment branch), `plx-update` | always |
 | | `housekeeping` (the candidates in the forge's registry) | `ci_registry` is `ghcr` |
-| Package repo, `template-repo-turbo` with `publishes_packages` | `on_pr` (`check`, the changeset guard, the `changeset` mount), `on_push` (`check`, `publish` on its trunk), `plx-update` | always |
-| Operations repo, `template-repo-operations` | `on_commit` and `on_pr` (`check`), `deploy`, `plx-update` | always |
+| Package repo, `repo-turbo` with `publishes_packages` | `on_pr` (`check`, the changeset guard, the `changeset` mount), `on_push` (`check`, `publish` on its trunk), `plx-update` | always |
+| Operations repo, `repo-operations` | `on_commit` and `on_pr` (`check`), `deploy`, `plx-update` | always |
 | | `housekeeping` (the instances and the registry buckets) | `ci_strategy` is `hybrid` or `ci_registry` is `own` |
 
 `housekeeping` is the daily retention of what the runs leave behind, and `plx-update` the mount by which the repo takes a version ([§ 3 PLX-Updates](updates.md)).
@@ -273,7 +273,7 @@ Application plumbing, the "standardize boundaries" edges (framework glue, common
 Until then it lives in the app that needs it (§ 4.6 PLX).
 
 The initiative's packages live in `plexus-ms/libraries`, which does not carry the Plexus version (§ 1.5 PLX): npm semver via changesets is its versioning.
-It is generated from `template-repo-turbo` like a tenant's web repo and takes its arrangement by taking Plexus versions.
+It is generated from `repo-turbo` like a tenant's web repo and takes its arrangement by taking Plexus versions.
 `plx` and `@plexus-ms/lib` live in `tooling` and carry the Plexus version instead, because they run around an app and are never imported by one; `@plexus-ms/config` is a library, since an app's manifests depend on it.
 
 
@@ -509,9 +509,9 @@ Each verb's source file and each reusable workflow states in its header what it 
 The verbs are tested in `tooling`, the deploy verb against a fake `ssh` and a fake `docker`, the instance verbs against a fake cloud.
 A workflow is forge-specific and disposable, while a verb is portable and permanent, which is why logic never lives in the YAML.
 
-The templates generate the tenant's workflows: `plexus-ms/template-repo-turbo` for an app repo and, with `publishes_packages`, a package repo; `plexus-ms/template-repo-operations` for the operations repo.
-The upstream repos that are no template's consumer (`tooling`, `compendium` and the three templates) mount `_check.yml` with `tasks: verify` by hand.
-A template's `verify` renders it as a newborn repo and runs that repo's own lint or check ([PLX-Updates](updates.md)).
+The templates generate the tenant's workflows: `repo-turbo` for an app repo and, with `publishes_packages`, a package repo; `repo-operations` for the operations repo.
+The upstream repos that are no template's consumer (`tooling` and `compendium`) mount `_check.yml` with `tasks: verify` by hand.
+`tooling`'s `verify` creates each template as a newborn repo and runs that repo's own `verify` ([PLX-Updates](updates.md)).
 
 §§ 4 to 6 carry no requirements: what they describe is done by the tooling and the templates, and the requirements the deploy verb serves are PLX-App's.
 Preview environments per pull request are deliberately absent, a deferred decision with its trigger in § 6.8 PLX.

@@ -87,7 +87,9 @@ The contract names no stack, and the pressure to let one in is constant: every n
 The test is whether a repo in a different stack could answer the line unchanged.
 If not, it belongs in a toolchain module.
 
-The marker's frontmatter is read by `plx doctor` (§ 13.4 PLX); its format changes only with a major version.
+The marker's frontmatter is read by `plx` (§ 1.4 PLX).
+A change to its format that breaks an existing marker is made only in a major version (§ 1.5 PLX).
+A change that breaks no existing marker is made in a minor or a patch: a key added whose default keeps the previous behaviour, or a key removed while the behaviour stays the same.
 
 Approaches on the authors' side: [PLX-JS](../approaches/js.md), [§ 5 PLX-Delivery](../approaches/delivery.md), [PLX-Updates](../approaches/updates.md).
 On the operating side: [PLX-Delivery](../approaches/delivery.md), the hooks, `plx doctor` (§ 13.4 PLX).

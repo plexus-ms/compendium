@@ -217,8 +217,9 @@ Each is a directory: a manifest, `template.yml`, declaring its questions, the an
 They ship `plx-update.yml` and `renovate.json`; `plexus-ms/libraries` is generated from `repo-turbo` (answer `publishes_packages`) and takes its arrangement like a tenant's web repo.
 `tooling` ships `plx new`, `plx apply`, `plx update` and `plx changeset`, the engine `plx-template`, the reusable `_plx-update.yml` and `_changeset.yml`, and the shared Renovate preset under `renovate/`.
 
-`tooling`'s `verify` creates each template as a newborn with `plx new`, birth commands included, and runs the newborn's own `verify`.
-The app template is created as an app inside a newborn of the Turborepo template of the same checkout.
+`tooling`'s `verify` creates each template as a newborn with `plx new`, birth commands included, and runs the newborn's own `verify`; `mise ship` runs the same first.
+The app template is created as an app inside a newborn repo of `repo-turbo`.
+The newborns install the `@plexus-ms` packages of the checkout's own build, not the published ones, so the `plx` a newborn runs is the one being cut.
 
 The three tiers decide where a new artifact goes:
 

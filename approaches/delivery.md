@@ -511,7 +511,7 @@ A workflow is forge-specific and disposable, while a verb is portable and perman
 
 The templates generate the tenant's workflows: `repo-turbo` for an app repo and, with `publishes_packages`, a package repo; `repo-operations` for the operations repo.
 The upstream repos that are no template's consumer (`tooling` and `compendium`) mount `_check.yml` with `tasks: verify` by hand.
-`tooling`'s `verify` creates each template as a newborn repo and runs that repo's own `verify` ([PLX-Updates](updates.md)).
+`tooling`'s `verify` creates each template as a newborn with `plx new` and runs the newborn's own `verify` ([PLX-Updates](updates.md)).
 
 §§ 4 to 6 carry no requirements: what they describe is done by the tooling and the templates, and the requirements the deploy verb serves are PLX-App's.
 Preview environments per pull request are deliberately absent, a deferred decision with its trigger in § 6.8 PLX.

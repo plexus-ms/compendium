@@ -120,3 +120,5 @@ Tenants pin all four by tag in `requirements.yml`, and the pull request that tak
 The `check-ops` task of `tooling` lints the roles, syntax-checks the three shipped playbooks against a fixture inventory of the standard groups, and syntax-checks a playbook that lists every role.
 It runs under a project-local collections path, so that a tenant's installed pin never shadows the checkout.
 Ansible and the vault CLI want a terminal-free invocation in automation: stdin from `/dev/null`, output to a file.
+The operations repo has mise build Ansible through uv, which needs `python` pinned beside `uv`, since mise's Python keeps the uv tools' environments inside its cached data directory.
+Whoever picks that pin owes that the pinned Python satisfies Ansible's Python requirement, and follows a change to it by reinstalling the uv tools (`mise install -f <tool>`).
